@@ -34,6 +34,61 @@
     "delete": "Elimina",
     "create": "Crea",
     "edit": "Modifica",
-    "back": "Indietro"
+    "back": "Indietro",
+    "saving": "Salvataggio…",
+    "saved": "Salvato",
+    "error": "Errore"
+  },
+  "pages": {
+    "list": {
+      "title": "Pagine",
+      "subtitle": "Le pagine Instagram per cui produciamo reel.",
+      "new": "Nuova pagina",
+      "empty": "Nessuna pagina configurata. Creane una per iniziare.",
+      "columnName": "Nome",
+      "columnPrefix": "Prefisso",
+      "columnBuffer": "Buffer min.",
+      "columnStatus": "Stato",
+      "active": "Attiva",
+      "inactive": "Inattiva"
+    },
+    "form": {
+      "newTitle": "Nuova pagina",
+      "editTitle": "Modifica pagina",
+      "name": "Nome",
+      "namePlaceholder": "Porcino & Papaya",
+      "nameHelp": "Il nome della pagina come appare in Instagram.",
+      "slug": "Slug",
+      "slugPlaceholder": "porcino-papaya",
+      "slugHelp": "Identificativo URL — solo lettere minuscole, numeri e trattini.",
+      "codePrefix": "Prefisso codice reel",
+      "codePrefixPlaceholder": "PP",
+      "codePrefixHelp": "2 lettere maiuscole. Sarà parte del codice di ogni reel (es. PP-2606-01).",
+      "bufferThreshold": "Soglia buffer",
+      "bufferThresholdHelp": "Numero minimo di reel pronti prima dell'allarme.",
+      "description": "Descrizione",
+      "descriptionPlaceholder": "Pagina di sessuologia divulgativa…",
+      "active": "Pagina attiva",
+      "submitNew": "Crea pagina",
+      "submitEdit": "Salva modifiche",
+      "errors": {
+        "nameRequired": "Il nome è obbligatorio.",
+        "slugFormat": "Lo slug deve contenere solo lettere minuscole, numeri e trattini.",
+        "codePrefixFormat": "Il prefisso deve essere esattamente 2 lettere maiuscole.",
+        "codePrefixTaken": "Questo prefisso è già usato da un'altra pagina.",
+        "slugTaken": "Questo slug è già in uso.",
+        "notAdmin": "Solo gli amministratori possono modificare le pagine.",
+        "unknown": "Operazione non riuscita."
+      }
+    },
+    "detail": {
+      "back": "Torna alle pagine",
+      "section": {
+        "general": "Generale",
+        "voiceBrief": "Voice brief",
+        "raci": "RACI",
+        "comingSoon": "Disponibile in uno sprint successivo."
+      }
+    }
   }
 }
