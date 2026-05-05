@@ -1,0 +1,39 @@
+{
+  "app": {
+    "name": "Reellificio PM",
+    "tagline": "Gestione produzione reel"
+  },
+  "auth": {
+    "login": {
+      "title": "Accedi",
+      "subtitle": "Inserisci la tua email per ricevere il link di accesso",
+      "emailLabel": "Email",
+      "emailPlaceholder": "tu@esempio.com",
+      "submit": "Invia link di accesso",
+      "submitting": "Invio in corso…",
+      "linkSent": "Controlla la tua email — ti abbiamo inviato il link.",
+      "error": "Qualcosa è andato storto. Riprova."
+    },
+    "logout": "Esci"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "pages": "Pagine",
+    "batches": "Batch",
+    "alerts": "Avvisi",
+    "settings": "Impostazioni"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "empty": "Nessuna attività ancora. Inizia creando una pagina."
+  },
+  "common": {
+    "loading": "Caricamento…",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "create": "Crea",
+    "edit": "Modifica",
+    "back": "Indietro"
+  }
+}
