@@ -109,30 +109,40 @@ export default async function BatchDetailPage({
                 {batch.reels.map((reel) => (
                   <tr
                     key={reel.id}
-                    className="border-b last:border-0 hover:bg-accent/30"
+                    className="border-b last:border-0 hover:bg-accent/30 cursor-pointer"
                   >
-                    <td className="px-4 py-3 font-mono text-xs">{reel.code}</td>
+                    <td className="px-4 py-3 font-mono text-xs">
+                      <Link href={`/reels/${reel.id}`} className="block">
+                        {reel.code}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{reel.title}</span>
-                        {reel.parser_warning ? (
-                          <AlertTriangle
-                            className="size-3.5 text-amber-600"
-                            aria-label={reel.parser_warning}
-                          />
+                      <Link href={`/reels/${reel.id}`} className="block">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{reel.title}</span>
+                          {reel.parser_warning ? (
+                            <AlertTriangle
+                              className="size-3.5 text-amber-600"
+                              aria-label={reel.parser_warning}
+                            />
+                          ) : null}
+                        </div>
+                        {reel.hook ? (
+                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                            {reel.hook}
+                          </p>
                         ) : null}
-                      </div>
-                      {reel.hook ? (
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                          {reel.hook}
-                        </p>
-                      ) : null}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {tReel(`format.${reel.format}` as 'format.porcino_mono')}
+                      <Link href={`/reels/${reel.id}`} className="block">
+                        {tReel(`format.${reel.format}` as 'format.porcino_mono')}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {tReel(`phase.${reel.phase}` as 'phase.research')}
+                      <Link href={`/reels/${reel.id}`} className="block">
+                        {tReel(`phase.${reel.phase}` as 'phase.research')}
+                      </Link>
                     </td>
                   </tr>
                 ))}

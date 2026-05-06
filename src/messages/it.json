@@ -172,5 +172,91 @@
         "test": "Test"
       }
     }
+  },
+  "reels": {
+    "detail": {
+      "back": "Torna al batch",
+      "phaseEnteredAt": "Da",
+      "advancePhase": "Avanza fase",
+      "currentPhase": "Fase corrente",
+      "openInDrive": "Apri in Drive",
+      "parserWarning": "Il parser non ha riconosciuto tutte le sezioni. Controlla il contenuto."
+    },
+    "tabs": {
+      "script": "Script",
+      "voice": "Voice",
+      "files": "File",
+      "publish": "Pubblicazione",
+      "comments": "Commenti"
+    },
+    "script": {
+      "title": "Titolo",
+      "format": "Formato",
+      "category": "Categoria",
+      "hook": "Hook",
+      "corpo": "Corpo",
+      "chiusura": "Chiusura",
+      "cta": "CTA",
+      "notes": "Note",
+      "rawContent": "Contenuto grezzo",
+      "save": "Salva script",
+      "saving": "Salvataggio…",
+      "saved": "Modifiche salvate.",
+      "empty": "Vuoto"
+    },
+    "voice": {
+      "title": "Voice brief",
+      "empty": "Nessun voice brief configurato per questa pagina.",
+      "adjectives": "Aggettivi",
+      "referenceAudio": "Riferimenti audio",
+      "bannedWords": "Parole vietate",
+      "allowedLiberties": "Libertà consentite",
+      "anomalyProcedure": "Procedura anomalie"
+    },
+    "files": {
+      "audio": "Audio (link Drive)",
+      "video": "Video (link Drive)",
+      "audioPlaceholder": "https://drive.google.com/…",
+      "videoPlaceholder": "https://drive.google.com/…",
+      "openLink": "Apri",
+      "save": "Salva file",
+      "saved": "File aggiornati."
+    },
+    "publish": {
+      "caption": "Caption",
+      "captionPlaceholder": "Scrivi la caption…",
+      "scheduledAt": "Data di pubblicazione",
+      "scheduledAtHelp": "Quando il reel verrà pubblicato (orario locale).",
+      "postedUrl": "URL post pubblicato",
+      "postedUrlPlaceholder": "https://www.instagram.com/reel/…",
+      "save": "Salva",
+      "saved": "Pubblicazione aggiornata."
+    },
+    "phase": {
+      "advanceTo": "Sposta a",
+      "advanceConfirm": "Confermi lo spostamento alla fase successiva?",
+      "saved": "Fase aggiornata."
+    },
+    "errors": {
+      "invalidInput": "Dati non validi.",
+      "unknown": "Operazione non riuscita."
+    }
+  },
+  "comments": {
+    "title": "Commenti",
+    "empty": "Nessun commento. Inizia tu la conversazione.",
+    "writePlaceholder": "Scrivi un commento…",
+    "post": "Pubblica",
+    "posting": "Pubblicazione…",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "edited": "Modificato",
+    "deleteConfirm": "Eliminare il commento?",
+    "errors": {
+      "empty": "Il commento non può essere vuoto.",
+      "unknown": "Operazione non riuscita."
+    }
   }
 }

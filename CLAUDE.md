@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository state
 
-Sprint 0 + Sprint 1 are in place. Next.js 16 + Supabase auth + Italian i18n + shadcn/ui scaffolding from Sprint 0. Sprint 1 adds: Pages admin (list/create/edit), bootstrap-admin flow, Drive service-account integration, monthly script-doc parser, and the create-batch + re-sync flow. Future sessions extend; do not re-scaffold.
+Sprint 0 → Sprint 2 are in place. Sprint 0: Next.js 16 + Supabase auth + Italian i18n + shadcn/ui scaffolding. Sprint 1: Pages admin, bootstrap-admin flow, Drive service-account integration, script-doc parser, create-batch + re-sync. Sprint 2: reel detail page (Script / Voice / Files / Publish / Comments tabs), inline edit on each tab, simple phase-advance control, generic comments thread (reel/batch/voice_brief targets) with post/edit/delete-own. Future sessions extend; do not re-scaffold.
 
 - `docs/reellificio_BP.md` — the **business plan** (v2.0, April 2026). Authoritative description of the production model: phases, RACI, batch structure, KPIs, buffer rules, voice system, onboarding, scalability plan.
 - `docs/PRD.md` — the **product requirements document** for the webapp being built to support that production model. Authoritative for product scope, domain model, workflows, stack, and locked-in decisions.
