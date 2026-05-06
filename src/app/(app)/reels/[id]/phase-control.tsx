@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { setReelPhase, ALL_PIPELINE_PHASES } from '@/lib/reels/actions';
+import { setReelPhase } from '@/lib/reels/actions';
+import { ALL_PIPELINE_PHASES } from '@/lib/reels/constants';
 
 type Props = {
   reelId: string;

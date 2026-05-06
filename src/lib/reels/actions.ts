@@ -8,25 +8,12 @@ export type ReelActionResult =
   | { ok: true }
   | { ok: false; error: 'invalid_input' | 'unknown'; message?: string };
 
-const PIPELINE_PHASES = [
-  'research',
-  'script_validation',
-  'dubbing',
-  'editing',
-  'qc',
-  'publish_queue',
-  'published',
-] as const;
-type PipelinePhase = (typeof PIPELINE_PHASES)[number];
-
-const REEL_FORMATS = [
-  'porcino_mono',
-  'papaya_mono',
-  'botta_e_risposta',
-  'duo',
-  'other',
-] as const;
-const REEL_CATEGORIES = ['safe', 'adapted', 'test'] as const;
+import {
+  ALL_PIPELINE_PHASES as PIPELINE_PHASES,
+  ALL_REEL_FORMATS as REEL_FORMATS,
+  ALL_REEL_CATEGORIES as REEL_CATEGORIES,
+  type PipelinePhase,
+} from './constants';
 
 const scriptSchema = z.object({
   title: z.string().min(1).max(200),
@@ -189,6 +176,3 @@ export async function setReelPhase(
   return { ok: true };
 }
 
-export const ALL_PIPELINE_PHASES = PIPELINE_PHASES;
-export const ALL_REEL_FORMATS = REEL_FORMATS;
-export const ALL_REEL_CATEGORIES = REEL_CATEGORIES;
