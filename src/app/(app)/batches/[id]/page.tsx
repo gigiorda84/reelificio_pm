@@ -141,7 +141,7 @@ export default async function BatchDetailPage({
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       <Link href={`/reels/${reel.id}`} className="block">
-                        {tReel(`phase.${reel.phase}` as 'phase.research')}
+                        {tReel(`phase.${reel.phase}` as 'phase.research_prescript')}
                       </Link>
                     </td>
                   </tr>

@@ -1,7 +1,10 @@
 # Reellificio PM — Product Requirements Document
 
-**Version** 0.1 (draft) · **Owner** Gabriele Concas · **Date** 2026-05-05
+**Version** 0.2 · **Owner** Gabriele Concas · **Date** 2026-05-06
 **Status** Draft for review · **Source** `reellificio_BP.md` v2.0 (April 2026)
+
+**Changelog**
+- 2026-05-06 — Pipeline phases overhauled to match production RACI: QC removed (absorbed into Montaggio + Sottotitoli); `scientific_validation` added as a discrete phase; `script_validation` renamed `script_writing` (Scrittura script finale + Valutazione viralità); `publish_queue` renamed `publication`. New canonical order: **research_prescript → scientific_validation → script_writing → dubbing → editing → publication**. RACI table refreshed (§3.1).
 
 ---
 
@@ -14,7 +17,7 @@ The app is **not** a replacement for Notion-style wiki, video editing tools, or 
 ## 2. Goals
 
 1. Turn each monthly **script Google Doc** into a structured batch of reel cards automatically.
-2. Move every reel through the BP pipeline (research → script validation → voice → editing → QC → publish queue) with explicit phase ownership (RACI) and visible state.
+2. Move every reel through the production pipeline (ricerca & pre-script → validazione scientifica → scrittura script → doppiaggio → montaggio + sottotitoli → pubblicazione & caption) with explicit phase ownership (RACI) and visible state.
 3. Let team members **complete tasks, comment on each reel, @-mention, and receive notifications** via email + WhatsApp + Telegram.
 4. Surface buffer / KPI alerts the moment thresholds are crossed (BP §3.1, §6).
 5. Onboard external collaborators (doppiatori, montatori, scientific validators) with **per-task magic links** — no account setup friction.
@@ -28,6 +31,19 @@ The app is **not** a replacement for Notion-style wiki, video editing tools, or 
 - Automated KPI ingestion from Instagram Graph API in v1 (manual entry first; integration in v2).
 
 ## 3. Users & roles
+
+### 3.1 RACI per phase (default, configurable per page)
+
+| Phase | R (Responsible) | A (Approves) | C (Consulted) | I (Informed) |
+| --- | --- | --- | --- | --- |
+| `research_prescript` (Ricerca & pre-script) | Gabriele / Giuse | Teo | — | Matteo |
+| `scientific_validation` (Validazione scientifica) | Partner esterno (Daniel Giunti) | Gabriele / Giuse | — | tutti |
+| `script_writing` (Scrittura script finale + valutazione viralità) | Team Scrittura | Teo | NAM | — |
+| `dubbing` (Doppiaggio) | Doppiatore | Gabriele, Giuse | Team Script | tutti |
+| `editing` (Montaggio + sottotitoli) | Team Montaggio | Matteo | Gabriele | Gabriele |
+| `publication` (Pubblicazione & caption) | SMM | Gabriele | Matteo | tutti |
+
+The RACI table is **per-page** (not global). The defaults above match the initial Reellificio config; admins edit them on the page detail. R/A/C/I each accept multiple users (e.g. R = "Gabriele OR Giuse" — either can claim the work and request advancement).
 
 | Role | Type | Capabilities |
 | --- | --- | --- |
@@ -59,7 +75,7 @@ Page (e.g. "Porcino & Papaya")
            ├── category          — safe / adapted / test (BP §3.2)
            ├── hook / corpo / chiusura / cta — markdown blocks
            ├── notes             — inline writer notes from the doc
-           ├── phase             — research, scriptValidation, dubbing, editing, qc, publishQueue
+           ├── phase             — research_prescript, scientific_validation, script_writing, dubbing, editing, publication
            ├── phaseStatus       — green / yellow / red (semaforo)
            ├── phaseEnteredAt    — for stuck-detection
            ├── assignees         — { phase: userId } (R role)
@@ -77,7 +93,7 @@ Other entities: `Comment`, `Notification`, `MagicLinkInvite`, `KpiRecord`, `Buff
 1. Admin pastes the Google Doc URL into "New batch" for a page.
 2. Backend uses Google Drive API to fetch the doc as natural-language text.
 3. **Parser** splits on `SCRIPT N — TITLE`, then extracts blocks `HOOK`, `CORPO`, `CHIUSURA`, `CTA`, plus the format tag line (e.g. `✅ PORCINO MONOLOGO (Papaya cameo)`) and any inline notes.
-4. Each script becomes a reel card in phase `research` (or `scriptValidation` if marked safe).
+4. Each script becomes a reel card in phase `research_prescript` (or `script_writing` if marked safe and pre-validated).
 5. Category (safe/adapted/test) defaults to `adapted`; admin can bulk-edit.
 6. **Re-sync button** on the batch: re-fetches doc, shows a diff (new/changed/removed scripts), admin confirms which changes to apply. Comments and phase progress on existing reels are preserved.
 
@@ -100,10 +116,11 @@ Tabs:
 1. **Script** — hook/corpo/chiusura/cta blocks, editable, with versioning (last 10 versions). Format & category editable.
 2. **Voice** — Voice Brief snapshot (read-only from page), audio deliverable link (Drive), recording notes.
 3. **Editing** — link to montaggio Drive folder, video preview embed, technical notes.
-4. **QC** — checklist (BP §10 Definition of Done: script validated + audio + edit + subs + QC), each item assignable.
-5. **Publish** — caption, scheduled date, hashtags, post URL once published.
-6. **Comments** — threaded, @-mentions, file attachments via Drive link.
-7. **Activity** — auto log of every state change.
+4. **Publish** — caption, scheduled date, hashtags, post URL once published.
+5. **Comments** — threaded, @-mentions, file attachments via Drive link.
+6. **Activity** — auto log of every state change.
+
+> QC is no longer a discrete phase. The Definition of Done (BP §10: script validated + audio + edit + subs + QC review) is enforced as a checklist *inside* the editing phase: a reel cannot be advanced from editing → publication until all checklist items are confirmed by the A (Matteo).
 
 ### 5.4 RACI-driven phase advancement
 

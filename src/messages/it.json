@@ -18,6 +18,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "pipeline": "Pipeline",
     "pages": "Pagine",
     "batches": "Batch",
     "alerts": "Avvisi",
@@ -25,7 +26,36 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "empty": "Nessuna attività ancora. Inizia creando una pagina."
+    "empty": "Nessuna attività ancora. Inizia creando una pagina.",
+    "totals": {
+      "pages": "Pagine attive",
+      "batches": "Batch totali",
+      "reelsInFlight": "Reel in produzione",
+      "pendingRequests": "Richieste in attesa"
+    },
+    "pages": {
+      "title": "Stato pagine",
+      "empty": "Nessuna pagina attiva.",
+      "buffer": "Buffer pubblicazione",
+      "bufferOf": "{count} / soglia {threshold}",
+      "bufferLow": "Sotto soglia",
+      "bufferOk": "OK",
+      "inFlight": "In produzione",
+      "openPipeline": "Apri pipeline"
+    },
+    "recent": {
+      "title": "Batch recenti",
+      "empty": "Nessun batch ancora.",
+      "reels": "{count} reel",
+      "neverSynced": "Mai sincronizzato",
+      "syncedAt": "Sincronizzato {date}"
+    },
+    "alerts": {
+      "title": "Da gestire",
+      "pending": "{count, plural, =1 {1 richiesta di avanzamento in attesa} other {# richieste di avanzamento in attesa}}",
+      "lowBuffer": "{count, plural, =1 {1 pagina sotto soglia buffer} other {# pagine sotto soglia buffer}}",
+      "allGood": "Tutto sotto controllo."
+    }
   },
   "common": {
     "loading": "Caricamento…",
@@ -151,13 +181,20 @@
     },
     "reel": {
       "phase": {
-        "research": "Ricerca",
-        "script_validation": "Validazione",
+        "research_prescript": "Ricerca & pre-script",
+        "scientific_validation": "Validazione scientifica",
+        "script_writing": "Scrittura script",
+        "dubbing": "Doppiaggio",
+        "editing": "Montaggio + sottotitoli",
+        "publication": "Pubblicazione & caption"
+      },
+      "phaseShort": {
+        "research_prescript": "Ricerca",
+        "scientific_validation": "Validazione",
+        "script_writing": "Scrittura",
         "dubbing": "Doppiaggio",
         "editing": "Montaggio",
-        "qc": "QC",
-        "publish_queue": "In coda",
-        "published": "Pubblicato"
+        "publication": "Pubblicazione"
       },
       "format": {
         "porcino_mono": "Porcino monologo",
@@ -241,6 +278,66 @@
       "invalidInput": "Dati non validi.",
       "unknown": "Operazione non riuscita."
     }
+  },
+  "raci": {
+    "columnPhase": "Fase",
+    "role": {
+      "responsible": "Responsabile (R)",
+      "approver": "Approva (A)",
+      "consulted": "Consultato (C)",
+      "informed": "Informato (I)"
+    },
+    "addUser": "Aggiungi persona…",
+    "noOne": "Nessuno",
+    "saved": "RACI aggiornato.",
+    "errors": {
+      "notAdmin": "Solo gli amministratori possono modificare il RACI."
+    }
+  },
+  "phaseAdvance": {
+    "request": "Richiedi avanzamento",
+    "requestTo": "Richiedi avanzamento a {phase}",
+    "requestNotePlaceholder": "Note opzionali per chi approva…",
+    "submit": "Invia richiesta",
+    "submitting": "Invio…",
+    "pendingTitle": "Richiesta in attesa",
+    "pendingFromTo": "Da {from} a {to}",
+    "requestedBy": "Richiesto da {name}",
+    "requestedAt": "il {date}",
+    "approve": "Approva",
+    "reject": "Rifiuta",
+    "decisionNotePlaceholder": "Motivo (richiesto se rifiuti)…",
+    "cancel": "Annulla richiesta",
+    "noPending": "Nessuna richiesta in attesa.",
+    "lastDecisions": "Ultime decisioni",
+    "approvedBy": "Approvata da {name}",
+    "rejectedBy": "Rifiutata da {name}",
+    "cannotAdvance": "Sei sull'ultima fase.",
+    "errors": {
+      "notAuthorized": "Non sei autorizzato per questa azione.",
+      "alreadyPending": "Esiste già una richiesta in attesa.",
+      "rejectNoteRequired": "Aggiungi una motivazione per il rifiuto.",
+      "unknown": "Operazione non riuscita."
+    },
+    "saved": {
+      "requested": "Richiesta inviata.",
+      "approved": "Richiesta approvata.",
+      "rejected": "Richiesta rifiutata.",
+      "cancelled": "Richiesta annullata."
+    }
+  },
+  "pipeline": {
+    "title": "Pipeline",
+    "subtitle": "Tutte le reel attraverso le fasi di produzione.",
+    "filterPage": "Pagina",
+    "filterAllPages": "Tutte le pagine",
+    "filterBatch": "Batch",
+    "filterAllBatches": "Tutti i batch",
+    "empty": "Nessuna reel da mostrare con questi filtri.",
+    "phaseEmpty": "—",
+    "daysIn": "{count, plural, =1 {1 giorno} other {# giorni}}",
+    "today": "Oggi",
+    "pendingBadge": "in approvazione"
   },
   "comments": {
     "title": "Commenti",

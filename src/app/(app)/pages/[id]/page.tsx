@@ -5,7 +5,10 @@ import { ChevronLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPage } from '@/lib/pages/queries';
 import { updatePage, type PageActionResult } from '@/lib/pages/actions';
+import { getRaciConfigForPage } from '@/lib/raci/queries';
+import { listProfiles } from '@/lib/profiles/queries';
 import { PageForm } from '../new/page-form';
+import { RaciEditor } from './raci-editor';
 
 export default async function PageDetailPage({
   params,
@@ -13,9 +16,11 @@ export default async function PageDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [t, page] = await Promise.all([
+  const [t, page, raci, profiles] = await Promise.all([
     getTranslations('pages'),
     getPage(id),
+    getRaciConfigForPage(id),
+    listProfiles(),
   ]);
 
   if (!page) notFound();
@@ -82,8 +87,8 @@ export default async function PageDetailPage({
             {t('detail.section.raci')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {t('detail.section.comingSoon')}
+        <CardContent>
+          <RaciEditor pageId={id} profiles={profiles} initial={raci} />
         </CardContent>
       </Card>
     </div>

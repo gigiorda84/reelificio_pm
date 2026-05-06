@@ -5,11 +5,15 @@ import { ChevronLeft } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CommentsThread } from '@/components/comments/comments-thread';
 import { getReelDetail } from '@/lib/reels/queries';
+import { getPendingRequestForReel } from '@/lib/phase-advance/queries';
+import { getRaciConfigForPage, getRaciUsers } from '@/lib/raci/queries';
+import { getAdminStatus } from '@/lib/auth/admin';
+import type { PipelinePhase } from '@/lib/reels/constants';
 import { ScriptTab } from './script-tab';
 import { VoiceTab } from './voice-tab';
 import { FilesTab } from './files-tab';
 import { PublishTab } from './publish-tab';
-import { PhaseControl } from './phase-control';
+import { PhaseAdvancePanel } from './phase-advance-panel';
 
 export default async function ReelDetailPage({
   params,
@@ -20,13 +24,27 @@ export default async function ReelDetailPage({
   const reel = await getReelDetail(id);
   if (!reel) notFound();
 
-  const [tDetail, tTabs, tPhase, tFmt, tCat] = await Promise.all([
-    getTranslations('reels.detail'),
-    getTranslations('reels.tabs'),
-    getTranslations('batches.reel.phase'),
-    getTranslations('batches.reel.format'),
-    getTranslations('batches.reel.category'),
-  ]);
+  const [tDetail, tTabs, tPhase, tFmt, tCat, pending, raci, admin] =
+    await Promise.all([
+      getTranslations('reels.detail'),
+      getTranslations('reels.tabs'),
+      getTranslations('batches.reel.phase'),
+      getTranslations('batches.reel.format'),
+      getTranslations('batches.reel.category'),
+      getPendingRequestForReel(id),
+      getRaciConfigForPage(reel.page_id),
+      getAdminStatus(),
+    ]);
+
+  const currentRaci = raci.find((r) => r.phase === reel.phase);
+  const isResponsible =
+    !!admin.userId &&
+    !!currentRaci &&
+    getRaciUsers(currentRaci, 'responsible').includes(admin.userId);
+  const isApprover =
+    !!admin.userId &&
+    !!currentRaci &&
+    getRaciUsers(currentRaci, 'approver').includes(admin.userId);
 
   const phaseEntered = new Date(reel.phase_entered_at);
 
@@ -58,7 +76,7 @@ export default async function ReelDetailPage({
             <span>
               {tDetail('currentPhase')}:{' '}
               <span className="font-medium text-foreground">
-                {tPhase(reel.phase as 'research')}
+                {tPhase(reel.phase as 'research_prescript')}
               </span>
               <span className="ml-2">
                 {tDetail('phaseEnteredAt')}{' '}
@@ -70,7 +88,15 @@ export default async function ReelDetailPage({
             </span>
           </div>
         </div>
-        <PhaseControl reelId={reel.id} currentPhase={reel.phase} />
+        <PhaseAdvancePanel
+          reelId={reel.id}
+          currentPhase={reel.phase as PipelinePhase}
+          pending={pending}
+          currentUserId={admin.userId}
+          isAdmin={admin.isAdmin}
+          isResponsible={isResponsible}
+          isApprover={isApprover}
+        />
       </header>
 
       <Tabs defaultValue="script">

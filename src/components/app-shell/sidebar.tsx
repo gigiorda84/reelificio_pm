@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   FileVideo,
   Layers,
+  KanbanSquare,
   Bell,
   Settings,
 } from 'lucide-react';
@@ -14,6 +15,7 @@ import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: LayoutDashboard, key: 'dashboard' },
+  { href: '/pipeline', icon: KanbanSquare, key: 'pipeline' },
   { href: '/pages', icon: FileVideo, key: 'pages' },
   { href: '/batches', icon: Layers, key: 'batches' },
   { href: '/alerts', icon: Bell, key: 'alerts' },
