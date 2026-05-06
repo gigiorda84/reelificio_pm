@@ -90,5 +90,87 @@
         "comingSoon": "Disponibile in uno sprint successivo."
       }
     }
+  },
+  "batches": {
+    "list": {
+      "title": "Batch",
+      "subtitle": "I batch mensili creati per ogni pagina.",
+      "new": "Nuovo batch",
+      "empty": "Nessun batch creato. Crea il primo importando un documento Drive.",
+      "columnLabel": "Etichetta",
+      "columnPage": "Pagina",
+      "columnReels": "Reel",
+      "columnSynced": "Ultima sincronizzazione",
+      "columnStatus": "Stato"
+    },
+    "status": {
+      "draft": "Bozza",
+      "active": "Attivo",
+      "closed": "Chiuso"
+    },
+    "form": {
+      "title": "Nuovo batch",
+      "page": "Pagina",
+      "pagePlaceholder": "Seleziona una pagina",
+      "sourceDocUrl": "URL del documento Drive",
+      "sourceDocUrlHelp": "Incolla l'URL del Google Doc o del file .docx (Drive). La pagina deve essere già condivisa con l'account servizio.",
+      "label": "Etichetta",
+      "labelHelp": "Sovrascrive l'etichetta letta dal documento (es. \"Batch Maggio\").",
+      "submit": "Importa",
+      "submitting": "Importazione in corso…",
+      "errors": {
+        "noPages": "Crea prima una pagina.",
+        "invalidUrl": "URL non valido.",
+        "driveNotFound": "Documento non trovato. Hai condiviso la cartella con l'account servizio?",
+        "driveForbidden": "Accesso negato. L'account servizio non ha permessi sul documento.",
+        "driveUnsupported": "Formato del documento non supportato.",
+        "driveUnknown": "Errore durante il recupero del documento.",
+        "noReels": "Il documento non contiene script riconoscibili.",
+        "notAdmin": "Solo gli amministratori possono creare i batch.",
+        "unknown": "Operazione non riuscita."
+      }
+    },
+    "detail": {
+      "back": "Torna ai batch",
+      "resync": "Risincronizza",
+      "resyncing": "Sincronizzazione…",
+      "openInDrive": "Apri in Drive",
+      "lastSynced": "Sincronizzato",
+      "neverSynced": "Mai sincronizzato",
+      "reels": "Reel",
+      "noReels": "Nessun reel.",
+      "warningParserHeader": "Avvisi del parser",
+      "diff": {
+        "title": "Modifiche rilevate",
+        "added": "Nuovi",
+        "changed": "Modificati",
+        "unchanged": "Invariati",
+        "removed": "Non più presenti (saranno mantenuti)",
+        "noChanges": "Nessuna modifica rispetto all'ultima sincronizzazione."
+      }
+    },
+    "reel": {
+      "phase": {
+        "research": "Ricerca",
+        "script_validation": "Validazione",
+        "dubbing": "Doppiaggio",
+        "editing": "Montaggio",
+        "qc": "QC",
+        "publish_queue": "In coda",
+        "published": "Pubblicato"
+      },
+      "format": {
+        "porcino_mono": "Porcino monologo",
+        "papaya_mono": "Papaya monologo",
+        "botta_e_risposta": "Botta e risposta",
+        "duo": "Duo",
+        "other": "Altro"
+      },
+      "category": {
+        "safe": "Safe",
+        "adapted": "Adattato",
+        "test": "Test"
+      }
+    }
   }
 }
