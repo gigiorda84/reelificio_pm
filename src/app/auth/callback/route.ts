@@ -10,10 +10,16 @@ export async function GET(request: NextRequest) {
     const supabase = await getSupabaseServerClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
+      console.error('[auth/callback] exchangeCodeForSession failed:', {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+      });
       const errUrl = url.clone();
       errUrl.pathname = '/login';
       errUrl.search = '';
       errUrl.searchParams.set('error', 'callback_failed');
+      errUrl.searchParams.set('detail', error.message.slice(0, 160));
       return NextResponse.redirect(errUrl);
     }
   }
