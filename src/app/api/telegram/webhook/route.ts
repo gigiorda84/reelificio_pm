@@ -52,11 +52,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'admin_init' }, { status: 500 });
     }
 
-    const { data, error, count } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .update({ telegram_chat_id: String(chatId) })
       .eq('id', userId)
-      .select('id', { count: 'exact' });
+      .select('id');
     if (error) {
       console.error('[telegram/webhook] profiles.update failed:', {
         message: error.message,
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'update_failed' }, { status: 500 });
     }
     if (!data || data.length === 0) {
-      console.error('[telegram/webhook] no profile row matched userId', { userId, count });
+      console.error('[telegram/webhook] no profile row matched userId', { userId });
       await sendTelegramMessage(
         String(chatId),
         '⚠️ Profilo non trovato. Effettua almeno un login nell\'app prima di collegare Telegram.',
