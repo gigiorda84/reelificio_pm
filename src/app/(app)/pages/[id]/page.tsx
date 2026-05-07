@@ -7,8 +7,10 @@ import { getPage } from '@/lib/pages/queries';
 import { updatePage, type PageActionResult } from '@/lib/pages/actions';
 import { getRaciConfigForPage } from '@/lib/raci/queries';
 import { listProfiles } from '@/lib/profiles/queries';
+import { getVoiceBriefForPage } from '@/lib/voice-briefs/queries';
 import { PageForm } from '../new/page-form';
 import { RaciEditor } from './raci-editor';
+import { VoiceBriefEditor } from './voice-brief-editor';
 
 export default async function PageDetailPage({
   params,
@@ -16,11 +18,12 @@ export default async function PageDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [t, page, raci, profiles] = await Promise.all([
+  const [t, page, raci, profiles, voiceBrief] = await Promise.all([
     getTranslations('pages'),
     getPage(id),
     getRaciConfigForPage(id),
     listProfiles(),
+    getVoiceBriefForPage(id),
   ]);
 
   if (!page) notFound();
@@ -76,8 +79,8 @@ export default async function PageDetailPage({
             {t('detail.section.voiceBrief')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {t('detail.section.comingSoon')}
+        <CardContent>
+          <VoiceBriefEditor pageId={id} initial={voiceBrief} />
         </CardContent>
       </Card>
 

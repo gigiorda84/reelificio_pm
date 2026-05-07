@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { listComments, type CommentTarget } from '@/lib/comments/queries';
+import { listProfiles } from '@/lib/profiles/queries';
 import { CommentForm } from './comment-form';
 import { CommentItem } from './comment-item';
 
@@ -9,9 +10,10 @@ type Props = {
 };
 
 export async function CommentsThread({ targetType, targetId }: Props) {
-  const [t, comments] = await Promise.all([
+  const [t, comments, profiles] = await Promise.all([
     getTranslations('comments'),
     listComments(targetType, targetId),
+    listProfiles(),
   ]);
 
   return (
@@ -22,12 +24,12 @@ export async function CommentsThread({ targetType, targetId }: Props) {
         <ol className="space-y-3">
           {comments.map((c) => (
             <li key={c.id}>
-              <CommentItem comment={c} />
+              <CommentItem comment={c} profiles={profiles} />
             </li>
           ))}
         </ol>
       )}
-      <CommentForm targetType={targetType} targetId={targetId} />
+      <CommentForm targetType={targetType} targetId={targetId} profiles={profiles} />
     </div>
   );
 }

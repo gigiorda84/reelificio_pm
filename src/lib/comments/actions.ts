@@ -16,11 +16,30 @@ const postSchema = z.object({
   target_id: z.string().uuid(),
   body: z.string().min(1).max(5000),
   parent_id: z.string().uuid().nullable().optional(),
+  mentions: z.array(z.string().uuid()).max(20).default([]),
 });
 
 const editSchema = z.object({
   body: z.string().min(1).max(5000),
+  mentions: z.array(z.string().uuid()).max(20).default([]),
 });
+
+function readMentions(formData: FormData): string[] {
+  const all = formData
+    .getAll('mentions')
+    .map((v) => v.toString().trim())
+    .filter((v) => v.length > 0);
+  return Array.from(new Set(all));
+}
+
+async function resolveValidMentions(
+  supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
+  ids: string[],
+): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const { data } = await supabase.from('profiles').select('id').in('id', ids);
+  return (data ?? []).map((r) => r.id as string);
+}
 
 function targetRevalidate(target: CommentTarget, id: string) {
   if (target === 'reel') revalidatePath(`/reels/${id}`);
@@ -36,6 +55,7 @@ export async function postComment(
     target_id: formData.get('target_id')?.toString() ?? '',
     body: (formData.get('body')?.toString() ?? '').trim(),
     parent_id: formData.get('parent_id')?.toString() || null,
+    mentions: readMentions(formData),
   });
   if (!parsed.success) return { ok: false, error: 'invalid_input' };
 
@@ -45,6 +65,8 @@ export async function postComment(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'not_authenticated' };
 
+  const mentions = await resolveValidMentions(supabase, parsed.data.mentions);
+
   const { data, error } = await supabase
     .from('comments')
     .insert({
@@ -53,7 +75,7 @@ export async function postComment(
       parent_id: parsed.data.parent_id ?? null,
       body: parsed.data.body,
       author_id: user.id,
-      mentions: [],
+      mentions,
     })
     .select('id')
     .single();
@@ -69,6 +91,7 @@ export async function updateComment(
 ): Promise<CommentActionResult> {
   const parsed = editSchema.safeParse({
     body: (formData.get('body')?.toString() ?? '').trim(),
+    mentions: readMentions(formData),
   });
   if (!parsed.success) return { ok: false, error: 'invalid_input' };
 
@@ -78,11 +101,13 @@ export async function updateComment(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'not_authenticated' };
 
+  const mentions = await resolveValidMentions(supabase, parsed.data.mentions);
+
   // RLS already restricts UPDATE to author_id = auth.uid(); the explicit
   // .eq('author_id', user.id) below makes the intent visible.
   const { data, error } = await supabase
     .from('comments')
-    .update({ body: parsed.data.body })
+    .update({ body: parsed.data.body, mentions })
     .eq('id', id)
     .eq('author_id', user.id)
     .select('target_type, target_id')

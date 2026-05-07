@@ -351,9 +351,29 @@
     "cancel": "Annulla",
     "edited": "Modificato",
     "deleteConfirm": "Eliminare il commento?",
+    "mentionEmpty": "Nessun utente trovato.",
     "errors": {
       "empty": "Il commento non può essere vuoto.",
       "unknown": "Operazione non riuscita."
+    }
+  },
+  "voiceBriefs": {
+    "save": "Salva voice brief",
+    "saving": "Salvataggio…",
+    "saved": "Voice brief salvato.",
+    "fields": {
+      "adjectives": "Aggettivi",
+      "referenceAudio": "Riferimenti audio",
+      "bannedWords": "Parole vietate",
+      "allowedLiberties": "Libertà consentite",
+      "anomalyProcedure": "Procedura anomalie"
+    },
+    "hints": {
+      "csv": "Separa i valori con una virgola.",
+      "urlsPerLine": "Un URL per riga."
+    },
+    "errors": {
+      "notAdmin": "Solo gli admin possono modificare il voice brief."
     }
   }
 }
