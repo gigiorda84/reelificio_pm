@@ -375,5 +375,57 @@
     "errors": {
       "notAdmin": "Solo gli admin possono modificare il voice brief."
     }
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "subtitle": "Profilo, canali di notifica e preferenze.",
+    "section": {
+      "profile": "Profilo",
+      "telegram": "Telegram",
+      "notifications": "Notifiche"
+    },
+    "profile": {
+      "fullName": "Nome completo",
+      "email": "Email",
+      "emailHint": "L'email è gestita dall'autenticazione e non è modificabile qui.",
+      "dailyReminder": "Orario promemoria giornaliero",
+      "dailyReminderHint": "Quando ricevere il promemoria per l'aggiornamento giornaliero."
+    },
+    "telegram": {
+      "description": "Collega Telegram per ricevere le notifiche anche su mobile.",
+      "step1Bot": "Apri il bot",
+      "step1NoBot": "Apri il bot Reellificio PM su Telegram (cerca lo username configurato).",
+      "step2": "Invia questo comando al bot:",
+      "step3": "Riceverai un messaggio di conferma quando l'account è collegato.",
+      "copy": "Copia",
+      "copied": "Copiato",
+      "linkedDescription": "Account Telegram collegato.",
+      "unlink": "Scollega",
+      "unlinkConfirm": "Vuoi scollegare l'account Telegram?",
+      "unlinked": "Telegram scollegato."
+    },
+    "matrix": {
+      "description": "Per ogni tipo di evento scegli i canali su cui ricevere notifiche.",
+      "columnEvent": "Evento",
+      "alwaysOn": "Sempre attiva",
+      "telegramNotLinked": "non collegato"
+    },
+    "channels": {
+      "in_app": "In app",
+      "email": "Email",
+      "telegram": "Telegram",
+      "whatsapp": "WhatsApp"
+    },
+    "events": {
+      "mention": "Menzione in un commento",
+      "assignment": "Assegnazione su un reel",
+      "phase_approval_request": "Richiesta di approvazione fase",
+      "phase_approved": "Fase approvata",
+      "phase_rejected": "Fase rifiutata",
+      "buffer_alert": "Buffer sotto soglia",
+      "kpi_alert": "Avviso KPI",
+      "daily_reminder": "Promemoria giornaliero",
+      "weekly_digest": "Digest settimanale"
+    }
   }
 }

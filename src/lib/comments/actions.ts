@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { notifyMentions } from '@/lib/notifications/mention';
 
 export type CommentActionResult =
   | { ok: true; id?: string }
@@ -81,6 +82,19 @@ export async function postComment(
     .single();
   if (error) return { ok: false, error: 'unknown' };
 
+  if (mentions.length > 0) {
+    // Fire-and-forget: a notification failure shouldn't fail the comment.
+    notifyMentions({
+      authorId: user.id,
+      body: parsed.data.body,
+      mentionIds: mentions,
+      target: parsed.data.target_type,
+      targetId: parsed.data.target_id,
+    }).catch((err) => {
+      console.error('[notifyMentions] post-comment dispatch failed', err);
+    });
+  }
+
   targetRevalidate(parsed.data.target_type, parsed.data.target_id);
   return { ok: true, id: data.id };
 }
@@ -103,6 +117,14 @@ export async function updateComment(
 
   const mentions = await resolveValidMentions(supabase, parsed.data.mentions);
 
+  // Fetch prior mentions to identify newly-added users.
+  const { data: prior } = await supabase
+    .from('comments')
+    .select('mentions')
+    .eq('id', id)
+    .maybeSingle();
+  const previousMentions = (prior?.mentions as string[] | null) ?? [];
+
   // RLS already restricts UPDATE to author_id = auth.uid(); the explicit
   // .eq('author_id', user.id) below makes the intent visible.
   const { data, error } = await supabase
@@ -114,6 +136,19 @@ export async function updateComment(
     .maybeSingle();
   if (error) return { ok: false, error: 'unknown' };
   if (!data) return { ok: false, error: 'forbidden' };
+
+  const newlyMentioned = mentions.filter((m) => !previousMentions.includes(m));
+  if (newlyMentioned.length > 0) {
+    notifyMentions({
+      authorId: user.id,
+      body: parsed.data.body,
+      mentionIds: newlyMentioned,
+      target: data.target_type as CommentTarget,
+      targetId: data.target_id,
+    }).catch((err) => {
+      console.error('[notifyMentions] update-comment dispatch failed', err);
+    });
+  }
 
   targetRevalidate(data.target_type as CommentTarget, data.target_id);
   return { ok: true };
