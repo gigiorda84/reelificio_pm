@@ -43,14 +43,37 @@ export async function POST(req: NextRequest) {
       );
       return NextResponse.json({ ok: true });
     }
-    const supabase = getSupabaseAdminClient();
-    const { error } = await supabase
+    let supabase;
+    try {
+      supabase = getSupabaseAdminClient();
+    } catch (e) {
+      console.error('[telegram/webhook] admin client init failed:', e);
+      await sendTelegramMessage(String(chatId), '⚠️ Errore tecnico, riprova più tardi.');
+      return NextResponse.json({ ok: false, error: 'admin_init' }, { status: 500 });
+    }
+
+    const { data, error, count } = await supabase
       .from('profiles')
       .update({ telegram_chat_id: String(chatId) })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select('id', { count: 'exact' });
     if (error) {
+      console.error('[telegram/webhook] profiles.update failed:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        userId,
+      });
       await sendTelegramMessage(String(chatId), '⚠️ Errore tecnico, riprova più tardi.');
-      return NextResponse.json({ ok: false }, { status: 500 });
+      return NextResponse.json({ ok: false, error: 'update_failed' }, { status: 500 });
+    }
+    if (!data || data.length === 0) {
+      console.error('[telegram/webhook] no profile row matched userId', { userId, count });
+      await sendTelegramMessage(
+        String(chatId),
+        '⚠️ Profilo non trovato. Effettua almeno un login nell\'app prima di collegare Telegram.',
+      );
+      return NextResponse.json({ ok: false, error: 'profile_not_found' }, { status: 200 });
     }
     await sendTelegramMessage(
       String(chatId),
