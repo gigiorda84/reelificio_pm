@@ -26,6 +26,11 @@ export async function sendMagicLink(formData: FormData): Promise<LoginResult> {
   });
 
   if (error) {
+    console.error('[login] signInWithOtp failed:', {
+      message: error.message,
+      status: error.status,
+      name: error.name,
+    });
     return { ok: false, error: error.message };
   }
   return { ok: true };
