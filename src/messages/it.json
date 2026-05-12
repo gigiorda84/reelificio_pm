@@ -52,6 +52,7 @@
     },
     "alerts": {
       "title": "Da gestire",
+      "openAlerts": "{count, plural, =1 {1 avviso aperto} other {# avvisi aperti}}",
       "pending": "{count, plural, =1 {1 richiesta di avanzamento in attesa} other {# richieste di avanzamento in attesa}}",
       "lowBuffer": "{count, plural, =1 {1 pagina sotto soglia buffer} other {# pagine sotto soglia buffer}}",
       "allGood": "Tutto sotto controllo."
@@ -324,6 +325,30 @@
       "approved": "Richiesta approvata.",
       "rejected": "Richiesta rifiutata.",
       "cancelled": "Richiesta annullata."
+    }
+  },
+  "alerts": {
+    "title": "Avvisi",
+    "subtitle": "Avvisi aperti dal motore (buffer basso, fase ferma). Chiudere un avviso richiede una soluzione proposta.",
+    "openTitle": "Aperti ({count})",
+    "openEmpty": "Nessun avviso aperto.",
+    "closedTitle": "Storico (ultimi 50)",
+    "closedEmpty": "Nessun avviso chiuso.",
+    "openedAt": "Aperto {date}",
+    "close": "Chiudi",
+    "adminOnly": "Solo admin",
+    "closeDialogTitle": "Chiudi avviso",
+    "closeDialogDescription": "Inserisci una breve soluzione proposta prima di chiudere (BP §6.2).",
+    "proposedSolutionLabel": "Soluzione proposta",
+    "proposedSolutionPlaceholder": "Es. assegnare X al doppiaggio entro domani; recuperare 2 reel dalla riserva…",
+    "solutionRequired": "La soluzione proposta è obbligatoria.",
+    "closeSuccess": "Avviso chiuso.",
+    "notAuthorized": "Solo gli admin possono chiudere gli avvisi.",
+    "bufferDetail": "{count} pronti / soglia {threshold}",
+    "hoursInPhase": "{hours}h nella fase",
+    "kinds": {
+      "bufferLow": "Buffer basso",
+      "phaseStuck": "Fase ferma"
     }
   },
   "pipeline": {

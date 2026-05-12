@@ -8,6 +8,7 @@ export const NOTIFICATION_EVENTS = [
   'phase_approved',
   'phase_rejected',
   'buffer_alert',
+  'phase_stuck_alert',
   'kpi_alert',
   'daily_reminder',
   'weekly_digest',

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminBootstrapBanner } from '@/components/admin-bootstrap-banner';
 import { getAdminStatus } from '@/lib/auth/admin';
 import { getDashboardData } from '@/lib/dashboard/queries';
+import { countOpenAlerts } from '@/lib/alerts/queries';
 import { ALL_PIPELINE_PHASES } from '@/lib/reels/constants';
 
 function formatDate(iso: string | null): string | null {
@@ -16,16 +17,18 @@ function formatDate(iso: string | null): string | null {
 }
 
 export default async function DashboardPage() {
-  const [t, tPhaseShort, adminStatus, data] = await Promise.all([
+  const [t, tPhaseShort, adminStatus, data, openAlertCount] = await Promise.all([
     getTranslations('dashboard'),
     getTranslations('batches.reel.phaseShort'),
     getAdminStatus(),
     getDashboardData(),
+    countOpenAlerts(),
   ]);
 
   const showBootstrap = !adminStatus.isAdmin && !adminStatus.hasAnyAdmin;
   const lowBufferCount = data.pages.filter((p) => p.buffer_below_threshold).length;
-  const hasAlerts = lowBufferCount > 0 || data.totals.pending_requests > 0;
+  const hasAlerts =
+    lowBufferCount > 0 || data.totals.pending_requests > 0 || openAlertCount > 0;
   const hasAnyData =
     data.totals.pages > 0 ||
     data.totals.batches > 0 ||
@@ -68,6 +71,13 @@ export default async function DashboardPage() {
             <CardContent className="text-sm space-y-1">
               {hasAlerts ? (
                 <ul className="space-y-1">
+                  {openAlertCount > 0 ? (
+                    <li className="text-rose-700 dark:text-rose-300">
+                      <Link href="/alerts" className="hover:underline">
+                        · {t('alerts.openAlerts', { count: openAlertCount })}
+                      </Link>
+                    </li>
+                  ) : null}
                   {data.totals.pending_requests > 0 ? (
                     <li>
                       <Link href="/pipeline" className="hover:underline">
