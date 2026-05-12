@@ -35,7 +35,8 @@ export function BatchForm({ pages }: Props) {
           not_admin: t('errors.notAdmin'),
           unknown: t('errors.unknown'),
         };
-        const msg = map[result.error] ?? t('errors.unknown');
+        const base = map[result.error] ?? t('errors.unknown');
+        const msg = result.message ? `${base} (${result.message})` : base;
         setError(msg);
         toast.error(msg);
       }

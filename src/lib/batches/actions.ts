@@ -91,12 +91,17 @@ export async function createBatch(
   try {
     doc = await fetchDocAsText(source_doc_url);
   } catch (err) {
+    console.error('[createBatch] Drive fetch failed', {
+      url: source_doc_url,
+      kind: err instanceof DriveFetchError ? err.kind : 'non_drive_error',
+      message: (err as Error)?.message,
+    });
     if (err instanceof DriveFetchError) {
       const map: Record<DriveFetchError['kind'], CreateBatchResult> = {
-        invalid_url: { ok: false, error: 'drive_invalid_url' },
-        not_found: { ok: false, error: 'drive_not_found' },
-        forbidden: { ok: false, error: 'drive_forbidden' },
-        unsupported_type: { ok: false, error: 'drive_unsupported' },
+        invalid_url: { ok: false, error: 'drive_invalid_url', message: err.message },
+        not_found: { ok: false, error: 'drive_not_found', message: err.message },
+        forbidden: { ok: false, error: 'drive_forbidden', message: err.message },
+        unsupported_type: { ok: false, error: 'drive_unsupported', message: err.message },
         not_configured: { ok: false, error: 'drive_unknown', message: err.message },
         unknown: { ok: false, error: 'drive_unknown', message: err.message },
       };
