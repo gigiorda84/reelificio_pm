@@ -8,12 +8,14 @@ import { getReelDetail } from '@/lib/reels/queries';
 import { getPendingRequestForReel } from '@/lib/phase-advance/queries';
 import { getRaciConfigForPage, getRaciUsers } from '@/lib/raci/queries';
 import { getAdminStatus } from '@/lib/auth/admin';
+import { listInvitesForReel } from '@/lib/invites/queries';
 import type { PipelinePhase } from '@/lib/reels/constants';
 import { ScriptTab } from './script-tab';
 import { VoiceTab } from './voice-tab';
 import { FilesTab } from './files-tab';
 import { PublishTab } from './publish-tab';
 import { PhaseAdvancePanel } from './phase-advance-panel';
+import { InvitePanel } from './invite-panel';
 
 export default async function ReelDetailPage({
   params,
@@ -35,6 +37,7 @@ export default async function ReelDetailPage({
       getRaciConfigForPage(reel.page_id),
       getAdminStatus(),
     ]);
+  const invites = admin.isAdmin ? await listInvitesForReel(id) : [];
 
   const currentRaci = raci.find((r) => r.phase === reel.phase);
   const isResponsible =
@@ -124,6 +127,8 @@ export default async function ReelDetailPage({
           <CommentsThread targetType="reel" targetId={reel.id} />
         </TabsContent>
       </Tabs>
+
+      {admin.isAdmin ? <InvitePanel reelId={reel.id} invites={invites} /> : null}
     </div>
   );
 }
