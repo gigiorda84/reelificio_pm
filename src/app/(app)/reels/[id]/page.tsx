@@ -9,6 +9,7 @@ import { getPendingRequestForReel } from '@/lib/phase-advance/queries';
 import { getRaciConfigForPage, getRaciUsers } from '@/lib/raci/queries';
 import { getAdminStatus } from '@/lib/auth/admin';
 import { listInvitesForReel } from '@/lib/invites/queries';
+import { listDodForReel } from '@/lib/dod/queries';
 import type { PipelinePhase } from '@/lib/reels/constants';
 import { ScriptTab } from './script-tab';
 import { VoiceTab } from './voice-tab';
@@ -16,6 +17,7 @@ import { FilesTab } from './files-tab';
 import { PublishTab } from './publish-tab';
 import { PhaseAdvancePanel } from './phase-advance-panel';
 import { InvitePanel } from './invite-panel';
+import { DoDChecklist } from './dod-checklist';
 
 export default async function ReelDetailPage({
   params,
@@ -48,6 +50,12 @@ export default async function ReelDetailPage({
     !!admin.userId &&
     !!currentRaci &&
     getRaciUsers(currentRaci, 'approver').includes(admin.userId);
+
+  const showDod =
+    reel.phase === 'editing' || reel.phase === 'publication';
+  const dodItems = showDod ? await listDodForReel(id) : [];
+  const dodEditable =
+    reel.phase === 'editing' && (admin.isAdmin || isResponsible || isApprover);
 
   const phaseEntered = new Date(reel.phase_entered_at);
 
@@ -127,6 +135,10 @@ export default async function ReelDetailPage({
           <CommentsThread targetType="reel" targetId={reel.id} />
         </TabsContent>
       </Tabs>
+
+      {showDod ? (
+        <DoDChecklist reelId={reel.id} items={dodItems} editable={dodEditable} />
+      ) : null}
 
       {admin.isAdmin ? <InvitePanel reelId={reel.id} invites={invites} /> : null}
     </div>

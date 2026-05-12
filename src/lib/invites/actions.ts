@@ -9,6 +9,7 @@ import {
   PIPELINE_PHASE_ORDER,
   type PipelinePhase,
 } from '@/lib/reels/constants';
+import { DOD_ITEM_KEYS } from '@/lib/dod/constants';
 import { generateInviteToken, buildInviteUrl } from './tokens';
 
 export type InviteActionResult =
@@ -23,6 +24,7 @@ export type InviteActionResult =
         | 'reel_not_found'
         | 'already_pending'
         | 'invalid_phase'
+        | 'dod_incomplete'
         | 'unknown';
       message?: string;
     };
@@ -255,6 +257,17 @@ export async function markDoneAsInvitee(
   const fromOrder = PIPELINE_PHASE_ORDER[fromPhase];
   const toPhase = ALL_PIPELINE_PHASES[fromOrder + 1];
   if (!toPhase) return { ok: false, error: 'invalid_phase' };
+
+  // DoD gate for editing → publication.
+  if (fromPhase === 'editing' && toPhase === 'publication') {
+    const { count } = await admin
+      .from('reel_dod_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('reel_id', reel.id);
+    if ((count ?? 0) < DOD_ITEM_KEYS.length) {
+      return { ok: false, error: 'dod_incomplete' };
+    }
+  }
 
   // One pending request per reel is enforced by the partial unique index.
   const { data: pending } = await admin

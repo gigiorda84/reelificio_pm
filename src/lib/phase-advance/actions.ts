@@ -9,6 +9,7 @@ import {
   type PipelinePhase,
 } from '@/lib/reels/constants';
 import { getRaciUsers, type RaciRow } from '@/lib/raci/queries';
+import { DOD_ITEM_KEYS } from '@/lib/dod/constants';
 
 export type PhaseAdvanceResult =
   | { ok: true }
@@ -20,6 +21,7 @@ export type PhaseAdvanceResult =
         | 'reel_not_found'
         | 'already_pending'
         | 'request_not_found'
+        | 'dod_incomplete'
         | 'unknown';
       message?: string;
     };
@@ -90,6 +92,17 @@ export async function requestPhaseAdvance(
   const isAdmin = !!profile?.is_admin;
   const isResponsible = !!raci && getRaciUsers(raci, 'responsible').includes(user.id);
   if (!isAdmin && !isResponsible) return { ok: false, error: 'not_authorized' };
+
+  // DoD gate: editing → publication requires all 5 checklist items checked.
+  if (reel.phase === 'editing' && parsed.data.to_phase === 'publication') {
+    const { count } = await supabase
+      .from('reel_dod_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('reel_id', reel.id);
+    if ((count ?? 0) < DOD_ITEM_KEYS.length) {
+      return { ok: false, error: 'dod_incomplete' };
+    }
+  }
 
   // Reject if a pending request already exists.
   const { data: existing } = await supabase

@@ -29,6 +29,8 @@ export function InviteMarkDone({ token }: { token: string }) {
         toast.error(t('markDoneAlreadyPending'));
       } else if (result.error === 'invalid_phase') {
         toast.error(t('markDoneFinalPhase'));
+      } else if (result.error === 'dod_incomplete') {
+        toast.error(t('markDoneDodIncomplete'));
       } else {
         toast.error(tCommon('error'));
       }

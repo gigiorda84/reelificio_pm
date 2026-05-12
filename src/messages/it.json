@@ -318,7 +318,8 @@
       "notAuthorized": "Non sei autorizzato per questa azione.",
       "alreadyPending": "Esiste già una richiesta in attesa.",
       "rejectNoteRequired": "Aggiungi una motivazione per il rifiuto.",
-      "unknown": "Operazione non riuscita."
+      "unknown": "Operazione non riuscita.",
+      "dodIncomplete": "Completa tutti i criteri della Definition of Done prima di passare a pubblicazione."
     },
     "saved": {
       "requested": "Richiesta inviata.",
@@ -513,7 +514,27 @@
       "markDoneSuccess": "Notifica inviata al team",
       "markDoneAlreadyPending": "C'è già una richiesta in attesa per questo reel.",
       "markDoneFinalPhase": "Questo reel è già in fase finale.",
-      "inviteInvalid": "Questo link non è più valido."
+      "inviteInvalid": "Questo link non è più valido.",
+      "markDoneDodIncomplete": "Mancano alcuni criteri della Definition of Done. Chiedi al team di completarli prima."
+    }
+  },
+  "dod": {
+    "title": "Definition of Done",
+    "description": "Tutti i 5 criteri devono essere confermati prima di passare a pubblicazione.",
+    "progress": "{done}/{total} completati",
+    "allDone": "Tutti i criteri soddisfatti",
+    "readOnlyHint": "I criteri si possono modificare solo durante la fase di montaggio.",
+    "blockerHint": "{count, plural, =1 {Manca 1 criterio} other {Mancano # criteri}} prima di poter avanzare a pubblicazione.",
+    "checked": "Criterio confermato",
+    "unchecked": "Criterio rimosso",
+    "notAuthorized": "Non sei autorizzato a modificare questo criterio.",
+    "wrongPhase": "I criteri sono modificabili solo in fase di montaggio.",
+    "keys": {
+      "script_validated": "Script validato",
+      "audio_recorded": "Audio registrato",
+      "editing_done": "Montaggio completato",
+      "subtitles": "Sottotitoli presenti",
+      "qc_approved": "QC approvato"
     }
   }
 }

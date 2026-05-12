@@ -72,6 +72,8 @@ export function PhaseAdvancePanel({
         toast.error(t('errors.notAuthorized'));
       } else if (result.error === 'already_pending') {
         toast.error(t('errors.alreadyPending'));
+      } else if (result.error === 'dod_incomplete') {
+        toast.error(t('errors.dodIncomplete'));
       } else {
         toast.error(t('errors.unknown'));
       }
