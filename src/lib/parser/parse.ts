@@ -39,7 +39,11 @@ function isFormatTagLine(line: string): boolean {
 }
 
 function joinTrim(lines: string[]): string | null {
-  const joined = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  const joined = lines
+    .map((l) => l.trimEnd())
+    .join('\n')
+    .replace(/\n[ \t]*\n+/g, '\n')
+    .trim();
   return joined.length > 0 ? joined : null;
 }
 
