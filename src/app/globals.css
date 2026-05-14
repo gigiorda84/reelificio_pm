@@ -123,9 +123,15 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    letter-spacing: -0.01em;
   }
   html {
     @apply font-sans;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-sans);
+    letter-spacing: -0.025em;
   }
 }
 
