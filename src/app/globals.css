@@ -128,3 +128,18 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  .bg-app-gradient {
+    background:
+      radial-gradient(120% 80% at 80% 70%, #fde68a 0%, transparent 55%),
+      radial-gradient(100% 60% at 0% 0%, #e5e7eb 0%, transparent 60%),
+      linear-gradient(180deg, #eef0f3 0%, #fef3c7 100%);
+  }
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm ring-1 ring-black/5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] rounded-3xl;
+  }
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium;
+  }
+}
