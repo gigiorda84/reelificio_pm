@@ -10,12 +10,14 @@ import {
   KanbanSquare,
   Bell,
   Settings,
+  MessagesSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: LayoutDashboard, key: 'dashboard' },
   { href: '/pipeline', icon: KanbanSquare, key: 'pipeline' },
+  { href: '/aggiornamenti', icon: MessagesSquare, key: 'updates' },
   { href: '/pages', icon: FileVideo, key: 'pages' },
   { href: '/batches', icon: Layers, key: 'batches' },
   { href: '/alerts', icon: Bell, key: 'alerts' },

@@ -19,6 +19,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "pipeline": "Pipeline",
+    "updates": "Aggiornamenti",
     "pages": "Pagine",
     "batches": "Batch",
     "alerts": "Avvisi",
@@ -535,6 +536,42 @@
       "editing_done": "Montaggio completato",
       "subtitles": "Sottotitoli presenti",
       "qc_approved": "QC approvato"
+    }
+  },
+  "dailyUpdates": {
+    "pageTitle": "Aggiornamenti",
+    "pageSubtitle": "Cosa hai fatto oggi, cosa ti blocca, cosa farai domani. Sostituisce il check-in su WhatsApp.",
+    "myCardTitle": "Il tuo aggiornamento di oggi",
+    "teamTodayTitle": "Team — oggi",
+    "historyTitle": "Ultimi 7 giorni",
+    "didToday": "Cosa hai fatto oggi",
+    "didTodayPlaceholder": "Es. validato 3 script Porcino, registrato audio reel PP-2606-04…",
+    "blockers": "Blocchi",
+    "blockersPlaceholder": "Cosa ti impedisce di avanzare? Chi ti serve?",
+    "tomorrow": "Domani",
+    "tomorrowPlaceholder": "Cosa hai in programma per domani.",
+    "submit": "Invia aggiornamento",
+    "saved": "Aggiornamento inviato.",
+    "submitted": "Inviato per oggi.",
+    "teamEmpty": "Nessun aggiornamento dal team oggi.",
+    "seeAll": "Vedi tutti",
+    "reminder": {
+      "subject": "Promemoria: aggiornamento giornaliero",
+      "body": "Ciao {name}, non hai ancora inviato il tuo aggiornamento per oggi. Apri Reellificio PM e raccontaci cosa hai fatto, cosa ti blocca e cosa farai domani."
+    },
+    "digest": {
+      "subject": "Digest settimanale Reellificio — settimana {weekLabel}",
+      "headerCompletion": "Aggiornamenti giornalieri",
+      "headerProduction": "Produzione",
+      "headerBuffer": "Buffer pubblicazione",
+      "headerStuck": "Reel ferme",
+      "completionRate": "Tasso di completamento: {pct}% ({submitted}/{expected})",
+      "transitions": "Avanzamenti di fase: {count}",
+      "published": "Reel pubblicate: {count}",
+      "stuckCount": "Reel ferme da oltre 24h: {count}",
+      "noStuck": "Nessuna reel ferma da oltre 24h.",
+      "bufferLine": "{page}: {count} pronte / soglia {threshold}",
+      "noPages": "Nessuna pagina attiva."
     }
   }
 }

@@ -6,6 +6,12 @@ import { getAdminStatus } from '@/lib/auth/admin';
 import { getDashboardData } from '@/lib/dashboard/queries';
 import { countOpenAlerts } from '@/lib/alerts/queries';
 import { ALL_PIPELINE_PHASES } from '@/lib/reels/constants';
+import {
+  getMyTodayUpdate,
+  listTeamUpdatesForDate,
+} from '@/lib/daily-updates/queries';
+import { DailyUpdateForm } from '@/components/daily-updates/daily-update-form';
+import { TeamUpdatesList } from '@/components/daily-updates/team-updates-list';
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null;
@@ -17,12 +23,24 @@ function formatDate(iso: string | null): string | null {
 }
 
 export default async function DashboardPage() {
-  const [t, tPhaseShort, adminStatus, data, openAlertCount] = await Promise.all([
+  const [
+    t,
+    tDU,
+    tPhaseShort,
+    adminStatus,
+    data,
+    openAlertCount,
+    myToday,
+    teamToday,
+  ] = await Promise.all([
     getTranslations('dashboard'),
+    getTranslations('dailyUpdates'),
     getTranslations('batches.reel.phaseShort'),
     getAdminStatus(),
     getDashboardData(),
     countOpenAlerts(),
+    getMyTodayUpdate(),
+    listTeamUpdatesForDate(),
   ]);
 
   const showBootstrap = !adminStatus.isAdmin && !adminStatus.hasAnyAdmin;
@@ -100,6 +118,42 @@ export default async function DashboardPage() {
               )}
             </CardContent>
           </Card>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-medium">
+                  {tDU('myCardTitle')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DailyUpdateForm
+                  initial={{
+                    did_today: myToday?.did_today ?? '',
+                    blockers: myToday?.blockers ?? '',
+                    tomorrow: myToday?.tomorrow ?? '',
+                  }}
+                  alreadySubmitted={!!myToday}
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-medium flex items-center justify-between">
+                  <span>{tDU('teamTodayTitle')}</span>
+                  <Link
+                    href="/aggiornamenti"
+                    className="text-xs font-normal text-muted-foreground hover:underline"
+                  >
+                    {tDU('seeAll')}
+                  </Link>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TeamUpdatesList updates={teamToday} />
+              </CardContent>
+            </Card>
+          </div>
 
           <Card>
             <CardHeader>
