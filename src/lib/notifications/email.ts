@@ -25,7 +25,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   const resend = getResend();
   if (!resend) return { ok: false, error: 'resend_not_configured' };
 
-  const from = process.env.EMAIL_FROM || 'Reellificio PM <onboarding@resend.dev>';
+  const from = process.env.EMAIL_FROM || 'Reelificio PM <onboarding@resend.dev>';
   const { data, error } = await resend.emails.send({
     from,
     to: input.to,

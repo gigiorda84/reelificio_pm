@@ -91,7 +91,7 @@ export async function sendWeeklyDigest(): Promise<DigestReport> {
   }
 
   const weekLabel = `${formatDateIt(weekStart)} – ${formatDateIt(weekEnd)}`;
-  const subject = `Digest settimanale Reellificio — settimana ${weekLabel}`;
+  const subject = `Digest settimanale Reelificio — settimana ${weekLabel}`;
 
   const text = renderText({
     weekLabel,
@@ -153,7 +153,7 @@ type RenderInput = {
 
 function renderText(d: RenderInput): string {
   const lines: string[] = [];
-  lines.push(`Digest settimanale Reellificio — ${d.weekLabel}`);
+  lines.push(`Digest settimanale Reelificio — ${d.weekLabel}`);
   lines.push('');
   lines.push('AGGIORNAMENTI GIORNALIERI');
   lines.push(`Tasso di completamento: ${d.completionPct}% (${d.submitted}/${d.expectedSlots})`);
@@ -178,7 +178,7 @@ function renderText(d: RenderInput): string {
       : `Reel ferme da oltre 24h: ${d.stuckReels}`,
   );
   lines.push('');
-  lines.push(`Apri Reellificio PM: ${APP_URL}/dashboard`);
+  lines.push(`Apri Reelificio PM: ${APP_URL}/dashboard`);
   return lines.join('\n');
 }
 
@@ -193,7 +193,7 @@ function renderHtml(d: RenderInput): string {
           )
           .join('');
   return `
-    <h2>Digest settimanale Reellificio</h2>
+    <h2>Digest settimanale Reelificio</h2>
     <p>Settimana ${escapeHtml(d.weekLabel)}</p>
 
     <h3>Aggiornamenti giornalieri</h3>
@@ -209,7 +209,7 @@ function renderHtml(d: RenderInput): string {
     <h3>Buffer pubblicazione</h3>
     <ul>${bufferList}</ul>
 
-    <p><a href="${APP_URL}/dashboard">Apri Reellificio PM</a></p>
+    <p><a href="${APP_URL}/dashboard">Apri Reelificio PM</a></p>
   `;
 }
 

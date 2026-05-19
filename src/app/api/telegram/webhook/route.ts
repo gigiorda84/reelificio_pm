@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
     await sendTelegramMessage(
       String(chatId),
-      '✅ Account collegato. Riceverai qui le notifiche di Reellificio PM.',
+      '✅ Account collegato. Riceverai qui le notifiche di Reelificio PM.',
     );
     return NextResponse.json({ ok: true });
   }

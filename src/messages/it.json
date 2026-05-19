@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Reellificio PM",
+    "name": "Reelificio PM",
     "tagline": "Gestione produzione reel"
   },
   "auth": {
@@ -421,7 +421,7 @@
     "telegram": {
       "description": "Collega Telegram per ricevere le notifiche anche su mobile.",
       "step1Bot": "Apri il bot",
-      "step1NoBot": "Apri il bot Reellificio PM su Telegram (cerca lo username configurato).",
+      "step1NoBot": "Apri il bot Reelificio PM su Telegram (cerca lo username configurato).",
       "step2": "Invia questo comando al bot:",
       "step3": "Riceverai un messaggio di conferma quando l'account è collegato.",
       "copy": "Copia",
@@ -557,10 +557,10 @@
     "seeAll": "Vedi tutti",
     "reminder": {
       "subject": "Promemoria: aggiornamento giornaliero",
-      "body": "Ciao {name}, non hai ancora inviato il tuo aggiornamento per oggi. Apri Reellificio PM e raccontaci cosa hai fatto, cosa ti blocca e cosa farai domani."
+      "body": "Ciao {name}, non hai ancora inviato il tuo aggiornamento per oggi. Apri Reelificio PM e raccontaci cosa hai fatto, cosa ti blocca e cosa farai domani."
     },
     "digest": {
-      "subject": "Digest settimanale Reellificio — settimana {weekLabel}",
+      "subject": "Digest settimanale Reelificio — settimana {weekLabel}",
       "headerCompletion": "Aggiornamenti giornalieri",
       "headerProduction": "Produzione",
       "headerBuffer": "Buffer pubblicazione",

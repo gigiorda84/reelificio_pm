@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Reellificio PM',
+  title: 'Reelificio PM',
   description: 'Gestione produzione reel',
 };
 

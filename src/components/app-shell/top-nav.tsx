@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -36,11 +37,17 @@ export function TopNav({ email }: Props) {
         {/* Brand pill */}
         <Link
           href="/dashboard"
-          className="pill bg-white/80 backdrop-blur-sm ring-1 ring-black/5 shrink-0"
+          aria-label={tApp('name')}
+          className="inline-flex items-center rounded-full bg-white/80 backdrop-blur-sm ring-1 ring-black/5 shrink-0 px-4 py-1.5 hover:bg-white"
         >
-          <span className="font-heading text-base tracking-tight">
-            {tApp('name')}
-          </span>
+          <Image
+            src="/reelificio_logo.png"
+            alt={tApp('name')}
+            width={1994}
+            height={467}
+            priority
+            className="h-6 md:h-7 w-auto"
+          />
         </Link>
 
         {/* Nav pill */}

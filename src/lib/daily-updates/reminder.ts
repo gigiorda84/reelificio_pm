@@ -36,8 +36,8 @@ export async function sendDailyReminders(): Promise<ReminderReport> {
     if (submitted.has(profile.id)) continue;
     const name = profile.full_name ?? profile.email ?? '';
     const subject = 'Promemoria: aggiornamento giornaliero';
-    const text = `Ciao ${name}, non hai ancora inviato il tuo aggiornamento per oggi. Apri Reellificio PM (${APP_URL}/aggiornamenti) e raccontaci cosa hai fatto, cosa ti blocca e cosa farai domani.`;
-    const html = `<p>Ciao ${escapeHtml(name)},</p><p>Non hai ancora inviato il tuo aggiornamento per oggi.</p><p><a href="${APP_URL}/aggiornamenti">Apri Reellificio PM</a> e raccontaci cosa hai fatto, cosa ti blocca e cosa farai domani.</p>`;
+    const text = `Ciao ${name}, non hai ancora inviato il tuo aggiornamento per oggi. Apri Reelificio PM (${APP_URL}/aggiornamenti) e raccontaci cosa hai fatto, cosa ti blocca e cosa farai domani.`;
+    const html = `<p>Ciao ${escapeHtml(name)},</p><p>Non hai ancora inviato il tuo aggiornamento per oggi.</p><p><a href="${APP_URL}/aggiornamenti">Apri Reelificio PM</a> e raccontaci cosa hai fatto, cosa ti blocca e cosa farai domani.</p>`;
     try {
       await dispatchNotification({
         recipientId: profile.id,
