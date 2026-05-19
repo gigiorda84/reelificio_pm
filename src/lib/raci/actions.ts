@@ -100,6 +100,3 @@ export async function saveRaciSnapshot(
   revalidatePath(`/pages/${pageId}`);
   return { ok: true };
 }
-
-// Re-export so the role list is importable from the actions module.
-export { RACI_ROLES };
