@@ -4,7 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository state
 
-Sprint 0 → Sprint 2 are in place. Sprint 0: Next.js 16 + Supabase auth + Italian i18n + shadcn/ui scaffolding. Sprint 1: Pages admin, bootstrap-admin flow, Drive service-account integration, script-doc parser, create-batch + re-sync. Sprint 2: reel detail page (Script / Voice / Files / Publish / Comments tabs), inline edit on each tab, simple phase-advance control, generic comments thread (reel/batch/voice_brief targets) with post/edit/delete-own. Future sessions extend; do not re-scaffold.
+Sprint 0 → Sprint 9 are in place and deployed. Future sessions extend; do not re-scaffold.
+
+- **Sprint 0**: Next.js 16 + Supabase auth + Italian i18n + shadcn/ui scaffolding.
+- **Sprint 1**: Pages admin, bootstrap-admin flow, Drive service-account integration, script-doc parser, create-batch + re-sync.
+- **Sprint 2**: reel detail page (Script / Voice / Files / Publish / Comments tabs), inline edit on each tab, generic comments thread (reel/batch/voice_brief targets) with post/edit/delete-own.
+- **Sprint 3**: pipeline phases (`research_prescript` → `publication`), kanban board at `/pipeline` with page/batch filters and semaforo status, RACI editor on page detail, phase-advance request/approve/reject workflow, dashboard.
+- **Sprint 4**: Voice Brief editor (admin, on page detail); @-mention autocomplete in comments (resolved profile IDs stored in `comments.mentions`).
+- **Sprint 5A**: notifications core — Resend email + Telegram (HMAC-token account linking via `/api/telegram/webhook`), per-user channel × event matrix at `/settings`, mention dispatch.
+- **Alert engine**: `buffer_low` + `phase_stuck` rules, deduped while open, auto-closed when resolved; manual close requires a *proposed solution* (BP §6.2). Inbox at `/alerts`.
+- **Sprint 7**: per-reel magic-link invites for external collaborators; public `/invite/[token]` view (script, comments, Drive deliverable links, "lavoro pronto").
+- **Sprint 8**: Definition of Done checklist (5 items) gating editing → publication.
+- **Sprint 9**: daily async update (`/aggiornamenti` + dashboard card), daily reminder cron, Monday weekly digest.
+- Post-sprint: top-nav UI redesign, "Reelificio" branding (one L in UI copy), `scripts/invite-users.ts` admin helper.
+
+**Not yet built (PRD §8 MVP gaps)**: manual KPI entry + KPI threshold alerts; reel Activity tab and script versioning; Admin screen (users & roles, audit log); remaining alert rules (validation > 7 days, QC rejection rate); Sentry; PWA manifest. There is no automated test suite — only the manual check scripts in `scripts/`.
 
 - `docs/reellificio_BP.md` — the **business plan** (v2.0, April 2026). Authoritative description of the production model: phases, RACI, batch structure, KPIs, buffer rules, voice system, onboarding, scalability plan.
 - `docs/PRD.md` — the **product requirements document** for the webapp being built to support that production model. Authoritative for product scope, domain model, workflows, stack, and locked-in decisions.
@@ -87,12 +101,15 @@ Env file: `.env.local` (see `.env.example`). The keys are emitted by `supabase s
 ## Architecture notes
 
 - **Next.js 16 conventions**: the framework deprecated `middleware.ts` → use `proxy.ts` exporting `proxy()` (see `src/proxy.ts`). The `cookies()` helper from `next/headers` is **async** — always `await cookies()`. When in doubt about Next.js 16 behavior, consult `node_modules/next/dist/docs/`; the `AGENTS.md` at repo root warns that this version has breaking changes vs. older training data.
-- **Supabase clients**: three flavors live in `src/lib/supabase/`:
+- **Supabase clients**: four flavors live in `src/lib/supabase/`:
   - `client.ts` — browser (Client Components)
   - `server.ts` — server (Server Components, Server Actions, Route Handlers); always re-create per request
   - `middleware.ts` — the helper used by `src/proxy.ts` to refresh sessions on every request and protect routes
-  Use the `getAll`/`setAll` cookie API only — the deprecated `get`/`set`/`remove` will be removed.
-- **Route protection**: `src/proxy.ts` redirects unauthenticated users to `/login` for any path not in `PUBLIC_PATHS`. Authenticated users hitting `/login` are bounced to `/dashboard`. The protected layout (`src/app/dashboard/layout.tsx`) double-checks auth via `getUser()` for defense-in-depth.
+  - `admin.ts` — service-role client (`SUPABASE_SECRET_KEY`), **bypasses RLS**. Only for trusted server contexts: notification dispatch, cron handlers, the Telegram webhook, and invitee-side actions for magic-link users (who have no session, so RLS stays strict and the action validates the invite token instead). Never import from client code.
+  Use the `getAll`/`setAll` cookie API only — the deprecated `get`/`set`/`remove` will be removed. `src/app/auth/callback/route.ts` builds its own client that writes cookies straight onto the redirect response, because Next.js 16 Route Handlers don't reliably carry `cookies()` writes onto a manually built `NextResponse.redirect()`.
+- **Route protection**: `src/proxy.ts` redirects unauthenticated users to `/login` for any path not in `PUBLIC_PATHS`. Authenticated users hitting `/login` are bounced to `/dashboard`. Authenticated app routes live in the `src/app/(app)/` route group, whose layout double-checks auth via `getUser()` for defense-in-depth.
+- **Cron jobs**: declared in `vercel.json`, handled under `src/app/api/cron/*`, and authenticated by `isAuthorizedCronRequest()` in `src/lib/auth/cron.ts`: `Authorization: Bearer ${CRON_SECRET}` header only. Never accept the secret as a query param, because it would leak into request logs. The project is on the Vercel **Hobby** plan, which only allows once-a-day crons: alerts run 09:00 UTC, daily reminders 16:00 UTC, weekly digest Monday 07:00 UTC. A sub-daily schedule fails deploy validation silently (pushes stop producing deployments).
+- **Admin scripts**: `scripts/*.ts` run with `pnpm exec tsx` and have their own `scripts/tsconfig.json`; they're excluded from the Next.js typecheck.
 - **i18n**: single-locale (`it`) for now; messages in `src/messages/it.json`, request config in `src/i18n/request.ts`, plugin wired via `next.config.ts`. Adding EN later = add `en.json`, expose locale switching, optionally enable path prefixing — no other refactor needed.
 - **Database**: schema in `supabase/migrations/*.sql`. Every table has RLS enabled. Baseline policies are intentionally permissive (admin-write, authenticated-read); tighten per-feature in later migrations rather than relaxing them later.
 - **Reel codes**: format `PP-2606-01` (page prefix, yymm, ordinal). The 2-letter prefix is stored on `pages.code_prefix` and is unique across pages. Codes are generated by `src/lib/batches/codes.ts` using the *batch month* (extracted from the Italian batch label like "Batch Maggio") so re-syncs produce stable codes.

@@ -24,9 +24,10 @@ build/
 *.tsbuildinfo
 
 # Environment & secrets
-.env
-.env.local
-.env.*.local
+# Ignore every .env variant (incl. `vercel env pull` outputs like
+# .env.vercel.production); only the committed template is allowed.
+.env*
+!.env.example
 .vercel
 
 # Test / coverage
