@@ -70,7 +70,7 @@ GLI UMANI: con questa sequenza l'Express arriva a fine marzo. Se la pagina parte
 
 ### Checklist Fase 0
 
-Codice sul branch `fase-0-hardening`, migrazioni `20261001120000_fase0_security.sql` e `20261001130000_fase0_scale.sql`, verificate con `scripts/db-check/run.sh`. **Non ancora applicate in produzione.**
+Codice sul branch `fase-0-hardening`, migrazioni `20261001120000_fase0_security.sql` e `20261001130000_fase0_scale.sql`, verificate con `scripts/db-check/run.sh`. **Applicate in produzione il 2026-10-01** (`supabase db push --linked`) e codice pubblicato con push su `main` (commit `ea8a242`).
 
 - [x] Sicurezza: nessun utente può modificare `is_admin` o il collegamento Telegram del proprio profilo (permessi per colonna + funzioni `claim_admin_if_first`, `unlink_telegram`)
 - [x] Sicurezza: login solo per utenti invitati (`shouldCreateUser: false`, `enable_signup = false` in locale)
