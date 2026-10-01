@@ -50,3 +50,6 @@ supabase/.env
 # Logs
 logs/
 *.log
+
+# oh-my-claudecode plugin state
+.omc/
