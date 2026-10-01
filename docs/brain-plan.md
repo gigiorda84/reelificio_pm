@@ -14,6 +14,21 @@ Stato al 2026-10-01. Il concept è in `docs/brain-concept.md`; questo file regis
 - **Calendario di pubblicazione nell'app** (unica fonte di verità); fase iniziale tramite tool di scheduling (Metricool), API dirette dopo le approvazioni Meta/TikTok/YouTube. Notion non è più il calendario.
 - **Engine che suggerisce personaggi:** dopo Intelligence e Analytics, perché vive dei loro dati.
 
+### Aggiornamento dopo l'intervista della Fase 1 (2026-10-01)
+
+Le decisioni complete sono nella specifica `.omc/specs/deep-interview-fase1-produzione-2-0.md`. Quando questo documento le contraddice, valgono queste:
+
+- **Pipeline:** doppiaggio e animazione sono **in sequenza** (prima il doppiaggio, poi l'animazione), fatti da persone diverse. L'animatore consegna il video già montato.
+- **Approvazione audio:** l'approvatore approva l'audio prima che parta l'animazione.
+- **Validazione scientifica:** solo per le pagine che la richiedono.
+- **Compiti:** il centro della Fase 1 è il **compito** (assegnatario, scadenza, stato).
+- **Personaggi:** in Fase 1 non ci sono come entità. Ogni pagina ha un doppiatore e un animatore, ciascuno con titolare e riserva.
+- **Esterni:** hanno **account veri**, solo su invito, e vedono solo i reel assegnati. Il link magico per singolo reel viene superato.
+- **File:** finiscono su un **Drive condiviso**, una cartella per reel, condivisa con l'esterno assegnato e revocata a lavoro concluso. Non vanno su Supabase Storage.
+- **Telegram:** è facoltativo. I pulsanti arrivano in un messaggio privato; chi non usa Telegram riceve un'email.
+- **Approvazioni:** al rilascio approvano Gabri e un delegato. I gruppi di pagine sono predisposti ma spenti.
+- **Express leggero:** solo priorità e scadenze strette.
+
 ## Vincoli esterni
 
 - **Vercel Hobby** consente un cron al giorno ed è solo per uso non commerciale → Vercel Pro (Fase 0).
