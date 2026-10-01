@@ -53,3 +53,6 @@ logs/
 
 # oh-my-claudecode plugin state
 .omc/
+
+# Manual production dumps (contain personal data)
+supabase/backups/
