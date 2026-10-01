@@ -77,7 +77,8 @@ Codice sul branch `fase-0-hardening`, migrazioni `20261001120000_fase0_security.
 - [ ] Sicurezza: disattivare "Allow new users to sign up" nel progetto Supabase ospitato (dashboard)
 - [x] Sicurezza: reel inseribili/eliminabili solo da admin; modificabili da admin e membri R/A/C della pagina, solo nelle colonne di contenuto; le azioni segnalano `not_authorized`; `setReelPhase` rimosso
 - [x] Bug: approvazione tramite `decide_phase_advance()` (atomica, approvatore RACI anche non admin, DoD ricontrollata, richieste superate rifiutate)
-- [ ] Ambiente: progetto Supabase di staging; `.env.local` non punta più alla produzione
+- [x] Ambiente: progetto Supabase di staging `reelificio-pm-staging` (Free, RAG-chatbot messo in pausa per liberare il posto); `.env.local` → staging, `.env.production.local` → produzione; CLI collegata allo staging
+- [ ] Backup: l'organizzazione Supabase è sul piano Free, quindi la produzione non ha backup automatici. Fare un dump manuale prima di ogni migrazione (primo dump: 2026-10-01). Passare a Pro prima del rilascio della Fase 1
 - [x] Scala: `published_at` (i reel pubblicati escono da kanban, dashboard, buffer e alert), indici, conteggi in SQL (`active_reel_counts`, `batch_reel_counts`, `stuck_reels`), kanban a 100 card per colonna con totale, lista batch limitata a 200, niente `.in()` con id illimitati
 - [x] Job: `maxDuration = 60` su tutti i cron
 - [ ] Infra: Vercel Pro, Supabase Pro, Inngest per i cron frequenti

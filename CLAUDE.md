@@ -107,7 +107,17 @@ Useful local URLs while `supabase start` is running:
 - Studio (DB UI): `http://127.0.0.1:54323`
 - Mailpit (captures all auth emails in dev): `http://127.0.0.1:54324`
 
-Env file: `.env.local` (see `.env.example`). The keys are emitted by `supabase start`; copy them in if they ever change.
+Environments (since 2026-10-01):
+- **`.env.local` → STAGING**, the Supabase project `reelificio-pm-staging` (`zrzgxudzetuztleujfri`).
+  - `pnpm dev` and every `scripts/*.ts` (which load `.env.local`) hit staging.
+  - `SUPABASE_SECRET_KEY` there is the legacy `service_role` JWT, because the CLI returns the new secret key masked.
+- **`.env.production.local` → PRODUCTION** (`rbcgtwohcsqjmyjzhlbx`). Next only loads it for `pnpm build` / `pnpm start`.
+- **Supabase CLI link:** the CLI is linked to **staging**.
+  1. To migrate prod, re-run `scripts/db-check/run.sh`.
+  2. Dump prod (see the memory note on backups; the org is on the Free plan, so there are no automatic backups).
+  3. Run `supabase link --project-ref rbcgtwohcsqjmyjzhlbx`, then `supabase db push --linked --dry-run`, then push.
+  4. Re-link staging with `supabase link --project-ref zrzgxudzetuztleujfri`.
+- Local `supabase start` is not used: the Mac lacks the disk space.
 
 ## Architecture notes
 
