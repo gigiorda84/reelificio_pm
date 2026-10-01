@@ -13,40 +13,33 @@ export type BatchListRow = {
   created_at: string;
 };
 
-export async function listBatches(): Promise<BatchListRow[]> {
+// Newest batches first. ~50 pages produce ~600 batches a year, so the list
+// is capped; `total` lets the page say when older batches are hidden.
+export const BATCH_LIST_LIMIT = 200;
+
+export async function listBatches(): Promise<{ rows: BatchListRow[]; total: number }> {
   const supabase = await getSupabaseServerClient();
-  // Note: we run two queries instead of joining via Supabase's relational
-  // syntax to keep this readable; cardinalities are tiny.
-  const { data: batches, error } = await supabase
+  const { data: batches, count, error } = await supabase
     .from('batches')
     .select(
-      'id, page_id, label, source_doc_url, source_doc_synced_at, status, created_at',
+      'id, page_id, label, source_doc_url, source_doc_synced_at, status, created_at, pages(name, code_prefix)',
+      { count: 'exact' },
     )
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(BATCH_LIST_LIMIT);
   if (error) throw error;
-  if (!batches || batches.length === 0) return [];
+  if (!batches || batches.length === 0) return { rows: [], total: 0 };
 
-  const pageIds = Array.from(new Set(batches.map((b) => b.page_id)));
-  const { data: pages } = await supabase
-    .from('pages')
-    .select('id, name, code_prefix')
-    .in('id', pageIds);
-  const pageMap = new Map((pages ?? []).map((p) => [p.id, p]));
-
-  const { data: reelCounts } = await supabase
-    .from('reels')
-    .select('batch_id')
-    .in(
-      'batch_id',
-      batches.map((b) => b.id),
-    );
+  const { data: reelCounts } = await supabase.rpc('batch_reel_counts', {
+    p_batch_ids: batches.map((b) => b.id),
+  });
   const countMap = new Map<string, number>();
-  for (const r of reelCounts ?? []) {
-    countMap.set(r.batch_id, (countMap.get(r.batch_id) ?? 0) + 1);
+  for (const r of (reelCounts ?? []) as { batch_id: string; reel_count: number }[]) {
+    countMap.set(r.batch_id, Number(r.reel_count));
   }
 
-  return batches.map((b) => {
-    const page = pageMap.get(b.page_id);
+  const rows = batches.map((b) => {
+    const page = b.pages as unknown as { name: string; code_prefix: string } | null;
     return {
       id: b.id,
       page_id: b.page_id,
@@ -60,6 +53,7 @@ export async function listBatches(): Promise<BatchListRow[]> {
       created_at: b.created_at,
     };
   });
+  return { rows, total: count ?? rows.length };
 }
 
 export type BatchReel = {

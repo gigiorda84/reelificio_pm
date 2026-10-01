@@ -8,7 +8,7 @@ import { listBatches } from '@/lib/batches/queries';
 export default async function BatchesListPage() {
   const tList = await getTranslations('batches.list');
   const tStatus = await getTranslations('batches.status');
-  const batches = await listBatches();
+  const { rows: batches, total } = await listBatches();
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -26,6 +26,12 @@ export default async function BatchesListPage() {
           {tList('new')}
         </Link>
       </div>
+
+      {batches.length < total ? (
+        <p className="text-xs text-muted-foreground">
+          {tList('truncated', { shown: batches.length, total })}
+        </p>
+      ) : null}
 
       {batches.length === 0 ? (
         <Card className="p-10 text-center text-sm text-muted-foreground">

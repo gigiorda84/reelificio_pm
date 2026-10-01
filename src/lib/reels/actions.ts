@@ -6,13 +6,11 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export type ReelActionResult =
   | { ok: true }
-  | { ok: false; error: 'invalid_input' | 'unknown'; message?: string };
+  | { ok: false; error: 'invalid_input' | 'not_authorized' | 'unknown'; message?: string };
 
 import {
-  ALL_PIPELINE_PHASES as PIPELINE_PHASES,
   ALL_REEL_FORMATS as REEL_FORMATS,
   ALL_REEL_CATEGORIES as REEL_CATEGORIES,
-  type PipelinePhase,
 } from './constants';
 
 const scriptSchema = z.object({
@@ -35,10 +33,6 @@ const publishSchema = z.object({
   caption: z.string().max(2200).nullable().or(z.literal('')).optional(),
   scheduled_at: z.string().nullable().or(z.literal('')).optional(),
   posted_url: z.string().url().nullable().or(z.literal('')).optional(),
-});
-
-const phaseSchema = z.object({
-  phase: z.enum(PIPELINE_PHASES),
 });
 
 function emptyToNull<T extends string | null | undefined>(v: T): string | null {
@@ -83,11 +77,14 @@ export async function updateReelScript(
   if (!parsed.success) return { ok: false, error: 'invalid_input' };
 
   const supabase = await getSupabaseServerClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('reels')
     .update(parsed.data)
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   if (error) return { ok: false, error: 'unknown', message: error.message };
+  // RLS filters rows silently: no row back means the user may not edit this reel.
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
 
   revalidatePath(`/reels/${id}`);
   return { ok: true };
@@ -104,14 +101,16 @@ export async function updateReelFiles(
   if (!parsed.success) return { ok: false, error: 'invalid_input' };
 
   const supabase = await getSupabaseServerClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('reels')
     .update({
       audio_drive_url: parsed.data.audio_drive_url ?? null,
       video_drive_url: parsed.data.video_drive_url ?? null,
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   if (error) return { ok: false, error: 'unknown', message: error.message };
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
 
   revalidatePath(`/reels/${id}`);
   return { ok: true };
@@ -137,42 +136,18 @@ export async function updateReelPublish(
   }
 
   const supabase = await getSupabaseServerClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('reels')
     .update({
       caption: parsed.data.caption ?? null,
       scheduled_at: scheduledAt,
       posted_url: parsed.data.posted_url ?? null,
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   if (error) return { ok: false, error: 'unknown', message: error.message };
+  if (!data?.length) return { ok: false, error: 'not_authorized' };
 
   revalidatePath(`/reels/${id}`);
   return { ok: true };
 }
-
-export async function setReelPhase(
-  id: string,
-  formData: FormData,
-): Promise<ReelActionResult> {
-  const parsed = phaseSchema.safeParse({
-    phase: formData.get('phase')?.toString() ?? '',
-  });
-  if (!parsed.success) return { ok: false, error: 'invalid_input' };
-
-  const supabase = await getSupabaseServerClient();
-  const { error } = await supabase
-    .from('reels')
-    .update({
-      phase: parsed.data.phase as PipelinePhase,
-      phase_entered_at: new Date().toISOString(),
-      phase_status: 'green',
-    })
-    .eq('id', id);
-  if (error) return { ok: false, error: 'unknown', message: error.message };
-
-  revalidatePath(`/reels/${id}`);
-  revalidatePath('/batches', 'page');
-  return { ok: true };
-}
-

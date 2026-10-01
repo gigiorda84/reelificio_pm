@@ -50,10 +50,8 @@ export async function unlinkTelegram(): Promise<ProfileActionResult> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'not_authenticated' };
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({ telegram_chat_id: null })
-    .eq('id', user.id);
+  // telegram_chat_id is not user-writable (only the webhook links a chat).
+  const { error } = await supabase.rpc('unlink_telegram');
   if (error) return { ok: false, error: 'unknown', message: error.message };
 
   revalidatePath('/settings');

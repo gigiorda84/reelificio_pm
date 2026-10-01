@@ -46,7 +46,7 @@ export default async function PipelinePage({
 
   const today = new Date();
   const totalCards = ALL_PIPELINE_PHASES.reduce(
-    (sum, p) => sum + (board[p]?.length ?? 0),
+    (sum, p) => sum + (board.totals[p] ?? 0),
     0,
   );
 
@@ -73,7 +73,8 @@ export default async function PipelinePage({
               <Column
                 key={phase}
                 phase={phase}
-                cards={board[phase] ?? []}
+                cards={board.cards[phase] ?? []}
+                total={board.totals[phase] ?? 0}
                 today={today}
                 t={{
                   phaseShort: tPhaseShort,
@@ -82,6 +83,7 @@ export default async function PipelinePage({
                   daysIn: t,
                   today: t('today'),
                   empty: t('phaseEmpty'),
+                  truncated: t,
                 }}
               />
             ))}
@@ -94,7 +96,8 @@ export default async function PipelinePage({
 
 type ColumnProps = {
   phase: PipelinePhase;
-  cards: Awaited<ReturnType<typeof getPipelineBoard>>[PipelinePhase];
+  cards: Awaited<ReturnType<typeof getPipelineBoard>>['cards'][PipelinePhase];
+  total: number;
   today: Date;
   t: {
     phaseShort: (key: string) => string;
@@ -103,16 +106,22 @@ type ColumnProps = {
     daysIn: (key: 'daysIn', vars: { count: number }) => string;
     today: string;
     empty: string;
+    truncated: (key: 'truncated', vars: { shown: number; total: number }) => string;
   };
 };
 
-function Column({ phase, cards, today, t }: ColumnProps) {
+function Column({ phase, cards, total, today, t }: ColumnProps) {
   return (
     <div className="w-72 shrink-0">
       <div className="flex items-center justify-between px-1 mb-2">
         <h2 className="text-sm font-medium">{t.phaseShort(phase)}</h2>
-        <span className="text-xs text-muted-foreground">{cards.length}</span>
+        <span className="text-xs text-muted-foreground">{total}</span>
       </div>
+      {cards.length < total ? (
+        <p className="px-1 mb-2 text-xs text-muted-foreground">
+          {t.truncated('truncated', { shown: cards.length, total })}
+        </p>
+      ) : null}
       <div className="space-y-2">
         {cards.length === 0 ? (
           <p className="text-xs text-muted-foreground px-1 py-4 text-center">

@@ -19,6 +19,8 @@ export function LoginForm() {
       if (result.ok) {
         setSent(true);
         toast.success(t('linkSent'));
+      } else if (result.error === 'not_invited') {
+        toast.error(t('notInvited'));
       } else {
         toast.error(t('error'));
       }

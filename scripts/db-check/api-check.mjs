@@ -1,0 +1,118 @@
+// API-level checks: the app's query shapes (embedded resources, filters on
+// embedded rows, exact counts, RPCs) run through a real PostgREST and
+// supabase-js against the throwaway database prepared by run.sh.
+// Env: DB_CHECK_REST (PostgREST base URL), DB_CHECK_JWT_SECRET.
+import http from 'node:http';
+import crypto from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
+
+const REST = process.env.DB_CHECK_REST;
+const SECRET = process.env.DB_CHECK_JWT_SECRET;
+
+const ADMIN = '00000000-0000-0000-0000-00000000000a';
+const MEMBER = '00000000-0000-0000-0000-00000000000b';
+const OUTSIDER = '00000000-0000-0000-0000-00000000000c';
+const APPROVER = '00000000-0000-0000-0000-00000000000d';
+const REEL1 = '30000000-0000-0000-0000-000000000001';
+const BATCH = '20000000-0000-0000-0000-000000000001';
+
+function jwt(claims) {
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const body = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ ...claims, exp: Math.floor(Date.now() / 1000) + 600 })}`;
+  const sig = crypto.createHmac('sha256', SECRET).update(body).digest('base64url');
+  return `${body}.${sig}`;
+}
+
+// supabase-js calls `${url}/rest/v1/...`; strip the prefix and forward.
+const proxy = http.createServer((req, res) => {
+  const target = new URL(req.url.replace(/^\/rest\/v1/, ''), REST);
+  const upstream = http.request(target, { method: req.method, headers: { ...req.headers, host: target.host } }, (up) => {
+    res.writeHead(up.statusCode, up.headers);
+    up.pipe(res);
+  });
+  req.pipe(upstream);
+});
+await new Promise((r) => proxy.listen(0, r));
+const base = `http://127.0.0.1:${proxy.address().port}`;
+
+const as = (claims) =>
+  createClient(base, jwt(claims), { auth: { persistSession: false, autoRefreshToken: false } });
+const user = (sub) => as({ role: 'authenticated', sub });
+const service = as({ role: 'service_role' });
+
+let failures = 0;
+function check(name, ok, detail) {
+  if (ok) console.log(`  ok   ${name}`);
+  else {
+    failures += 1;
+    console.log(`  FAIL ${name}`, detail ?? '');
+  }
+}
+
+// Kanban column query (src/lib/pipeline/queries.ts).
+{
+  await service.from('phase_advance_requests').insert({
+    reel_id: REEL1, from_phase: 'script_writing', to_phase: 'dubbing', requested_by: MEMBER, status: 'pending',
+  });
+  const column = (phase) =>
+    user(MEMBER)
+      .from('reels')
+      .select(
+        'id, code, phase, pages(name, code_prefix), batches(label), phase_advance_requests(id)',
+        { count: 'exact' },
+      )
+      .eq('phase', phase)
+      .is('published_at', null)
+      .eq('phase_advance_requests.status', 'pending')
+      .order('phase_entered_at', { ascending: true })
+      .limit(100);
+  const { data, count, error } = await column('script_writing');
+  check('kanban column loads', !error && data?.length === 1 && count === 1, error ?? data);
+  check('kanban embeds page and batch', data?.[0]?.pages?.code_prefix === 'PP' && data?.[0]?.batches?.label === 'Batch Ottobre', data?.[0]);
+  check('kanban flags pending request', data?.[0]?.phase_advance_requests?.length === 1, data?.[0]);
+  const editing = await column('editing');
+  check('non-pending reel has no flag', editing.data?.[0]?.phase_advance_requests?.length === 0, editing.data?.[0]);
+}
+
+// Aggregates (dashboard, batch list, alert rules).
+{
+  const { data, error } = await user(MEMBER).rpc('active_reel_counts');
+  check('active_reel_counts', !error && data?.length === 2, error ?? data);
+  const counts = await user(MEMBER).rpc('batch_reel_counts', { p_batch_ids: [BATCH] });
+  check('batch_reel_counts', Number(counts.data?.[0]?.reel_count) === 2, counts.error ?? counts.data);
+  const stuckUser = await user(MEMBER).rpc('stuck_reels', { p_cutoff: new Date().toISOString() });
+  check('stuck_reels denied to users', !!stuckUser.error, stuckUser.data);
+  const stuck = await service.rpc('stuck_reels', { p_cutoff: new Date(Date.now() + 60_000).toISOString() });
+  check('stuck_reels for the cron', !stuck.error && stuck.data?.length === 2, stuck.error ?? stuck.data);
+  const batches = await user(MEMBER)
+    .from('batches')
+    .select('id, label, pages(name, code_prefix)', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .limit(200);
+  check('batch list with page embed', batches.count === 1 && batches.data?.[0]?.pages?.name === 'Porcino & Papaya', batches.error ?? batches.data);
+}
+
+// Writes go through the new rules.
+{
+  const outsider = await user(OUTSIDER).from('reels').update({ title: 'x' }).eq('id', REEL1).select('id');
+  check('outsider update returns no row', !outsider.error && outsider.data?.length === 0, outsider.error ?? outsider.data);
+  const member = await user(MEMBER).from('reels').update({ title: 'Nuovo' }).eq('id', REEL1).select('id');
+  check('member update returns the row', member.data?.length === 1, member.error ?? member.data);
+  const escalate = await user(MEMBER).from('profiles').update({ is_admin: true }).eq('id', MEMBER);
+  check('is_admin not writable', escalate.error?.code === '42501', escalate.error);
+  const claim = await user(MEMBER).rpc('claim_admin_if_first');
+  check('claim_admin_if_first refused', claim.data === false, claim.error ?? claim.data);
+  const { data: req } = await service.from('phase_advance_requests').select('id').eq('reel_id', REEL1).eq('status', 'pending').single();
+  const selfDecide = await user(MEMBER).rpc('decide_phase_advance', { p_request_id: req.id, p_decision: 'approved', p_note: null });
+  check('Responsible cannot decide', selfDecide.data === 'not_authorized', selfDecide.error ?? selfDecide.data);
+  const decide = await user(APPROVER).rpc('decide_phase_advance', { p_request_id: req.id, p_decision: 'approved', p_note: 'ok' });
+  check('Approver decides via RPC', decide.data === 'ok', decide.error ?? decide.data);
+  const { data: reel } = await user(ADMIN).from('reels').select('phase').eq('id', REEL1).single();
+  check('reel advanced', reel?.phase === 'dubbing', reel);
+}
+
+proxy.close();
+if (failures) {
+  console.log(`${failures} API check(s) failed`);
+  process.exit(1);
+}

@@ -32,7 +32,7 @@ export function PublishTab({ reel }: Props) {
     startTransition(async () => {
       const result = await updateReelPublish(reel.id, formData);
       if (result.ok) toast.success(t('saved'));
-      else toast.error(tCommon('error'));
+      else toast.error(tCommon(result.error === 'not_authorized' ? 'notAuthorized' : 'error'));
     });
   };
 

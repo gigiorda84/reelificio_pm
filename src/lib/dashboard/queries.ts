@@ -41,7 +41,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const [
     { data: pages },
-    { data: reels },
+    { data: counts },
     { data: batches },
     { count: batchTotalCount },
     { count: pendingCount },
@@ -51,10 +51,8 @@ export async function getDashboardData(): Promise<DashboardData> {
       .select('id, name, code_prefix, buffer_threshold, active')
       .eq('active', true)
       .order('name', { ascending: true }),
-    supabase
-      .from('reels')
-      .select('id, page_id, phase')
-      .in('phase', [...ALL_PIPELINE_PHASES]),
+    // Counts of active (not yet published) reels, aggregated in SQL.
+    supabase.rpc('active_reel_counts'),
     supabase
       .from('batches')
       .select('id, page_id, label, source_doc_synced_at, created_at')
@@ -70,21 +68,23 @@ export async function getDashboardData(): Promise<DashboardData> {
   ]);
 
   const pageList = pages ?? [];
-  const reelList = reels ?? [];
+  const countList = (counts ?? []) as { page_id: string; phase: string; reel_count: number }[];
   const batchList = batches ?? [];
+  let reelsInFlight = 0;
 
   const pageStats: DashboardPageStats[] = pageList.map((p) => {
     const phase_counts = Object.fromEntries(
       ALL_PIPELINE_PHASES.map((ph) => [ph, 0]),
     ) as Record<PipelinePhase, number>;
     let total = 0;
-    for (const r of reelList) {
-      if (r.page_id !== p.id) continue;
-      const ph = r.phase as PipelinePhase;
-      if (phase_counts[ph] === undefined) continue;
-      phase_counts[ph] += 1;
-      total += 1;
+    for (const c of countList) {
+      if (c.page_id !== p.id) continue;
+      const ph = c.phase as PipelinePhase;
+      if (phase_counts[ph] === undefined) continue; // deprecated qc/published
+      phase_counts[ph] += Number(c.reel_count);
+      total += Number(c.reel_count);
     }
+    reelsInFlight += total;
     const buffer_count = phase_counts.publication;
     return {
       id: p.id,
@@ -102,15 +102,11 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const reelCounts = new Map<string, number>();
   if (batchList.length) {
-    const { data: counts } = await supabase
-      .from('reels')
-      .select('batch_id')
-      .in(
-        'batch_id',
-        batchList.map((b) => b.id),
-      );
-    for (const c of counts ?? []) {
-      reelCounts.set(c.batch_id, (reelCounts.get(c.batch_id) ?? 0) + 1);
+    const { data: batchCounts } = await supabase.rpc('batch_reel_counts', {
+      p_batch_ids: batchList.map((b) => b.id),
+    });
+    for (const c of (batchCounts ?? []) as { batch_id: string; reel_count: number }[]) {
+      reelCounts.set(c.batch_id, Number(c.reel_count));
     }
   }
 
@@ -131,7 +127,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     totals: {
       pages: pageList.length,
       batches: batchTotalCount ?? 0,
-      reels_in_flight: reelList.length,
+      reels_in_flight: reelsInFlight,
       pending_requests: pendingCount ?? 0,
     },
     pages: pageStats,

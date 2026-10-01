@@ -12,7 +12,8 @@
       "submit": "Invia link di accesso",
       "submitting": "Invio in corso…",
       "linkSent": "Controlla la tua email — ti abbiamo inviato il link.",
-      "error": "Qualcosa è andato storto. Riprova."
+      "error": "Qualcosa è andato storto. Riprova.",
+      "notInvited": "Questa email non è abilitata. Chiedi a un admin di invitarti."
     },
     "logout": "Esci"
   },
@@ -69,7 +70,8 @@
     "back": "Indietro",
     "saving": "Salvataggio…",
     "saved": "Salvato",
-    "error": "Errore"
+    "error": "Errore",
+    "notAuthorized": "Non hai i permessi per modificare questo elemento."
   },
   "pages": {
     "list": {
@@ -133,7 +135,8 @@
       "columnPage": "Pagina",
       "columnReels": "Reel",
       "columnSynced": "Ultima sincronizzazione",
-      "columnStatus": "Stato"
+      "columnStatus": "Stato",
+      "truncated": "Mostrati i {shown} batch più recenti su {total}."
     },
     "status": {
       "draft": "Bozza",
@@ -320,7 +323,8 @@
       "alreadyPending": "Esiste già una richiesta in attesa.",
       "rejectNoteRequired": "Aggiungi una motivazione per il rifiuto.",
       "unknown": "Operazione non riuscita.",
-      "dodIncomplete": "Completa tutti i criteri della Definition of Done prima di passare a pubblicazione."
+      "dodIncomplete": "Completa tutti i criteri della Definition of Done prima di passare a pubblicazione.",
+      "staleRequest": "Il reel è già cambiato di fase: questa richiesta non è più valida."
     },
     "saved": {
       "requested": "Richiesta inviata.",
@@ -355,7 +359,7 @@
   },
   "pipeline": {
     "title": "Pipeline",
-    "subtitle": "Tutte le reel attraverso le fasi di produzione.",
+    "subtitle": "Le reel in lavorazione attraverso le fasi di produzione. Quelle già pubblicate escono dalla board.",
     "filterPage": "Pagina",
     "filterAllPages": "Tutte le pagine",
     "filterBatch": "Batch",
@@ -364,7 +368,8 @@
     "phaseEmpty": "—",
     "daysIn": "{count, plural, =1 {1 giorno} other {# giorni}}",
     "today": "Oggi",
-    "pendingBadge": "in approvazione"
+    "pendingBadge": "in approvazione",
+    "truncated": "Le {shown} più vecchie di {total}: filtra per pagina o batch per vederle tutte."
   },
   "comments": {
     "title": "Commenti",

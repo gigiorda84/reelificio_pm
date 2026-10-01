@@ -48,23 +48,12 @@ export async function claimAdminIfFirst(): Promise<ClaimAdminResult> {
 
   if (!user) return { ok: false, error: 'not_authenticated' };
 
-  const { count } = await supabase
-    .from('profiles')
-    .select('*', { count: 'exact', head: true })
-    .eq('is_admin', true);
-
-  if ((count ?? 0) > 0) {
-    return { ok: false, error: 'admin_already_exists' };
-  }
-
-  // The RLS update policy only lets a profile update itself — perfect: the
-  // user promoting themselves is the same row they're authorised to update.
-  const { error } = await supabase
-    .from('profiles')
-    .update({ is_admin: true })
-    .eq('id', user.id);
+  // `is_admin` is not user-writable; the SQL function checks "no admin yet"
+  // and promotes the caller atomically.
+  const { data: claimed, error } = await supabase.rpc('claim_admin_if_first');
 
   if (error) return { ok: false, error: 'unknown' };
+  if (!claimed) return { ok: false, error: 'admin_already_exists' };
 
   revalidatePath('/', 'layout');
   return { ok: true };

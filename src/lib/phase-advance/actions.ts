@@ -22,6 +22,7 @@ export type PhaseAdvanceResult =
         | 'already_pending'
         | 'request_not_found'
         | 'dod_incomplete'
+        | 'stale_request'
         | 'unknown';
       message?: string;
     };
@@ -146,53 +147,36 @@ export async function decidePhaseAdvance(
 
   const { data: req } = await supabase
     .from('phase_advance_requests')
-    .select('id, reel_id, from_phase, to_phase, status')
+    .select('id, reel_id')
     .eq('id', parsed.data.request_id)
     .maybeSingle();
   if (!req) return { ok: false, error: 'request_not_found' };
-  if (req.status !== 'pending') return { ok: false, error: 'invalid_input' };
 
-  const ctx = await loadReelAndRaci(req.reel_id);
-  if (!ctx) return { ok: false, error: 'reel_not_found' };
-  const { reel, raci } = ctx;
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  const isAdmin = !!profile?.is_admin;
-  const isApprover = !!raci && getRaciUsers(raci, 'approver').includes(user.id);
-  if (!isAdmin && !isApprover) return { ok: false, error: 'not_authorized' };
-
-  const decidedAt = new Date().toISOString();
-  const { error: updErr } = await supabase
-    .from('phase_advance_requests')
-    .update({
-      status: parsed.data.decision,
-      decided_by: user.id,
-      decided_at: decidedAt,
-      decision_note: parsed.data.decision_note ?? null,
-    })
-    .eq('id', req.id);
-  if (updErr) return { ok: false, error: 'unknown', message: updErr.message };
-
-  if (parsed.data.decision === 'approved') {
-    const { error: phaseErr } = await supabase
-      .from('reels')
-      .update({
-        phase: req.to_phase,
-        phase_entered_at: decidedAt,
-        phase_status: 'green',
-      })
-      .eq('id', reel.id);
-    if (phaseErr) return { ok: false, error: 'unknown', message: phaseErr.message };
-  }
-  // On reject we leave the reel's phase untouched; the requester sees the
+  // Authorization (admin or Approver of the reel's current phase), the DoD
+  // gate and the request + reel update all run atomically in SQL.
+  // On reject the reel's phase is untouched; the requester sees the
   // decision_note and can iterate. (Per PRD §5.4 a "back one phase" option may
   // be added later — kept out of this iteration.)
+  const { data: outcome, error } = await supabase.rpc('decide_phase_advance', {
+    p_request_id: req.id,
+    p_decision: parsed.data.decision,
+    p_note: parsed.data.decision_note ?? null,
+  });
+  if (error) return { ok: false, error: 'unknown', message: error.message };
+  if (outcome !== 'ok') {
+    const known = [
+      'invalid_input',
+      'not_authorized',
+      'reel_not_found',
+      'request_not_found',
+      'dod_incomplete',
+      'stale_request',
+    ] as const;
+    const code = known.find((k) => k === outcome) ?? 'unknown';
+    return { ok: false, error: code };
+  }
 
-  revalidatePath(`/reels/${reel.id}`);
+  revalidatePath(`/reels/${req.reel_id}`);
   revalidatePath('/pipeline');
   return { ok: true };
 }

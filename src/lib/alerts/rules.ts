@@ -1,6 +1,6 @@
 import 'server-only';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { ALL_PIPELINE_PHASES, type PipelinePhase } from '@/lib/reels/constants';
+import { type PipelinePhase } from '@/lib/reels/constants';
 import { PHASE_STUCK_MS, dedupKeyFor, type AlertKind } from './types';
 
 export type AlertProposal = {
@@ -21,14 +21,12 @@ export async function proposeBufferLow(): Promise<AlertProposal[]> {
     .eq('active', true);
   if (!pages?.length) return [];
 
-  const { data: reels } = await supabase
-    .from('reels')
-    .select('page_id')
-    .eq('phase', 'publication');
+  // Buffer = reels ready in `publication` and not yet posted.
+  const { data: counts } = await supabase.rpc('active_reel_counts');
 
   const bufferByPage = new Map<string, number>();
-  for (const r of reels ?? []) {
-    bufferByPage.set(r.page_id, (bufferByPage.get(r.page_id) ?? 0) + 1);
+  for (const c of (counts ?? []) as { page_id: string; phase: string; reel_count: number }[]) {
+    if (c.phase === 'publication') bufferByPage.set(c.page_id, Number(c.reel_count));
   }
 
   const proposals: AlertProposal[] = [];
@@ -57,29 +55,21 @@ export async function proposePhaseStuck(now = new Date()): Promise<AlertProposal
   const supabase = getSupabaseAdminClient();
   const cutoff = new Date(now.getTime() - PHASE_STUCK_MS).toISOString();
 
-  const { data: reels } = await supabase
-    .from('reels')
-    .select('id, code, title, page_id, phase, phase_entered_at')
-    .in('phase', [...ALL_PIPELINE_PHASES])
-    .neq('phase', 'publication')
-    .lt('phase_entered_at', cutoff);
+  // Working-phase reels entered before the cutoff with no reel comment since
+  // then; the comment check runs in SQL (no long id lists over the wire).
+  const { data: reels, error } = await supabase.rpc('stuck_reels', { p_cutoff: cutoff });
+  if (error) throw error;
   if (!reels?.length) return [];
 
-  // Pull recent comments on these reels in one shot.
-  const reelIds = reels.map((r) => r.id);
-  const { data: recentComments } = await supabase
-    .from('comments')
-    .select('target_id, created_at')
-    .eq('target_type', 'reel')
-    .in('target_id', reelIds)
-    .gte('created_at', cutoff);
-
-  const recentByReel = new Set<string>();
-  for (const c of recentComments ?? []) recentByReel.add(c.target_id);
-
   const proposals: AlertProposal[] = [];
-  for (const r of reels) {
-    if (recentByReel.has(r.id)) continue;
+  for (const r of reels as {
+    id: string;
+    code: string;
+    title: string;
+    page_id: string;
+    phase: string;
+    phase_entered_at: string;
+  }[]) {
     const phase = r.phase as PipelinePhase;
     proposals.push({
       kind: 'phase_stuck',

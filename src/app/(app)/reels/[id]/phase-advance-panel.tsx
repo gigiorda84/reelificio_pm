@@ -99,6 +99,10 @@ export function PhaseAdvancePanel({
         setDecisionNote('');
       } else if (result.error === 'not_authorized') {
         toast.error(t('errors.notAuthorized'));
+      } else if (result.error === 'dod_incomplete') {
+        toast.error(t('errors.dodIncomplete'));
+      } else if (result.error === 'stale_request') {
+        toast.error(t('errors.staleRequest'));
       } else {
         toast.error(t('errors.unknown'));
       }
