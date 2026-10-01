@@ -89,7 +89,7 @@ Codice sul branch `fase-0-hardening`, migrazioni `20261001120000_fase0_security.
 
 - [x] Sicurezza: nessun utente può modificare `is_admin` o il collegamento Telegram del proprio profilo (permessi per colonna + funzioni `claim_admin_if_first`, `unlink_telegram`)
 - [x] Sicurezza: login solo per utenti invitati (`shouldCreateUser: false`, `enable_signup = false` in locale)
-- [ ] Sicurezza: disattivare "Allow new users to sign up" nel progetto Supabase ospitato (dashboard)
+- [x] Sicurezza: disattivato "Allow new users to sign up" nel progetto Supabase di produzione (2026-10-01, via Management API; `/auth/v1/settings` riporta `disable_signup: true`)
 - [x] Sicurezza: reel inseribili/eliminabili solo da admin; modificabili da admin e membri R/A/C della pagina, solo nelle colonne di contenuto; le azioni segnalano `not_authorized`; `setReelPhase` rimosso
 - [x] Bug: approvazione tramite `decide_phase_advance()` (atomica, approvatore RACI anche non admin, DoD ricontrollata, richieste superate rifiutate)
 - [x] Ambiente: progetto Supabase di staging `reelificio-pm-staging` (Free, RAG-chatbot messo in pausa per liberare il posto); `.env.local` → staging, `.env.production.local` → produzione; CLI collegata allo staging
