@@ -1,24 +1,15 @@
 #!/usr/bin/env bash
 # Apply every migration to a throwaway local Postgres and run the SQL checks.
-# Requires Postgres binaries on PATH (e.g. `brew install postgresql@16`).
+# Needs Homebrew postgresql@16 (or PG_BIN, see lib.sh) and libpq.
 # Usage: scripts/db-check/run.sh
 set -euo pipefail
 
-ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-HERE="$ROOT/scripts/db-check"
-TMP=$(mktemp -d)
-PORT=${DB_CHECK_PORT:-54399}
-
-initdb -D "$TMP/data" -U postgres -A trust >/dev/null
-pg_ctl -D "$TMP/data" -o "-p $PORT -k $TMP -c listen_addresses=''" -l "$TMP/postgres.log" -w start >/dev/null
-trap 'pg_ctl -D "$TMP/data" -m immediate stop >/dev/null 2>&1; rm -rf "$TMP"' EXIT
-
-PSQL=(psql -h "$TMP" -p "$PORT" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -X -o /dev/null)
+source "$(dirname "$0")/lib.sh"
+start_pg 15
 
 "${PSQL[@]}" -f "$HERE/shim.sql"
 for f in "$ROOT"/supabase/migrations/*.sql; do
-  echo "migrate: $(basename "$f")"
-  "${PSQL[@]}" -f "$f"
+  apply_migration "$f"
 done
 
 for f in "$HERE"/checks/*.sql; do
@@ -37,7 +28,6 @@ if command -v postgrest >/dev/null; then
   PGRST_JWT_SECRET="$DB_CHECK_JWT_SECRET" PGRST_SERVER_PORT=$REST_PORT \
     postgrest >"$TMP/postgrest.log" 2>&1 &
   REST_PID=$!
-  trap 'kill $REST_PID 2>/dev/null; pg_ctl -D "$TMP/data" -m immediate stop >/dev/null 2>&1; rm -rf "$TMP"' EXIT
   for _ in $(seq 1 50); do curl -sf "http://127.0.0.1:$REST_PORT/" >/dev/null && break; sleep 0.2; done
   DB_CHECK_REST="http://127.0.0.1:$REST_PORT" node "$HERE/api-check.mjs"
 else

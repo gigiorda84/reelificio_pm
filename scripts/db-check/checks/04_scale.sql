@@ -8,6 +8,11 @@ do $$ begin
   if (select published_at from reels where id = '30000000-0000-0000-0000-000000000002') is null then
     raise exception 'FAIL: posting did not set published_at';
   end if;
+  -- Fase 1: the state follows (pubblicato), and so does the phase.
+  if (select (state, phase)::text from reels where id = '30000000-0000-0000-0000-000000000002')
+     <> '(pubblicato,publication)' then
+    raise exception 'FAIL: posting did not move the reel to pubblicato/publication';
+  end if;
   begin
     update reels set published_at = null where id = '30000000-0000-0000-0000-000000000002';
     raise exception 'FAIL: user wrote published_at directly';
@@ -30,6 +35,9 @@ do $$ begin
   if (select published_at from reels where id = '30000000-0000-0000-0000-000000000002') is not null then
     raise exception 'FAIL: clearing posted_url kept published_at';
   end if;
+  if (select state from reels where id = '30000000-0000-0000-0000-000000000002') <> 'programmato' then
+    raise exception 'FAIL: an unpublished reel should be programmato';
+  end if;
 end $$;
 
 -- stuck_reels is cron-only.
@@ -43,6 +51,7 @@ end $$;
 
 -- Stuck detection: old phase entry and no recent comment; a fresh comment clears it.
 reset role;
+update reels set state = 'animazione' where id = '30000000-0000-0000-0000-000000000002';
 update reels set phase_entered_at = now() - interval '3 days';
 do $$ begin
   if (select count(*) from public.stuck_reels(now() - interval '24 hours')) <> 2 then

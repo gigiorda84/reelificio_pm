@@ -13,7 +13,10 @@ create schema auth;
 create table auth.users (
   id uuid primary key default gen_random_uuid(),
   email text,
+  -- user-writable in Supabase; never trusted for account_type
   raw_user_meta_data jsonb not null default '{}'::jsonb,
+  -- service-role only in Supabase
+  raw_app_meta_data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 

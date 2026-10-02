@@ -39,8 +39,8 @@ end $$;
 
 -- unlink_telegram clears only the caller's link.
 reset role;
-update profiles set telegram_chat_id = '999' where id in (
-  '00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000b');
+update profiles set telegram_chat_id = '999' where id = '00000000-0000-0000-0000-00000000000c';
+update profiles set telegram_chat_id = '998' where id = '00000000-0000-0000-0000-00000000000b';
 set role authenticated;
 select public.unlink_telegram();
 reset role;
