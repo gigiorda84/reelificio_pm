@@ -125,7 +125,7 @@ Dettagli e comandi in `docs/fase1-plan.md` §S0. Aggiornato al 2026-10-02.
 
 - **Drive in scrittura (Node):** passi 1, 2 e 4 superati sullo Shared Drive "Reelificio Staging" (`0AGUeee-dn1H3Uk9PVA`): lo service account crea cartelle e file e apre sessioni resumable con `Origin`; caricati a chunk da 8 MiB due WAV da 50 e 300 MB. I membri del Drive compaiono sulla cartella con `permissionDetails[].inherited = true` (S5 non deve revocarli). **Da fare:** condivisione `reader` e `writer` verso una Gmail esterna, download, revoca (passi 3 e 3b).
 - **Upload dal browser (D6):** **U1 regge su Chromium desktop**: preflight CORS accettato, header `Range` leggibile sui 308, interruzione a metà chunk e ripresa con `bytes */<size>` fino al 200 finale. **Da fare:** Safari iOS; se fallisce, U3.
-- **Media su iPhone (AC2):** route `/api/spike/audio/<id>` provata in locale (206 da massimo 4 MB, salti, 416, link firmati). **Da fare:** prova su un deployment Preview di Vercel da Safari e dal browser interno di Telegram, con i tempi.
+- **Media su iPhone (AC2):** route `/api/spike/audio/<id>` provata in locale e sul Preview Vercel (`fra1`, link firmati con bypass della protezione). Risponde 206 con al massimo 4 MB per risposta e 416 fuori misura, e regge i salti sui WAV da 50 e 300 MB. Da curl ogni pezzo da 4 MB arriva in 2–3 s; la prima richiesta costa 2–4 s per l'avvio a freddo e i metadati. **Da fare:** prova da Safari e dal browser interno di Telegram su iPhone, con i tempi.
 - **Deep link Telegram:** script pronto (`scripts/spike-telegram-deeplink.ts`). **Da fare:** serve il bot di staging.
 
 ## Costi mensili stimati (IVA esclusa, persone escluse)
