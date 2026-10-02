@@ -29,6 +29,26 @@ Le decisioni complete sono nella specifica `.omc/specs/deep-interview-fase1-prod
 - **Approvazioni:** al rilascio approvano Gabri e un delegato. I gruppi di pagine sono predisposti ma spenti.
 - **Express leggero:** solo priorità e scadenze strette.
 
+### Piano della Fase 1 approvato (2026-10-02)
+
+Il piano esecutivo è [`docs/fase1-plan.md`](fase1-plan.md). L'hanno approvato Architect e Critic dopo tre giri di revisione, e poi l'utente. Le decisioni sono in [`docs/fase1-decisioni.md`](fase1-decisioni.md). Dove contraddice questo documento, vale il piano. In sintesi:
+
+- **Rilasci:**
+  - **R1:** tutto tranne Drive, account esterni compresi; le consegne avvengono con link.
+  - **R2:** solo Drive.
+  - Ogni rilascio segue l'ordine expand → codice → contract. Il passo 0 è una prova generale su un dump di produzione.
+- **Date:**
+  - si parte lunedì 5 ottobre;
+  - **R1 il 16 novembre è l'impegno**, il 9 novembre è l'obiettivo ambizioso;
+  - R2 il 23 novembre, chiusura il 24 novembre;
+  - checkpoint il 23 ottobre e il 3 novembre;
+  - piano B: R1 il 16 novembre e R2 il 30 novembre;
+  - riserva il 4 dicembre.
+- **Scheduler:** i cron di Vercel Pro sostituiscono Inngest, rinviato alla Fase 2. Nella tabella Architettura sotto, la riga "Job" vale quindi dalla Fase 2.
+- **Prima di R1:**
+  - Vercel Pro e Supabase Pro;
+  - un deploy `fase1-pre-r1` entro il 16 ottobre, che serve come bersaglio del rollback.
+
 ## Vincoli esterni
 
 - **Vercel Hobby** consente un cron al giorno ed è solo per uso non commerciale → Vercel Pro (Fase 0).

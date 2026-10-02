@@ -29,6 +29,10 @@ Run `scripts/db-check/run.sh` after every migration change, and add a check when
 **Next direction — Reellificio Brain (decided 2026-10-01):** this app evolves into the "Brain", a 7-module app (Intelligence, Attualità, Character Lab, Script Lab, Produzione, Pubblicazione, Analytics) scaled to ~50 pages and ~10 internal users. Work proceeds in phases, starting with **Fase 0 (hardening)** on branch `fase-0-hardening`.
 - `docs/brain-concept.md` — summary of the team's concept doc. The original Claude Doc lives in another org and is not readable by tools.
 - `docs/brain-plan.md` — the decisions, architecture, phases, Fase 0 checklist and cost model. Read it before starting Brain work, and update its checklists as phases close.
+- `docs/fase1-plan.md` — the approved execution plan for Fase 1 "Produzione 2.0" (approved 2026-10-02). Its decision log is `docs/fase1-decisioni.md`.
+  - Follow the plan slice by slice.
+  - Apply the inline fixes I1–I14 listed at the end of the plan.
+  - Keep the file current if the plan changes.
 - Where the Brain docs and the PRD disagree on scope, the Brain docs win for new work. One example: the pipeline moves from 6 linear phases to 8 states with parallel dubbing and animation.
 
 - `docs/reellificio_BP.md` — the **business plan** (v2.0, April 2026). Authoritative description of the production model: phases, RACI, batch structure, KPIs, buffer rules, voice system, onboarding, scalability plan.
