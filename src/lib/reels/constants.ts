@@ -17,6 +17,21 @@ export const PIPELINE_PHASE_ORDER: Record<PipelinePhase, number> = {
   publication: 5,
 };
 
+// Fase 1 reel states (mirror of the `reel_state` enum); labels in `states.*`.
+export const REEL_STATES = [
+  'idea',
+  'bozza',
+  'revisione',
+  'validazione',
+  'confermato',
+  'doppiaggio',
+  'animazione',
+  'approvazione_finale',
+  'programmato',
+  'pubblicato',
+] as const;
+export type ReelState = (typeof REEL_STATES)[number];
+
 export const RACI_ROLES = ['responsible', 'approver', 'consulted', 'informed'] as const;
 export type RaciRole = (typeof RACI_ROLES)[number];
 

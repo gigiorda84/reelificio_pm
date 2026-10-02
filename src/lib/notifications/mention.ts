@@ -1,6 +1,11 @@
 import 'server-only';
 import { dispatchToMany } from './dispatch';
-import { mentionRecipients, type ProfileLike } from './recipients';
+import {
+  mentionRecipients,
+  taskGrantsVisibility,
+  type ProfileLike,
+  type TaskLike,
+} from './recipients';
 import type { CommentTarget } from '@/lib/comments/queries';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
@@ -50,26 +55,53 @@ async function targetLink(
   };
 }
 
+// Mentioned externals who can see the reel (tasks; see recipients.ts). Only
+// reel threads are open to externals.
+async function externalsWhoSeeTarget(
+  supabase: ReturnType<typeof getSupabaseAdminClient>,
+  target: CommentTarget,
+  targetId: string,
+  mentioned: ProfileLike[],
+): Promise<Set<string>> {
+  const externalIds = mentioned.filter((p) => p.account_type === 'external').map((p) => p.id);
+  if (target !== 'reel' || externalIds.length === 0) return new Set();
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('assignee_id, status, closed_at')
+    .eq('reel_id', targetId)
+    .in('assignee_id', externalIds);
+  if (error) {
+    console.error('[mention] tasks lookup failed, externals skipped', error.message);
+    return new Set();
+  }
+  return new Set(
+    ((data ?? []) as TaskLike[])
+      .filter((t) => taskGrantsVisibility(t))
+      .map((t) => t.assignee_id as string),
+  );
+}
+
 export async function notifyMentions(args: {
   authorId: string;
   body: string;
   mentionIds: string[];
   target: CommentTarget;
   targetId: string;
+  // An internal-only comment never notifies an external, even if mentioned.
+  internalOnly?: boolean;
 }): Promise<void> {
   const candidates = args.mentionIds.filter((id) => id !== args.authorId);
   if (candidates.length === 0) return;
 
   const supabase = getSupabaseAdminClient();
   // `*` keeps this working before the Fase 1 columns exist (see recipients.ts).
-  const { data: mentioned } = await supabase.from('profiles').select('*').in('id', candidates);
-  // Until tasks exist no external can see a reel, so externals are never
-  // notified of mentions.
+  const { data } = await supabase.from('profiles').select('*').in('id', candidates);
+  const mentioned = (data ?? []) as ProfileLike[];
   const recipients = mentionRecipients({
     authorId: args.authorId,
-    mentioned: (mentioned ?? []) as ProfileLike[],
-    internalOnly: false,
-    externalsWhoSeeTarget: new Set(),
+    mentioned,
+    internalOnly: args.internalOnly ?? false,
+    externalsWhoSeeTarget: await externalsWhoSeeTarget(supabase, args.target, args.targetId, mentioned),
   });
   if (recipients.length === 0) return;
 

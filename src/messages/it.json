@@ -220,9 +220,22 @@
       }
     }
   },
+  "states": {
+    "idea": "Idea",
+    "bozza": "Bozza",
+    "revisione": "Revisione",
+    "validazione": "Validazione",
+    "confermato": "Confermato",
+    "doppiaggio": "Doppiaggio",
+    "animazione": "Animazione",
+    "approvazione_finale": "Approvazione finale",
+    "programmato": "Programmato",
+    "pubblicato": "Pubblicato"
+  },
   "reels": {
     "detail": {
       "back": "Torna al batch",
+      "currentState": "Stato",
       "phaseEnteredAt": "Da",
       "advancePhase": "Avanza fase",
       "currentPhase": "Fase corrente",

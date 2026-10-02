@@ -1,28 +1,13 @@
 import 'server-only';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from './email';
+import { DEFAULT_MATRIX } from './defaults';
 import { sendTelegramMessage } from './telegram';
 import {
   ACTIVE_CHANNELS,
   type NotificationChannel,
   type NotificationEvent,
 } from './types';
-
-// Per-event default — used when a user has no row in `notification_prefs` for a
-// given (event, channel) pair. In-app is always on; email is on for high-signal
-// events; telegram off-by-default until the user opts in.
-const CHANNEL_DEFAULTS: Record<NotificationEvent, Record<NotificationChannel, boolean>> = {
-  mention: { in_app: true, email: true, telegram: false, whatsapp: false },
-  assignment: { in_app: true, email: true, telegram: false, whatsapp: false },
-  phase_approval_request: { in_app: true, email: true, telegram: false, whatsapp: false },
-  phase_approved: { in_app: true, email: false, telegram: false, whatsapp: false },
-  phase_rejected: { in_app: true, email: true, telegram: false, whatsapp: false },
-  buffer_alert: { in_app: true, email: true, telegram: true, whatsapp: false },
-  phase_stuck_alert: { in_app: true, email: true, telegram: false, whatsapp: false },
-  kpi_alert: { in_app: true, email: true, telegram: false, whatsapp: false },
-  daily_reminder: { in_app: true, email: true, telegram: false, whatsapp: false },
-  weekly_digest: { in_app: false, email: true, telegram: false, whatsapp: false },
-};
 
 export type DispatchPayload = {
   subject: string;
@@ -59,7 +44,7 @@ async function channelEnabled(
     .eq('channel', channel)
     .maybeSingle();
   if (data) return data.enabled;
-  return CHANNEL_DEFAULTS[event][channel];
+  return DEFAULT_MATRIX[event][channel];
 }
 
 export async function dispatchNotification(input: DispatchInput): Promise<DispatchResult> {

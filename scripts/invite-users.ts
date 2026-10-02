@@ -1,144 +1,93 @@
-// Pre-provision users via the Supabase Admin API.
+// Pre-provision an INTERNAL user via the Supabase Admin API.
 //
 // Usage:
-//   pnpm exec tsx scripts/invite-users.ts
+//   pnpm exec tsx scripts/invite-users.ts [--target staging|production] [--admin] [--no-link] \
+//     <email> "<full name>"
 //
-// Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY in .env.local
-// (or in the shell environment). The service-role key is required to call
-// admin.* methods. Edit USERS below to change the seed list.
+// Since Fase 1 a new profile is external unless created as internal, so:
+// - the email must be on the reviewed internal allowlist
+//   (supabase/backups/fase1/internal-emails.txt, one per line, not in git);
+// - the auth user is created with app_metadata.account_type = 'internal',
+//   and the profile is set internal explicitly too (also for existing
+//   users), since GoTrue may write app_metadata after the profile insert.
+// External collaborators go through scripts/fase1-collaborators.ts instead.
 //
-// What it does for each user:
-//   1. createUser({ email, email_confirm: true }) — idempotent: if the
-//      user already exists (422), we look them up and continue.
-//   2. Optionally promote to admin (is_admin = true) on the profiles row
-//      created by the on_auth_user_created trigger.
-//   3. Send a magic link so the user can sign in immediately.
+// Steps: createUser (or find the existing user) → profile internal, name,
+// admin flag if --admin (never removed) → magic link printed unless --no-link.
+// During the R1 account freeze (dump 0a → step 4) do not run this against
+// production.
+import { readFileSync } from 'node:fs';
+import { loadTarget, readEmailList } from './lib/target';
 
-import { config } from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
-import WebSocket from 'ws';
+const ALLOWLIST = 'supabase/backups/fase1/internal-emails.txt';
 
-// Node 20 doesn't ship native WebSocket; @supabase/realtime-js needs one.
-(globalThis as unknown as { WebSocket: typeof WebSocket }).WebSocket =
-  WebSocket as unknown as typeof globalThis.WebSocket;
+async function main() {
+  const { admin, appUrl, args } = await loadTarget(process.argv.slice(2), { allowProduction: true });
+  const makeAdmin = args.includes('--admin');
+  const noLink = args.includes('--no-link');
+  const [rawEmail, fullName] = args.filter((a) => !a.startsWith('--'));
+  const email = rawEmail?.trim().toLowerCase();
+  if (!email || !fullName) throw new Error('usage: invite-users.ts [--target …] [--admin] [--no-link] <email> "<full name>"');
 
-config({ path: '.env.local' });
-
-type Seed = {
-  email: string;
-  full_name: string;
-  is_admin?: boolean;
-};
-
-const USERS: Seed[] = [
-  { email: 'rootsmanteo@gmail.com', full_name: 'Matteo Marini', is_admin: true },
-  { email: 'concasgabriele@gmail.com', full_name: 'Gabriele Concas', is_admin: true },
-];
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY;
-const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL ?? 'https://reelificio-pm.vercel.app';
-
-if (!SUPABASE_URL || !SERVICE_KEY) {
-  console.error(
-    'Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY in .env.local',
-  );
-  process.exit(1);
-}
-
-const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
-
-async function findUserByEmail(email: string) {
-  // listUsers paginates; for a handful of users page 1 is enough but we
-  // walk pages defensively in case the project grows.
-  let page = 1;
-  while (page < 50) {
-    const { data, error } = await admin.auth.admin.listUsers({
-      page,
-      perPage: 200,
-    });
-    if (error) throw error;
-    const hit = data.users.find(
-      (u) => (u.email ?? '').toLowerCase() === email.toLowerCase(),
-    );
-    if (hit) return hit;
-    if (data.users.length < 200) return null;
-    page += 1;
+  let allowlist: Set<string>;
+  try {
+    allowlist = readEmailList(readFileSync(ALLOWLIST, 'utf8'));
+  } catch {
+    throw new Error(`${ALLOWLIST} not found: it lists every internal email`);
   }
-  return null;
-}
+  if (!allowlist.has(email)) throw new Error(`${email} is not on the internal allowlist (${ALLOWLIST})`);
 
-async function ensureUser(seed: Seed) {
-  console.log(`\n→ ${seed.email} (${seed.full_name})`);
-
-  // 1. Create or find
-  const { data: created, error: createErr } =
-    await admin.auth.admin.createUser({
-      email: seed.email,
-      email_confirm: true,
-      user_metadata: { full_name: seed.full_name },
-    });
-
+  console.log(`→ ${email} (${fullName})`);
   let userId: string;
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    app_metadata: { account_type: 'internal' },
+    user_metadata: { full_name: fullName },
+  });
   if (createErr) {
-    if (createErr.message.toLowerCase().includes('already')) {
-      console.log('  · already exists, looking up id…');
-      const existing = await findUserByEmail(seed.email);
-      if (!existing) throw new Error(`User exists but lookup failed`);
-      userId = existing.id;
-    } else {
-      throw createErr;
-    }
+    if (!createErr.message.toLowerCase().includes('already')) throw createErr;
+    const { data: existing, error } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+    if (error || !existing) throw new Error(`user exists but no profile found for ${email}`);
+    userId = existing.id;
+    console.log('  · already exists:', userId);
   } else {
     userId = created.user!.id;
     console.log('  · created auth user:', userId);
   }
 
-  // 2. Upsert profile (the on_auth_user_created trigger should have made
-  // the row, but we update the name/admin flag explicitly to be safe).
-  const { error: profileErr } = await admin
+  const update: Record<string, unknown> = {
+    full_name: fullName,
+    account_type: 'internal',
+    external_kind: null,
+  };
+  if (makeAdmin) update.is_admin = true;
+  const { data: updated, error: profileErr } = await admin
     .from('profiles')
-    .update({
-      full_name: seed.full_name,
-      is_admin: seed.is_admin ?? false,
-    })
-    .eq('id', userId);
-  if (profileErr) {
-    console.warn('  · profile update warning:', profileErr.message);
-  } else {
-    console.log('  · profile updated');
-  }
+    .update(update)
+    .eq('id', userId)
+    .select('account_type, is_admin');
+  if (profileErr || !updated?.length) throw new Error(`profile update failed: ${profileErr?.message ?? 'no row'}`);
+  console.log(`  · profile: ${updated[0].account_type}${updated[0].is_admin ? ', admin' : ''}`);
 
-  // 3. Magic link so they can log in immediately
-  const { data: link, error: linkErr } =
-    await admin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: seed.email,
-      options: { redirectTo: `${APP_URL}/auth/callback` },
-    });
-  if (linkErr) {
-    console.warn('  · magiclink warning:', linkErr.message);
-  } else if (link?.properties?.action_link) {
+  if (noLink) return;
+  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+    options: { redirectTo: `${appUrl}/auth/callback` },
+  });
+  if (linkErr) console.warn('  · magic link warning:', linkErr.message);
+  else if (link?.properties?.action_link) {
     console.log('  · magic link (deliver privately):');
     console.log('   ', link.properties.action_link);
   }
 }
 
-async function main() {
-  for (const u of USERS) {
-    try {
-      await ensureUser(u);
-    } catch (err) {
-      console.error(`  ✗ ${u.email}:`, err);
-    }
-  }
-  console.log('\nDone.');
-}
-
 main().catch((err) => {
-  console.error(err);
+  console.error('FAIL:', (err as Error).message);
   process.exit(1);
 });

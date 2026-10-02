@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import type { ReelState } from './constants';
 
 export type ReelDetail = {
   id: string;
@@ -18,6 +19,7 @@ export type ReelDetail = {
   raw_content: string | null;
   parser_warning: string | null;
 
+  state: ReelState;
   phase: string;
   phase_status: string;
   phase_entered_at: string;
@@ -40,7 +42,7 @@ export async function getReelDetail(id: string): Promise<ReelDetail | null> {
   const { data: reel, error } = await supabase
     .from('reels')
     .select(
-      'id, batch_id, page_id, code, ordinal, title, format, category, hook, corpo, chiusura, cta, notes, raw_content, parser_warning, phase, phase_status, phase_entered_at, audio_drive_url, video_drive_url, caption, scheduled_at, posted_url',
+      'id, batch_id, page_id, code, ordinal, title, format, category, hook, corpo, chiusura, cta, notes, raw_content, parser_warning, state, phase, phase_status, phase_entered_at, audio_drive_url, video_drive_url, caption, scheduled_at, posted_url',
     )
     .eq('id', id)
     .maybeSingle();

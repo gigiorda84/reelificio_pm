@@ -4,6 +4,7 @@ import {
   internalProfiles,
   isActiveInternal,
   mentionRecipients,
+  taskGrantsVisibility,
   type ProfileLike,
 } from './recipients';
 
@@ -100,5 +101,27 @@ describe('mentionRecipients', () => {
         externalsWhoSeeTarget: new Set(),
       }),
     ).toEqual(['old']);
+  });
+});
+
+describe('taskGrantsVisibility', () => {
+  const now = new Date('2026-10-20T12:00:00Z');
+  const daysAgo = (d: number) => new Date(now.getTime() - d * 24 * 3600 * 1000).toISOString();
+
+  it('open tasks always grant visibility', () => {
+    for (const status of ['unassigned', 'assigned', 'in_progress']) {
+      expect(taskGrantsVisibility({ assignee_id: 'x', status, closed_at: null }, now)).toBe(true);
+    }
+  });
+
+  it('outcomes grant it for 7 days', () => {
+    expect(taskGrantsVisibility({ assignee_id: 'x', status: 'delivered', closed_at: daysAgo(6.9) }, now)).toBe(true);
+    expect(taskGrantsVisibility({ assignee_id: 'x', status: 'sent_back', closed_at: daysAgo(7) }, now)).toBe(false);
+  });
+
+  it('declined, expired and cancelled never do', () => {
+    for (const status of ['declined', 'expired', 'cancelled']) {
+      expect(taskGrantsVisibility({ assignee_id: 'x', status, closed_at: daysAgo(0) }, now)).toBe(false);
+    }
   });
 });

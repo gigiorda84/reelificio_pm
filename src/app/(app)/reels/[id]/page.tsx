@@ -28,13 +28,14 @@ export default async function ReelDetailPage({
   const reel = await getReelDetail(id);
   if (!reel) notFound();
 
-  const [tDetail, tTabs, tPhase, tFmt, tCat, pending, raci, admin] =
+  const [tDetail, tTabs, tPhase, tFmt, tCat, tState, pending, raci, admin] =
     await Promise.all([
       getTranslations('reels.detail'),
       getTranslations('reels.tabs'),
       getTranslations('batches.reel.phase'),
       getTranslations('batches.reel.format'),
       getTranslations('batches.reel.category'),
+      getTranslations('states'),
       getPendingRequestForReel(id),
       getRaciConfigForPage(reel.page_id),
       getAdminStatus(),
@@ -83,6 +84,11 @@ export default async function ReelDetailPage({
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Pill>{tFmt(reel.format as 'porcino_mono')}</Pill>
             <Pill>{tCat(reel.category as 'safe')}</Pill>
+            <span>·</span>
+            <span>
+              {tDetail('currentState')}:{' '}
+              <span className="font-medium text-foreground">{tState(reel.state)}</span>
+            </span>
             <span>·</span>
             <span>
               {tDetail('currentPhase')}:{' '}

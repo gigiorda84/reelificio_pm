@@ -1,33 +1,8 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import {
-  ACTIVE_CHANNELS,
-  NOTIFICATION_EVENTS,
-  type NotificationChannel,
-  type NotificationEvent,
-} from './types';
+import { DEFAULT_MATRIX, type PrefMatrix, type PrefRow } from './defaults';
+import { ACTIVE_CHANNELS, NOTIFICATION_EVENTS } from './types';
 
-export type PrefRow = {
-  event: NotificationEvent;
-  channel: NotificationChannel;
-  enabled: boolean;
-};
-
-export type PrefMatrix = Record<NotificationEvent, Record<NotificationChannel, boolean>>;
-
-// In-app is always on; UI doesn't expose a toggle. Other defaults match
-// dispatch.ts CHANNEL_DEFAULTS — keep the two in sync.
-const DEFAULT_MATRIX: PrefMatrix = {
-  mention: { in_app: true, email: true, telegram: false, whatsapp: false },
-  assignment: { in_app: true, email: true, telegram: false, whatsapp: false },
-  phase_approval_request: { in_app: true, email: true, telegram: false, whatsapp: false },
-  phase_approved: { in_app: true, email: false, telegram: false, whatsapp: false },
-  phase_rejected: { in_app: true, email: true, telegram: false, whatsapp: false },
-  buffer_alert: { in_app: true, email: true, telegram: true, whatsapp: false },
-  phase_stuck_alert: { in_app: true, email: true, telegram: false, whatsapp: false },
-  kpi_alert: { in_app: true, email: true, telegram: false, whatsapp: false },
-  daily_reminder: { in_app: true, email: true, telegram: false, whatsapp: false },
-  weekly_digest: { in_app: false, email: true, telegram: false, whatsapp: false },
-};
+export type { PrefMatrix, PrefRow } from './defaults';
 
 export async function getOwnPrefMatrix(): Promise<PrefMatrix> {
   const supabase = await getSupabaseServerClient();

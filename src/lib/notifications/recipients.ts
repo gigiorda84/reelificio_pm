@@ -49,3 +49,18 @@ export function mentionRecipients(args: {
   }
   return [...out];
 }
+
+const OPEN = ['unassigned', 'assigned', 'in_progress'];
+const OUTCOME = ['delivered', 'approved', 'sent_back'];
+const RECENT_MS = 7 * 24 * 3600 * 1000;
+
+export type TaskLike = { assignee_id: string | null; status: string; closed_at: string | null };
+
+// Mirrors public.visible_reel_ids() for notification targeting (RLS stays the
+// authority on access): an open task, or one closed with an outcome in the
+// last 7 days. Declined, expired and cancelled tasks give nothing.
+export function taskGrantsVisibility(t: TaskLike, now: Date = new Date()): boolean {
+  if (OPEN.includes(t.status)) return true;
+  if (!OUTCOME.includes(t.status) || !t.closed_at) return false;
+  return now.getTime() - Date.parse(t.closed_at) < RECENT_MS;
+}
