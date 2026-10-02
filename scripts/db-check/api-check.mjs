@@ -111,6 +111,48 @@ function check(name, ok, detail) {
   check('reel advanced', reel?.phase === 'dubbing', reel);
 }
 
+// External collaborator (Fase 1): sees only the reel with their task.
+{
+  const EXTERNAL = '00000000-0000-0000-0000-00000000000e';
+  const ext = user(EXTERNAL);
+  const none = await ext.from('reels').select('id');
+  check('external without tasks sees no reel', !none.error && none.data?.length === 0, none.error ?? none.data);
+
+  const task = await service.from('tasks').insert({
+    reel_id: REEL1, kind: 'dubbing', status: 'in_progress', assignee_id: EXTERNAL,
+    started_at: new Date().toISOString(), accepted_at: new Date().toISOString(),
+  });
+  check('service role inserts a task', !task.error, task.error);
+
+  const reels = await ext.from('reels').select('id, code, pages(name)');
+  check('external sees the reel with their task', reels.data?.length === 1 && reels.data[0].id === REEL1, reels.error ?? reels.data);
+  check('external sees its page', reels.data?.[0]?.pages?.name === 'Porcino & Papaya', reels.data?.[0]);
+  const batches = await ext.from('batches').select('id');
+  check('external sees no batch', !batches.error && batches.data?.length === 0, batches.error ?? batches.data);
+  const profiles = await ext.from('profiles').select('id, email');
+  check('external sees only their own profile', profiles.data?.length === 1 && profiles.data[0].id === EXTERNAL, profiles.error ?? profiles.data);
+  const names = await ext.rpc('profile_names', { p_ids: [ADMIN, MEMBER, EXTERNAL] });
+  check('profile_names: own name, no email', !names.error && names.data?.length === 1 && !('email' in names.data[0]), names.error ?? names.data);
+  const update = await ext.from('reels').update({ title: 'x' }).eq('id', REEL1).select('id');
+  check('external update returns no row', !update.error && update.data?.length === 0, update.error ?? update.data);
+  const asActor = await ext.rpc('set_collaborator_as', {
+    p_actor: ADMIN, p_user: EXTERNAL, p_account_type: 'internal', p_external_kind: null,
+  });
+  check('set_collaborator_as denied to users', asActor.error?.code === '42501', asActor.error ?? asActor.data);
+  const priv = await ext.rpc('is_admin_uid', { p_uid: ADMIN });
+  check('schema private not exposed', priv.error?.code === 'PGRST202', priv.error ?? priv.data);
+  const backfill = await ext.rpc('fase1_backfill_open_tasks');
+  check('backfill denied to users', backfill.error?.code === '42501', backfill.error ?? backfill.data);
+  const comment = await ext.from('comments').insert({
+    target_type: 'reel', target_id: REEL1, author_id: EXTERNAL, body: 'Consegnato',
+  }).select('id');
+  check('external comments on their reel', !comment.error && comment.data?.length === 1, comment.error);
+  const secret = await ext.from('comments').insert({
+    target_type: 'reel', target_id: REEL1, author_id: EXTERNAL, body: 'x', internal_only: true,
+  });
+  check('external cannot write internal-only', secret.error?.code === '42501', secret.error);
+}
+
 proxy.close();
 if (failures) {
   console.log(`${failures} API check(s) failed`);
