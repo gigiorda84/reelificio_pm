@@ -15,7 +15,10 @@ declare
     -- Fase 1 (S1)
     'is_internal', 'state_raci_phase', 'visible_reel_ids', 'visible_page_ids', 'holds_open_task',
     'set_app_config', 'profile_names', 'comment_is_visible', 'admin_set_collaborator',
-    'offboard_collaborator'
+    'offboard_collaborator',
+    -- Fase 1 (S2): task engine
+    'task_action', 'start_writing', 'assign_task', 'confirm_migrated_tasks', 'set_reel_track',
+    'set_absence', 'schedule_reel', 'publish_reel', 'propose_text_change', 'decide_text_proposal'
   ];
   v_bad text;
 begin

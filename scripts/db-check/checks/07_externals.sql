@@ -13,6 +13,8 @@ insert into tasks (id, reel_id, kind, status, assignee_id, started_at, accepted_
    'in_progress', '00000000-0000-0000-0000-00000000000e', now(), now()),
   ('50000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000002', 'animation',
    'in_progress', '00000000-0000-0000-0000-00000000000b', now(), now());
+-- Reel 1 is being dubbed by e (state consistent with the open task).
+update reels set state = 'doppiaggio' where id = '30000000-0000-0000-0000-000000000001';
 insert into comments (id, target_type, target_id, author_id, body, internal_only) values
   ('60000000-0000-0000-0000-000000000001', 'reel', '30000000-0000-0000-0000-000000000001',
    '00000000-0000-0000-0000-00000000000b', 'Per il doppiatore', false),

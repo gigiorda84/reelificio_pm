@@ -11,6 +11,13 @@ start_pg 15
 for f in "$ROOT"/supabase/migrations/*.sql; do
   apply_migration "$f"
 done
+# Until the contract becomes a migration (end of S4) it lives in
+# supabase/rollback/; the checks below describe the state after it.
+if ! ls "$ROOT"/supabase/migrations/*_fase1_r1_contract.sql >/dev/null 2>&1; then
+  echo "migrate: fase1_r1_recontract.sql (contract, from supabase/rollback)"
+  "${PSQL[@]}" --single-transaction -f "$ROOT/supabase/rollback/fase1_r1_recontract.sql"
+fi
+export PGOPTIONS="-c db_check.contract_applied=on"
 
 for f in "$HERE"/checks/*.sql; do
   echo "check:   $(basename "$f")"

@@ -102,30 +102,61 @@ function check(name, ok, detail) {
   check('is_admin not writable', escalate.error?.code === '42501', escalate.error);
   const claim = await user(MEMBER).rpc('claim_admin_if_first');
   check('claim_admin_if_first refused', claim.data === false, claim.error ?? claim.data);
-  const { data: req } = await service.from('phase_advance_requests').select('id').eq('reel_id', REEL1).eq('status', 'pending').single();
-  const selfDecide = await user(MEMBER).rpc('decide_phase_advance', { p_request_id: req.id, p_decision: 'approved', p_note: null });
-  check('Responsible cannot decide', selfDecide.data === 'not_authorized', selfDecide.error ?? selfDecide.data);
-  const decide = await user(APPROVER).rpc('decide_phase_advance', { p_request_id: req.id, p_decision: 'approved', p_note: 'ok' });
-  check('Approver decides via RPC', decide.data === 'ok', decide.error ?? decide.data);
-  const { data: reel } = await user(ADMIN).from('reels').select('phase').eq('id', REEL1).single();
-  check('reel advanced', reel?.phase === 'dubbing', reel);
 }
 
-// External collaborator (Fase 1): sees only the reel with their task.
+// Task engine (Fase 1): decisions through task_action; the old path is off.
 {
+  const old = await user(APPROVER).rpc('decide_phase_advance', {
+    p_request_id: '00000000-0000-0000-0000-000000000000', p_decision: 'approved', p_note: null,
+  });
+  check('decide_phase_advance off after the contract', old.error?.code === '42501', old.error ?? old.data);
+
+  await service.from('reels').update({ state: 'revisione', hook: 'Lo sapevi che…' }).eq('id', REEL1);
+  const { data: task } = await service.from('tasks').insert({
+    reel_id: REEL1, kind: 'review', status: 'in_progress', assignee_id: APPROVER,
+    started_at: new Date().toISOString(),
+  }).select('id').single();
+  const { data: before } = await service.from('reels').select('script_rev').eq('id', REEL1).single();
+  const rev = before.script_rev;
+
+  const notMine = await user(MEMBER).rpc('task_action', { p_task_id: task.id, p_op: 'approve', p_payload: { rev } });
+  check('Responsible cannot decide a review', notMine.data === 'not_authorized', notMine.error ?? notMine.data);
+  const stale = await user(APPROVER).rpc('task_action', { p_task_id: task.id, p_op: 'approve', p_payload: { rev: rev - 1 } });
+  check('approval of an old revision is stale', stale.data === 'stale', stale.error ?? stale.data);
+  const ok = await user(APPROVER).rpc('task_action', { p_task_id: task.id, p_op: 'approve', p_note: 'ok', p_payload: { rev } });
+  check('Approver decides via task_action', ok.data === 'ok', ok.error ?? ok.data);
+  const twice = await user(APPROVER).rpc('task_action', { p_task_id: task.id, p_op: 'approve', p_payload: { rev } });
+  check('second decision is invalid_state', twice.data === 'invalid_state', twice.error ?? twice.data);
+  const { data: reel } = await user(ADMIN).from('reels').select('state, phase').eq('id', REEL1).single();
+  check('reel confirmed', reel?.state === 'confermato' && reel?.phase === 'dubbing', reel);
+
+  const asActor = await user(APPROVER).rpc('task_action_as', { p_actor: APPROVER, p_task_id: task.id, p_op: 'approve' });
+  check('task_action_as denied to users', asActor.error?.code === '42501', asActor.error ?? asActor.data);
+  const core = await user(APPROVER).rpc('task_action_core', {
+    p_actor: APPROVER, p_task_id: task.id, p_op: 'approve', p_note: null, p_payload: null, p_channel: 'app',
+  });
+  check('task_action_core not exposed', core.error?.code === 'PGRST202', core.error ?? core.data);
+  const reconcile = await user(ADMIN).rpc('fase1_reconcile_tasks');
+  check('reconcile denied to users', reconcile.error?.code === '42501', reconcile.error ?? reconcile.data);
+}
+
+// External collaborator (Fase 1): sees only the reel with their task (reel 2,
+// in animation; reel 1 already has its open task).
+{
+  const REEL2 = '30000000-0000-0000-0000-000000000002';
   const EXTERNAL = '00000000-0000-0000-0000-00000000000e';
   const ext = user(EXTERNAL);
   const none = await ext.from('reels').select('id');
   check('external without tasks sees no reel', !none.error && none.data?.length === 0, none.error ?? none.data);
 
   const task = await service.from('tasks').insert({
-    reel_id: REEL1, kind: 'dubbing', status: 'in_progress', assignee_id: EXTERNAL,
+    reel_id: REEL2, kind: 'animation', status: 'in_progress', assignee_id: EXTERNAL,
     started_at: new Date().toISOString(), accepted_at: new Date().toISOString(),
   });
   check('service role inserts a task', !task.error, task.error);
 
   const reels = await ext.from('reels').select('id, code, pages(name)');
-  check('external sees the reel with their task', reels.data?.length === 1 && reels.data[0].id === REEL1, reels.error ?? reels.data);
+  check('external sees the reel with their task', reels.data?.length === 1 && reels.data[0].id === REEL2, reels.error ?? reels.data);
   check('external sees its page', reels.data?.[0]?.pages?.name === 'Porcino & Papaya', reels.data?.[0]);
   const batches = await ext.from('batches').select('id');
   check('external sees no batch', !batches.error && batches.data?.length === 0, batches.error ?? batches.data);
@@ -133,7 +164,7 @@ function check(name, ok, detail) {
   check('external sees only their own profile', profiles.data?.length === 1 && profiles.data[0].id === EXTERNAL, profiles.error ?? profiles.data);
   const names = await ext.rpc('profile_names', { p_ids: [ADMIN, MEMBER, EXTERNAL] });
   check('profile_names: own name, no email', !names.error && names.data?.length === 1 && !('email' in names.data[0]), names.error ?? names.data);
-  const update = await ext.from('reels').update({ title: 'x' }).eq('id', REEL1).select('id');
+  const update = await ext.from('reels').update({ title: 'x' }).eq('id', REEL2).select('id');
   check('external update returns no row', !update.error && update.data?.length === 0, update.error ?? update.data);
   const asActor = await ext.rpc('set_collaborator_as', {
     p_actor: ADMIN, p_user: EXTERNAL, p_account_type: 'internal', p_external_kind: null,
@@ -144,11 +175,11 @@ function check(name, ok, detail) {
   const backfill = await ext.rpc('fase1_backfill_open_tasks');
   check('backfill denied to users', backfill.error?.code === '42501', backfill.error ?? backfill.data);
   const comment = await ext.from('comments').insert({
-    target_type: 'reel', target_id: REEL1, author_id: EXTERNAL, body: 'Consegnato',
+    target_type: 'reel', target_id: REEL2, author_id: EXTERNAL, body: 'Consegnato',
   }).select('id');
   check('external comments on their reel', !comment.error && comment.data?.length === 1, comment.error);
   const secret = await ext.from('comments').insert({
-    target_type: 'reel', target_id: REEL1, author_id: EXTERNAL, body: 'x', internal_only: true,
+    target_type: 'reel', target_id: REEL2, author_id: EXTERNAL, body: 'x', internal_only: true,
   });
   check('external cannot write internal-only', secret.error?.code === '42501', secret.error);
 }

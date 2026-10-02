@@ -1,17 +1,39 @@
 -- Scale: published reels leave the active set; aggregates and stuck detection.
+-- Since the Fase 1 contract a reel is published only through publish_reel().
 
--- Posting a reel stamps published_at; clearing the URL un-publishes it.
+-- Reel 2 is ready to publish (programmato, no open task).
+update reels set state = 'programmato' where id = '30000000-0000-0000-0000-000000000002';
+
 set role authenticated;
+
+-- Not the SMM nor in publication RACI: refused.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
-update reels set posted_url = 'https://instagram.com/p/x' where id = '30000000-0000-0000-0000-000000000002';
 do $$ begin
-  if (select published_at from reels where id = '30000000-0000-0000-0000-000000000002') is null then
-    raise exception 'FAIL: posting did not set published_at';
+  if public.publish_reel('30000000-0000-0000-0000-000000000002', 'https://instagram.com/p/x') <> 'not_authorized' then
+    raise exception 'FAIL: a member outside publication published';
   end if;
-  -- Fase 1: the state follows (pubblicato), and so does the phase.
-  if (select (state, phase)::text from reels where id = '30000000-0000-0000-0000-000000000002')
-     <> '(pubblicato,publication)' then
-    raise exception 'FAIL: posting did not move the reel to pubblicato/publication';
+end $$;
+
+-- The admin publishes: published_at stamped, state and phase follow.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+do $$ begin
+  if public.publish_reel('30000000-0000-0000-0000-000000000002', 'not a url') <> 'invalid_input' then
+    raise exception 'FAIL: publish_reel accepted a bad URL';
+  end if;
+  if public.publish_reel('30000000-0000-0000-0000-000000000002', 'https://instagram.com/p/x') <> 'ok' then
+    raise exception 'FAIL: admin could not publish';
+  end if;
+end $$;
+do $$ begin
+  if (select (published_at is not null, state, phase)::text from reels
+       where id = '30000000-0000-0000-0000-000000000002') <> '(t,pubblicato,publication)' then
+    raise exception 'FAIL: publication did not stamp published_at and move the state';
+  end if;
+  if public.publish_reel('30000000-0000-0000-0000-000000000002', 'https://instagram.com/p/x') <> 'invalid_state' then
+    raise exception 'FAIL: published twice';
+  end if;
+  if public.publish_reel('30000000-0000-0000-0000-000000000001', 'https://instagram.com/p/y') <> 'invalid_state' then
+    raise exception 'FAIL: published a reel that is not programmato';
   end if;
   begin
     update reels set published_at = null where id = '30000000-0000-0000-0000-000000000002';
@@ -30,16 +52,6 @@ do $$ begin
   end if;
 end $$;
 
-update reels set posted_url = null where id = '30000000-0000-0000-0000-000000000002';
-do $$ begin
-  if (select published_at from reels where id = '30000000-0000-0000-0000-000000000002') is not null then
-    raise exception 'FAIL: clearing posted_url kept published_at';
-  end if;
-  if (select state from reels where id = '30000000-0000-0000-0000-000000000002') <> 'programmato' then
-    raise exception 'FAIL: an unpublished reel should be programmato';
-  end if;
-end $$;
-
 -- stuck_reels is cron-only.
 do $$ begin
   begin
@@ -49,19 +61,19 @@ do $$ begin
   end;
 end $$;
 
--- Stuck detection: old phase entry and no recent comment; a fresh comment clears it.
+-- Stuck detection: old phase entry and no recent comment; a fresh comment
+-- clears it; published reels are never stuck.
 reset role;
-update reels set state = 'animazione' where id = '30000000-0000-0000-0000-000000000002';
 update reels set phase_entered_at = now() - interval '3 days';
 do $$ begin
-  if (select count(*) from public.stuck_reels(now() - interval '24 hours')) <> 2 then
-    raise exception 'FAIL: expected 2 stuck reels';
+  if (select count(*) from public.stuck_reels(now() - interval '24 hours')) <> 1 then
+    raise exception 'FAIL: expected 1 stuck reel';
   end if;
 end $$;
 insert into comments (target_type, target_id, author_id, body)
 values ('reel', '30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b', 'ci sto lavorando');
 do $$ begin
-  if (select count(*) from public.stuck_reels(now() - interval '24 hours')) <> 1 then
+  if (select count(*) from public.stuck_reels(now() - interval '24 hours')) <> 0 then
     raise exception 'FAIL: a recent comment did not clear the stuck reel';
   end if;
 end $$;

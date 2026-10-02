@@ -39,15 +39,51 @@ do $$ begin
   end;
 end $$;
 
--- Approver counts as a member too.
+-- Approver counts as a member too (reel 2 is in animazione: the script is
+-- locked, the other content is not).
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
 do $$ declare n int; begin
-  update reels set notes = 'nota' where id = '30000000-0000-0000-0000-000000000002';
+  update reels set caption = 'didascalia' where id = '30000000-0000-0000-0000-000000000002';
   get diagnostics n = row_count;
   if n <> 1 then raise exception 'FAIL: approver could not edit content'; end if;
 end $$;
 
--- Admin: inserts and deletes; phase still only via decide_phase_advance().
+-- Script lock from revisione on: members get 42501, admins pass.
+do $$ begin
+  begin
+    update reels set notes = 'nota' where id = '30000000-0000-0000-0000-000000000002';
+    raise exception 'FAIL: member edited a locked script';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
+-- Publication only through publish_reel() after the contract.
+do $$ begin
+  begin
+    update reels set posted_url = 'https://instagram.com/p/x' where id = '30000000-0000-0000-0000-000000000002';
+    raise exception 'FAIL: posted_url writable after the contract';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
+-- An internal without RACI role edits a reel only while holding a task on it.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+do $$ declare n int; begin
+  update reels set caption = 'x' where id = '30000000-0000-0000-0000-000000000001';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FAIL: internal without role or task edited a reel'; end if;
+end $$;
+reset role;
+insert into tasks (reel_id, kind, status, assignee_id, started_at)
+values ('30000000-0000-0000-0000-000000000001', 'writing', 'in_progress', '00000000-0000-0000-0000-00000000000c', now());
+set role authenticated;
+do $$ declare n int; begin
+  update reels set caption = 'x', hook = 'hook nuovo' where id = '30000000-0000-0000-0000-000000000001';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FAIL: task holder could not edit the reel'; end if;
+end $$;
+
+-- Admin: inserts and deletes; edits a locked script; never the phase.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
 do $$ declare n int; begin
   insert into reels (batch_id, page_id, code, ordinal, title)
@@ -63,6 +99,12 @@ do $$ begin
     raise exception 'FAIL: admin changed phase directly';
   exception when insufficient_privilege then null;
   end;
+end $$;
+
+do $$ declare n int; begin
+  update reels set notes = 'nota admin' where id = '30000000-0000-0000-0000-000000000002';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FAIL: admin could not edit a locked script'; end if;
 end $$;
 
 reset role;
