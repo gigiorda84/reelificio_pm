@@ -282,8 +282,9 @@ end;
 $$;
 
 -- The state the reel should be in, from its tasks: the open task, else the
--- last closed one. A reel without tasks keeps idea, or programmato when it
--- was migrated already scheduled (I14). null = inconsistent.
+-- last closed one. A reel without tasks keeps idea, pubblicato (legacy
+-- 'published' rows without a URL) or programmato when migrated already
+-- scheduled (I14: the current state counts). null = inconsistent.
 create function private.derived_state(p_reel_id uuid)
 returns reel_state
 language plpgsql
@@ -320,8 +321,10 @@ begin
 
   select * into t from tasks where reel_id = p_reel_id order by closed_at desc nulls last limit 1;
   if not found then
-    return case when r.state = 'programmato' and r.scheduled_at is not null
-      then 'programmato' else 'idea' end::reel_state;
+    return case
+      when r.state = 'pubblicato' then 'pubblicato'
+      when r.state = 'programmato' and r.scheduled_at is not null then 'programmato'
+      else 'idea' end::reel_state;
   end if;
   if t.kind = 'scheduling' and t.status = 'delivered' then
     return 'programmato';
