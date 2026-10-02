@@ -121,7 +121,7 @@ Codice sul branch `fase-0-hardening`, migrazioni `20261001120000_fase0_security.
 
 ### Esiti degli spike S0 (Fase 1)
 
-Dettagli e comandi in `docs/fase1-plan.md` §S0. Aggiornato al 2026-10-02.
+**S0 chiusa il 2026-10-02.** Dettagli in `docs/fase1-plan.md` §S0. Il codice di prova nell'app è stato rimosso; restano `scripts/spike-drive-write.ts` (riferimento per S5) e `scripts/spike-telegram-deeplink.ts` (controllo esatto in S4).
 
 - **Drive in scrittura (Node), passi 1–4 superati.**
   - Lo service account crea cartelle e file nello Shared Drive "Reelificio Staging" (`0AGUeee-dn1H3Uk9PVA`) e apre sessioni resumable con `Origin`; caricati a chunk da 8 MiB due WAV da 50 e 300 MB.
@@ -129,8 +129,11 @@ Dettagli e comandi in `docs/fase1-plan.md` §S0. Aggiornato al 2026-10-02.
   - Passo 3: cartella condivisa come `reader` con una Gmail esterna (`sendNotificationEmail=false`). La Gmail apre e scarica; dopo `permissions.delete` riceve "Accesso negato".
   - Passo 3b: cartella condivisa come `writer` ("Collaboratore" nello Shared Drive). La Gmail carica un video da 20 MB dal browser e **non può eliminare né i file altrui né il proprio**; poi revoca.
   - Per lo service account il file caricato dall'esterno ha `lastModifyingUser.emailAddress` vuoto, ma `lastModifyingUser.permissionId` coincide con l'id del permesso creato per quell'utente. Con U3, la sincronizzazione attribuisce il file salvando quell'id alla condivisione.
-- **Upload dal browser (D6):** **U1 regge su Chromium desktop**: preflight CORS accettato, header `Range` leggibile sui 308, interruzione a metà chunk e ripresa con `bytes */<size>` fino al 200 finale. **Da fare:** Safari iOS; se fallisce, U3.
-- **Media su iPhone (AC2):** route `/api/spike/audio/<id>` provata in locale e sul Preview Vercel (`fra1`, link firmati con bypass della protezione). Risponde 206 con al massimo 4 MB per risposta e 416 fuori misura, e regge i salti sui WAV da 50 e 300 MB. Da curl ogni pezzo da 4 MB arriva in 2–3 s; la prima richiesta costa 2–4 s per l'avvio a freddo e i metadati. Su iPhone (2026-10-02): l'anteprima Drive in iframe (a) chiede il login, l'audio servito dal server (b) parte, "Apri in Drive" (c) funziona solo con un account Google che ha il permesso sul file. **Esito: audio servito dal server (route definitiva in S5) e video con "Apri in Drive"**, come previsto da D6/AC2. **Da fare:** tempi "tap → riproduzione" e "salto → riproduzione" e il browser usato.
+- **Upload dal browser (D6): decisione U1** (upload diretto browser → sessione resumable di Google).
+  - Su **Chromium desktop** e **Safari iOS** il preflight CORS è accettato e l'header `Range` è leggibile sui 308.
+  - Su Safari iOS, video da 46,6 MB in chunk da 8 MiB: interruzione a metà, ripresa con `bytes */<size>` dal byte giusto, 200 finale in ~40 s.
+  - U3 resta il ripiego già provato (passo 3b) e il taglio n. 2 di R2.
+- **Media su iPhone (AC2):** route `/api/spike/audio/<id>` provata in locale e sul Preview Vercel (`fra1`, link firmati con bypass della protezione). Risponde 206 con al massimo 4 MB per risposta e 416 fuori misura, e regge i salti sui WAV da 50 e 300 MB. Da curl ogni pezzo da 4 MB arriva in 2–3 s; la prima richiesta costa 2–4 s per l'avvio a freddo e i metadati. Su iPhone (2026-10-02): l'anteprima Drive in iframe (a) chiede il login, l'audio servito dal server (b) parte, "Apri in Drive" (c) funziona solo con un account Google che ha il permesso sul file. **Esito: audio servito dal server (route definitiva in S5) e video con "Apri in Drive"**, come previsto da D6/AC2. I tempi cronometrati su iPhone si misurano nello scenario E2 di R2, con la route definitiva. Note per S5: leggere i metadati del file una volta per sessione e non a ogni range (oggi costano una chiamata in più a Drive per ogni pezzo).
 - **Deep link Telegram:** superato il 2026-10-02 con il bot di produzione `@Reellificio_bot`, senza toccarne il webhook.
   - `t.me/Reellificio_bot?start=<32 caratteri base64url con _ e ->` arriva al webhook di produzione: risponde "Codice non valido", la risposta prevista quando il parametro c'è. Senza parametro risponderebbe "Ciao! Apri Impostazioni…".
   - Il confronto carattere per carattere (`scripts/spike-telegram-deeplink.ts`) si fa in S4 con il bot di staging, che va creato prima di S4: dopo R1 il bot di produzione è in uso e il webhook non si può spostare.
