@@ -73,6 +73,11 @@
     "error": "Errore",
     "notAuthorized": "Non hai i permessi per modificare questo elemento."
   },
+  "globalError": {
+    "title": "Qualcosa è andato storto",
+    "body": "L'errore è stato registrato. Riprova; se il problema continua, avvisa un admin.",
+    "retry": "Riprova"
+  },
   "pages": {
     "list": {
       "title": "Pagine",
