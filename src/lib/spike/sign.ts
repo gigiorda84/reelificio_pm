@@ -11,7 +11,13 @@ export type SpikePurpose = 'media' | 'upload' | 'sentry';
 function key(): Buffer {
   const pem = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
   if (!pem) throw new Error('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY missing');
-  return createHash('sha256').update(`reelificio-spike-s0:${pem}`).digest();
+  // Environments store the key with literal \n or with real newlines (and
+  // sometimes quotes); hash only the base64 body so they all agree.
+  const body = pem
+    .replace(/\\n/g, '\n')
+    .replace(/-----[A-Z ]+-----/g, '')
+    .replace(/[^A-Za-z0-9+/=]/g, '');
+  return createHash('sha256').update(`reelificio-spike-s0:${body}`).digest();
 }
 
 function mac(purpose: SpikePurpose, id: string, exp: number): string {
