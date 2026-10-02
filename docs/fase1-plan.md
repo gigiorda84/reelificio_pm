@@ -351,9 +351,13 @@ Convenzioni valide per tutte le fette:
   - `rehearse-dump.sh` verde su quel dump con il confronto di schema: lo schema `public` di produzione coincide con le migrazioni; `drift-allow.txt` contiene solo 16 privilegi di default della piattaforma Supabase;
   - prova del filtro dei destinatari sullo staging con l'esterno di prova (digest e promemoria → 1 destinatario, l'interno; 0 notifiche all'esterno).
 - Prova del filtro: eseguita con il server di sviluppo e non su Preview. Il Preview non ha lo stesso `CRON_SECRET`, che su Vercel è un valore riservato. Codice e database sono gli stessi del Preview.
-- Restano:
-  - deploy `fase1-pre-r1` su `main` (OK dell'utente);
-  - allowlist interna rivista (bozza in `supabase/backups/fase1/internal-emails.txt`) e confronto dei 4 profili di produzione (I11).
+- **Deploy `fase1-pre-r1` in produzione (2026-10-02, OK dell'utente):**
+  - commit `f708833` su `main`, cioè il solo filtro dei destinatari in cherry-pick: nessuna migrazione, niente vitest;
+  - tag `fase1-pre-r1`;
+  - deploy Vercel riuscito; smoke test su `/login` (anche `app.reelificio.com`), cron protetti, redirect al login;
+  - `main` riunito in `fase-1-produzione` (`6387925`).
+- **S1 chiusa il 2026-10-02.**
+- Resta per la prova del 5 novembre: allowlist interna rivista dall'utente. La bozza è in `supabase/backups/fase1/internal-emails.txt`. Il confronto dei 4 profili di produzione (I11) è verde: nessun profilo fuori dalla bozza.
 
 **Fatto quando:** `run.sh`, `upgrade.sh` (PG16) e `rehearse-dump.sh` (PG17, sul dump di produzione del 2026-10-01 con `drift-allow.txt` rivista e un CSV di prova) verdi; deployment `fase1-pre-r1` in produzione (OK dell'utente); `db push` su staging; il fixture Porcino & Papaya mostra gli stati; kanban, dashboard e digest invariati per un interno; un esterno di test creato con `scripts/fase1-collaborators.ts` vede 0 reel.
 **Verifica:** i tre script + `pnpm typecheck && pnpm lint && pnpm test`; lettura del report della prova su dump.
