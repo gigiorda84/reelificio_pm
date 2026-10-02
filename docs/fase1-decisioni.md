@@ -15,6 +15,11 @@
 - [ ] **Prima di S3:** per ogni pagina titolare e riserva di doppiatore e animatore, eventuale validatore e flag di validazione.
 - [ ] **Prima di R2:** email Google di ogni esterno (`drive_email`).
 
+- [ ] **SLA non indicati dal piano** (aggiunta in S1, 2026-10-02; domanda aperta con default, modificabili per pagina in `sla_policies`).
+  - Batch: scrittura 120 h lavorative (5 giorni), revisione 24 h, approvazione audio 24 h, approvazione finale 24 h, programmazione 48 h.
+  - Express: scrittura 2 h, revisione 1 h, accettazione animazione 2 h, approvazione finale 2 h, programmazione 2 h.
+  - La scrittura Batch è lunga perché "Avvia stesura" apre 10 compiti insieme allo stesso autore.
+
 ### Confermate (default accettati il 2026-10-01)
 
 - [x] (fatto 2026-10-01, `disable_signup: true`) Disattivare "Allow new users to sign up" sul progetto Supabase di produzione.

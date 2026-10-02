@@ -328,6 +328,30 @@ Convenzioni valide per tutte le fette:
 
 - Verifica della CLI, stessa occasione: `supabase migration list --db-url` e `supabase db push --db-url` funzionano con la CLI 2.54.11; se sì, la produzione si tocca solo con `--db-url "$PROD_DB_URL"` (variabile della sola shell di rilascio) e la CLI resta **sempre collegata allo staging**; altrimenti `supabase link` alla produzione e ricollegamento allo staging subito dopo ogni comando (§8).
 
+**Variazioni in esecuzione (2026-10-02):**
+- Helper aggiunti all'allowlist: `visible_page_ids()` (policy di `pages` e `voice_briefs`) e `comment_is_visible(id)` (risposta a un commento: una policy su `comments` non può interrogare `comments`, Postgres segnala ricorsione).
+- `offboard_collaborator_as(p_actor, user)`, solo `service_role`, per `fase1-collaborators.ts offboard`.
+- RACI e approvatori rifiutano i profili **esterni** (`private.none_external`); un interno disattivato resta tollerato, così una riga RACI vecchia resta modificabile.
+- Le funzioni di `private` revocano `EXECUTE` esplicitamente: un `ALTER DEFAULT PRIVILEGES` per schema non toglie il default globale di `PUBLIC`.
+- Nelle policy `= any ((select f())::uuid[])`: senza cast Postgres legge `any ((select …))` come sottoquery.
+- `rehearse-dump.sh` accetta `--upto` quando il dump non ha `migrations.txt` e salta il confronto di schema (dichiarandolo) senza `schema-public.sql`.
+- SLA mancanti in §3 riempiti con default (registro decisioni).
+- Verificato sulla CLI 2.54.11: un file di migrazione che fallisce non lascia righe in cronologia e ferma il push; `migration list` e `db push` funzionano con `--db-url` (la produzione si tocca con `--db-url "$PROD_DB_URL"`, CLI sempre collegata allo staging).
+
+**Stato (2026-10-02):**
+- Fatto e verde:
+  - le 4 migrazioni (spinte sullo staging, quindi immutabili);
+  - `run.sh` e `upgrade.sh` su PG16 e PG17;
+  - `rehearse-dump.sh` sul dump del 2026-10-01 con CSV e config di prova (senza confronto di schema: il dump è nel formato vecchio);
+  - guardie e report in sola lettura sullo staging;
+  - esterno di prova creato con lo script sullo staging: vede 0 reel;
+  - codice TS (`fase1-pre-r1` in `adedcf0`), 37 test.
+- Restano:
+  - nuovo dump di produzione nel formato iter3 e `drift-allow.txt` (I5, OK dell'utente);
+  - prova del filtro su Preview con l'esterno di test (manda il digest e il promemoria reali a `hello@`);
+  - deploy `fase1-pre-r1` su `main` (OK dell'utente);
+  - allowlist interna rivista (bozza in `supabase/backups/fase1/internal-emails.txt`) e confronto dei 4 profili di produzione (I11).
+
 **Fatto quando:** `run.sh`, `upgrade.sh` (PG16) e `rehearse-dump.sh` (PG17, sul dump di produzione del 2026-10-01 con `drift-allow.txt` rivista e un CSV di prova) verdi; deployment `fase1-pre-r1` in produzione (OK dell'utente); `db push` su staging; il fixture Porcino & Papaya mostra gli stati; kanban, dashboard e digest invariati per un interno; un esterno di test creato con `scripts/fase1-collaborators.ts` vede 0 reel.
 **Verifica:** i tre script + `pnpm typecheck && pnpm lint && pnpm test`; lettura del report della prova su dump.
 
