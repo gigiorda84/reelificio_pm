@@ -7,6 +7,9 @@ const PUBLIC_PATHS = [
   '/invite',
   '/api/telegram/webhook',
   '/api/cron',
+  // S0 spike only (signed media links for the Telegram browser); every route
+  // checks a signature or an admin session. Removed at the end of S0.
+  '/api/spike',
 ];
 
 export async function updateSession(request: NextRequest) {

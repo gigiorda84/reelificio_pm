@@ -116,8 +116,17 @@ Codice sul branch `fase-0-hardening`, migrazioni `20261001120000_fase0_security.
 - [ ] Backup: l'organizzazione Supabase è sul piano Free, quindi la produzione non ha backup automatici. Fare un dump manuale prima di ogni migrazione (primo dump: 2026-10-01). Passare a Pro prima del rilascio della Fase 1
 - [x] Scala: `published_at` (i reel pubblicati escono da kanban, dashboard, buffer e alert), indici, conteggi in SQL (`active_reel_counts`, `batch_reel_counts`, `stuck_reels`), kanban a 100 card per colonna con totale, lista batch limitata a 200, niente `.in()` con id illimitati
 - [x] Job: `maxDuration = 60` su tutti i cron
-- [ ] Infra: Vercel Pro, Supabase Pro, Inngest per i cron frequenti
-- [ ] Osservabilità: Sentry
+- [ ] Infra: Vercel Pro, Supabase Pro (Inngest per i cron frequenti → Fase 2: in Fase 1 bastano i cron di Vercel Pro, `docs/fase1-plan.md` D5)
+- [ ] Osservabilità: Sentry — integrato nel codice in S0 (branch `fase-1-produzione`, solo errori, niente replay né tracing, email e testo degli script tolti da `beforeSend`); manca il DSN, quindi resta inattivo
+
+### Esiti degli spike S0 (Fase 1)
+
+Dettagli e comandi in `docs/fase1-plan.md` §S0. Aggiornato al 2026-10-02.
+
+- **Drive in scrittura (Node):** passi 1, 2 e 4 superati sullo Shared Drive "Reelificio Staging" (`0AGUeee-dn1H3Uk9PVA`): lo service account crea cartelle e file e apre sessioni resumable con `Origin`; caricati a chunk da 8 MiB due WAV da 50 e 300 MB. I membri del Drive compaiono sulla cartella con `permissionDetails[].inherited = true` (S5 non deve revocarli). **Da fare:** condivisione `reader` e `writer` verso una Gmail esterna, download, revoca (passi 3 e 3b).
+- **Upload dal browser (D6):** **U1 regge su Chromium desktop**: preflight CORS accettato, header `Range` leggibile sui 308, interruzione a metà chunk e ripresa con `bytes */<size>` fino al 200 finale. **Da fare:** Safari iOS; se fallisce, U3.
+- **Media su iPhone (AC2):** route `/api/spike/audio/<id>` provata in locale (206 da massimo 4 MB, salti, 416, link firmati). **Da fare:** prova su un deployment Preview di Vercel da Safari e dal browser interno di Telegram, con i tempi.
+- **Deep link Telegram:** script pronto (`scripts/spike-telegram-deeplink.ts`). **Da fare:** serve il bot di staging.
 
 ## Costi mensili stimati (IVA esclusa, persone escluse)
 

@@ -231,6 +231,14 @@ Convenzioni valide per tutte le fette:
 - **Deep link Telegram:** verificare che `t.me/<bot>?start=<token di 32 caratteri [A-Za-z0-9_-]>` arrivi al webhook di staging.
 - **Verifiche di prerequisiti** (vedi §9): SMTP personalizzato su entrambi i progetti Supabase; bot Telegram di staging; utente admin sullo staging.
 
+**Variazioni in esecuzione (2026-10-02):**
+- Le pagine di prova (upload, media) sono HTML semplici sotto `/api/spike/*`, apribili con un link firmato (24 h) senza sessione dell'app. Così funzionano da Safari iOS, dal browser interno di Telegram e da un Preview Vercel senza login. La firma è un HMAC con chiave derivata dallo service account. `scripts/spike-sign.ts` genera i link, anche con il bypass della protezione Preview. `/spike` (solo admin) li elenca e contiene le prove di Sentry.
+- Tutto lo spike si rimuove a fine S0: `src/app/(app)/spike`, `src/app/api/spike`, `src/lib/spike` e la voce `/api/spike` in `PUBLIC_PATHS`.
+- Lo script Drive ha un sottocomando per ogni passo (`drives`, `setup`, `share`, `perms`, `revoke`, `files`, `resumable`, `upload-wav`, `trash`), perché tra un passo e l'altro c'è un'azione a mano dalla Gmail.
+- `CRON_SECRET` in `.env.local` era vuoto: ora ha un valore casuale locale, valido solo per sviluppo e staging.
+
+**Stato (2026-10-02):** test runner e Sentry pronti (Sentry inattivo finché manca il DSN); `cron-loop.ts` provato in locale. Esiti parziali degli spike in `docs/brain-plan.md` § "Esiti degli spike S0": U1 regge su Chromium desktop. Restano Safari iOS, i media su iPhone dal Preview, la Gmail esterna (passi 3 e 3b) e il deep link, che richiede il bot di staging.
+
 **Fatto quando:** esiti dei tre spike scritti in `docs/brain-plan.md` (U1/U3, media su iPhone, deep link) e in questo piano; `pnpm test` gira; un errore di prova compare in Sentry.
 **Verifica:** `pnpm typecheck && pnpm lint && pnpm test && pnpm build`; output di `spike-drive-write.ts`; registrazione dello schermo dell'iPhone per i media.
 
