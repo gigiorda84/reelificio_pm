@@ -6,7 +6,7 @@ import { createHash, createHmac, timingSafeEqual } from 'crypto';
 // runs the spike already has, so no new secret needs configuring and links
 // can be signed locally by scripts/spike-sign.ts.
 
-export type SpikePurpose = 'media' | 'upload';
+export type SpikePurpose = 'media' | 'upload' | 'sentry';
 
 function key(): Buffer {
   const pem = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;

@@ -3,6 +3,7 @@
 //
 //   pnpm exec tsx scripts/spike-sign.ts <baseUrl> upload <folderId>
 //   pnpm exec tsx scripts/spike-sign.ts <baseUrl> media <fileId> [<fileId>…]
+//   pnpm exec tsx scripts/spike-sign.ts <baseUrl> sentry test     # server test error
 //
 // With VERCEL_AUTOMATION_BYPASS_SECRET set (Vercel → Project Settings →
 // Deployment Protection → Protection Bypass for Automation), the links also
@@ -14,12 +15,13 @@ config({ path: '.env.local', quiet: true });
 
 function main() {
   const [base, purpose, ...ids] = process.argv.slice(2);
-  if (!base || (purpose !== 'upload' && purpose !== 'media') || ids.length === 0) {
-    throw new Error('Usage: spike-sign.ts <baseUrl> upload|media <id> [<id>…]');
+  if (!base || !['upload', 'media', 'sentry'].includes(purpose) || ids.length === 0) {
+    throw new Error('Usage: spike-sign.ts <baseUrl> upload|media|sentry <id> [<id>…]');
   }
   const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
   for (const id of ids) {
-    const url = new URL(`/api/spike/${purpose}/${id}?${signSpike(purpose as SpikePurpose, id)}`, base);
+    const path = purpose === 'sentry' ? '/api/spike/sentry' : `/api/spike/${purpose}/${id}`;
+    const url = new URL(`${path}?${signSpike(purpose as SpikePurpose, id)}`, base);
     if (bypass) {
       url.searchParams.set('x-vercel-protection-bypass', bypass);
       url.searchParams.set('x-vercel-set-bypass-cookie', 'true');

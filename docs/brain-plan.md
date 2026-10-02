@@ -117,7 +117,7 @@ Codice sul branch `fase-0-hardening`, migrazioni `20261001120000_fase0_security.
 - [x] Scala: `published_at` (i reel pubblicati escono da kanban, dashboard, buffer e alert), indici, conteggi in SQL (`active_reel_counts`, `batch_reel_counts`, `stuck_reels`), kanban a 100 card per colonna con totale, lista batch limitata a 200, niente `.in()` con id illimitati
 - [x] Job: `maxDuration = 60` su tutti i cron
 - [ ] Infra: Vercel Pro, Supabase Pro (Inngest per i cron frequenti → Fase 2: in Fase 1 bastano i cron di Vercel Pro, `docs/fase1-plan.md` D5)
-- [ ] Osservabilità: Sentry — integrato nel codice in S0 (branch `fase-1-produzione`, solo errori, niente replay né tracing, email e testo degli script tolti da `beforeSend`); manca il DSN, quindi resta inattivo
+- [ ] Osservabilità: Sentry — integrato nel codice in S0 (branch `fase-1-produzione`, solo errori, niente replay né tracing, email e testo degli script tolti da `beforeSend`). Progetto Sentry in regione EU (`ingest.de.sentry.io`), DSN in `.env.local` dal 2026-10-02: un evento di prova da Node è arrivato con email e testo dello script già oscurati. Restano la prova dentro l'app Next e il DSN sulle variabili Vercel
 
 ### Esiti degli spike S0 (Fase 1)
 
