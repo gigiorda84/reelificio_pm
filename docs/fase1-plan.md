@@ -237,7 +237,7 @@ Convenzioni valide per tutte le fette:
 - Lo script Drive ha un sottocomando per ogni passo (`drives`, `setup`, `share`, `perms`, `revoke`, `files`, `resumable`, `upload-wav`, `trash`), perché tra un passo e l'altro c'è un'azione a mano dalla Gmail.
 - `CRON_SECRET` in `.env.local` era vuoto: ora ha un valore casuale locale, valido solo per sviluppo e staging.
 
-**Stato (2026-10-02):** test runner e Sentry pronti (Sentry inattivo finché manca il DSN); `cron-loop.ts` provato in locale. Esiti parziali degli spike in `docs/brain-plan.md` § "Esiti degli spike S0": U1 regge su Chromium desktop. Restano Safari iOS, i media su iPhone dal Preview, la Gmail esterna (passi 3 e 3b) e il deep link, che richiede il bot di staging.
+**Stato (2026-10-02):** test runner pronto; Sentry provato sul Preview Vercel (errori server, client e Node arrivati con le email oscurate); `cron-loop.ts` provato in locale. Esiti parziali degli spike in `docs/brain-plan.md` § "Esiti degli spike S0": U1 regge su Chromium desktop. Restano Safari iOS, i media su iPhone dal Preview, la Gmail esterna (passi 3 e 3b) e il deep link, che richiede il bot di staging.
 
 **Fatto quando:** esiti dei tre spike scritti in `docs/brain-plan.md` (U1/U3, media su iPhone, deep link) e in questo piano; `pnpm test` gira; un errore di prova compare in Sentry.
 **Verifica:** `pnpm typecheck && pnpm lint && pnpm test && pnpm build`; output di `spike-drive-write.ts`; registrazione dello schermo dell'iPhone per i media.
