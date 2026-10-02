@@ -346,9 +346,12 @@ Convenzioni valide per tutte le fette:
   - guardie e report in sola lettura sullo staging;
   - esterno di prova creato con lo script sullo staging: vede 0 reel;
   - codice TS (`fase1-pre-r1` in `adedcf0`), 37 test.
+- Fatto anche questo:
+  - dump di produzione del 2026-10-02 nel formato iter3 (I5), con il permesso dell'utente; CLI ricollegata allo staging subito dopo;
+  - `rehearse-dump.sh` verde su quel dump con il confronto di schema: lo schema `public` di produzione coincide con le migrazioni; `drift-allow.txt` contiene solo 16 privilegi di default della piattaforma Supabase;
+  - prova del filtro dei destinatari sullo staging con l'esterno di prova (digest e promemoria → 1 destinatario, l'interno; 0 notifiche all'esterno).
+- Prova del filtro: eseguita con il server di sviluppo e non su Preview. Il Preview non ha lo stesso `CRON_SECRET`, che su Vercel è un valore riservato. Codice e database sono gli stessi del Preview.
 - Restano:
-  - nuovo dump di produzione nel formato iter3 e `drift-allow.txt` (I5, OK dell'utente);
-  - prova del filtro su Preview con l'esterno di test (manda il digest e il promemoria reali a `hello@`);
   - deploy `fase1-pre-r1` su `main` (OK dell'utente);
   - allowlist interna rivista (bozza in `supabase/backups/fase1/internal-emails.txt`) e confronto dei 4 profili di produzione (I11).
 
