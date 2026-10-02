@@ -31,7 +31,7 @@ Run `scripts/db-check/run.sh` after every migration change, and add a check when
 - `docs/brain-plan.md` — the decisions, architecture, phases, Fase 0 checklist and cost model. Read it before starting Brain work, and update its checklists as phases close.
 - `docs/fase1-plan.md` — the approved execution plan for Fase 1 "Produzione 2.0" (approved 2026-10-02). Its decision log is `docs/fase1-decisioni.md`.
   - Follow the plan slice by slice.
-  - Apply the inline fixes I1–I14 listed at the end of the plan.
+  - Apply the inline fixes I1–I15 listed at the end of the plan.
   - Keep the file current if the plan changes.
 - Where the Brain docs and the PRD disagree on scope, the Brain docs win for new work. One example: the pipeline moves from 6 linear phases to 8 states with parallel dubbing and animation.
 

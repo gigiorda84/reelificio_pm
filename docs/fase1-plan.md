@@ -2,7 +2,7 @@
 
 > Copia versionata del piano approvato il 2026-10-02. Originale e storico di lavoro in `.omc/plans/` (non versionato): specifica dell'intervista `.omc/specs/deep-interview-fase1-produzione-2-0.md`, snapshot iter1–iter3 e revisioni di Architect e Critic. Le decisioni dell'utente sono in [`docs/fase1-decisioni.md`](fase1-decisioni.md). Se il piano cambia durante l'esecuzione, aggiornare questo file.
 
-- **Status: APPROVATO dall'utente il 2026-10-02**, con tutti i default di `docs/fase1-decisioni.md` (anche le decisioni iter3 e quelle dopo il consenso) · **Iterazione 3** — Architect iter3 = **APPROVE**, Critic iter3 = **APPROVE**. Le correzioni che i revisori lasciano all'esecutore sono in `## Correzioni inline dal consenso` (in fondo): applicarle durante l'esecuzione, le prime tre prima della prova 0a. Storico: `## Changelog iter3`, `## Changelog iter2`; revisioni in `.omc/plans/*-review.md`.
+- **Status: APPROVATO dall'utente il 2026-10-02**, con tutti i default di `docs/fase1-decisioni.md` (anche le decisioni iter3 e quelle dopo il consenso) · **Iterazione 3** — Architect iter3 = **APPROVE**, Critic iter3 = **APPROVE**. Le correzioni lasciate all'esecutore (I1–I15) sono in `## Correzioni inline dal consenso` (in fondo): applicarle durante l'esecuzione, le prime tre prima della prova 0a. Storico: `## Changelog iter3`, `## Changelog iter2`; revisioni in `.omc/plans/*-review.md`.
 - Modalità: RALPLAN-DR **DELIBERATE** (migrazione dello stato dei reel, RLS per esterni, Drive in scrittura, azioni da Telegram)
 - Data: 2026-10-02 (iter2: 2026-10-01) · Autore: Planner (consensus loop) · Revisori attesi: Architect, Critic
 - Input: `.omc/specs/deep-interview-fase1-produzione-2-0.md` (spec, 12 AC), `docs/brain-plan.md`, `docs/brain-concept.md`, `CLAUDE.md`, codice al commit `f54ab35`, dump di produzione `supabase/backups/2026-10-01-prod/` (pg_dump 18.6 da Postgres 17.6)
@@ -1013,9 +1013,21 @@ Architect iter3 (`.omc/plans/fase1-produzione-2-0.iter3.architect-review.md`, N1
   - `requires_drive` resta finché esiste il percorso di incidente "Drive spento"; la data di rimozione si fissa all'inizio della Fase 2.
   - Non fare affidamento sul trigger `handle_new_auth_user` per `account_type`: GoTrue può scrivere `app_metadata` dopo l'INSERT, quindi contano gli aggiornamenti espliciti di `invite-users.ts` e `set_collaborator_as`.
 
+- [ ] **I15 — Magic link valido in qualunque browser** (trovato nella prova dello staging, 2026-10-02).
+  - **Problema:** il login usa PKCE (`exchangeCodeForSession` in `src/app/auth/callback/route.ts`). Un link aperto in un browser diverso da quello che l'ha chiesto, per esempio dall'app di posta o dal telefono, fallisce con `code challenge does not match previously saved code verifier`. Per gli esterni (AC4) è un blocco.
+  - **Correzione:**
+    - nuova route `src/app/auth/confirm/route.ts` che chiama `verifyOtp({ type, token_hash })` lato server e scrive i cookie sulla risposta di redirect, come fa già la callback;
+    - template email "Magic Link" con link `…/auth/confirm?token_hash={{ .TokenHash }}&type=email`, su staging e produzione (dashboard o Management API), più `supabase/templates/magic_link.html` e `[auth.email.template.magic_link]` in `config.toml`;
+    - l'origine del link deve coincidere con quella dell'app: produzione `https://app.reelificio.com`; sullo staging il `site_url` è `http://127.0.0.1:3000` mentre lo sviluppo gira su `localhost:3000`, quindi va allineato;
+    - `/auth/confirm` va in `PUBLIC_PATHS`;
+    - `next` è accettato solo come percorso relativo;
+    - la callback PKCE resta, per i link già inviati.
+  - **Verifica:** un link chiesto in Chrome e aperto in Safari, e dall'app Mail su iPhone, arriva a `/dashboard`. Da aggiungere allo scenario E4.
+  - S3, al massimo 0,5 giorni.
+
 ## Changelog consenso (2026-10-02)
 
 - Architect iter3: **APPROVE** (N1–N10 inline). Critic iter3: **APPROVE** (1–9 inline; gate ralplan tutti Pass).
-- Aggiunta la sezione "Correzioni inline dal consenso" (I1–I14), che unisce i rilievi dei due revisori senza duplicati.
+- Aggiunta la sezione "Correzioni inline dal consenso" (I1–I14), che unisce i rilievi dei due revisori senza duplicati. I15 (magic link in qualunque browser) è stata aggiunta il 2026-10-02 dopo la prova di login sullo staging.
 - `docs/fase1-decisioni.md`: corrette le righe superate (stima iter2, data R2 del 19 novembre); aggiunte tre decisioni dopo il consenso (date comunicate al team, checkpoint del 3 novembre, nuovo dump in S1).
-- Stato: **pending approval** — nessuna esecuzione senza OK dell'utente.
+- Stato: **approvato dall'utente il 2026-10-02**, con tutti i default.
