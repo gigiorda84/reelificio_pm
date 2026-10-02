@@ -52,6 +52,7 @@ export function ResyncButton({ batchId }: Props) {
     diff &&
     diff.added.length === 0 &&
     diff.changed.length === 0 &&
+    diff.locked.length === 0 &&
     diff.removed.length === 0;
 
   return (
@@ -86,6 +87,13 @@ export function ResyncButton({ batchId }: Props) {
                   label={t('detail.diff.changed')}
                   items={diff.changed.map((c) => `#${c.ordinal} (${c.fields.join(', ')})`)}
                   tone="change"
+                />
+              ) : null}
+              {diff && diff.locked.length > 0 ? (
+                <DiffSection
+                  label={t('detail.diff.locked')}
+                  items={diff.locked.map((c) => `#${c.ordinal} (${c.fields.join(', ')})`)}
+                  tone="remove"
                 />
               ) : null}
               {diff && diff.removed.length > 0 ? (

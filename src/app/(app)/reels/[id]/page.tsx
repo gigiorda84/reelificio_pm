@@ -5,30 +5,33 @@ import { ChevronLeft } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CommentsThread } from '@/components/comments/comments-thread';
 import { getReelDetail } from '@/lib/reels/queries';
-import { getPendingRequestForReel } from '@/lib/phase-advance/queries';
 import { getRaciConfigForPage, getRaciUsers } from '@/lib/raci/queries';
 import { getAdminStatus } from '@/lib/auth/admin';
 import { listInvitesForReel } from '@/lib/invites/queries';
 import { listDodForReel } from '@/lib/dod/queries';
-import type { PipelinePhase } from '@/lib/reels/constants';
+import { getOpenTask, getTaskPeople, listAssignableProfiles } from '@/lib/tasks/queries';
+import { REEL_STATES } from '@/lib/reels/constants';
 import { ScriptTab } from './script-tab';
 import { VoiceTab } from './voice-tab';
 import { FilesTab } from './files-tab';
 import { PublishTab } from './publish-tab';
-import { PhaseAdvancePanel } from './phase-advance-panel';
+import { TaskPanel } from './task-panel';
 import { InvitePanel } from './invite-panel';
 import { DoDChecklist } from './dod-checklist';
 
 export default async function ReelDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ task?: string }>;
 }) {
   const { id } = await params;
+  const { task: linkedTaskId } = await searchParams;
   const reel = await getReelDetail(id);
   if (!reel) notFound();
 
-  const [tDetail, tTabs, tPhase, tFmt, tCat, tState, pending, raci, admin] =
+  const [tDetail, tTabs, tPhase, tFmt, tCat, tState, openTask, people, raci, admin] =
     await Promise.all([
       getTranslations('reels.detail'),
       getTranslations('reels.tabs'),
@@ -36,11 +39,40 @@ export default async function ReelDetailPage({
       getTranslations('batches.reel.format'),
       getTranslations('batches.reel.category'),
       getTranslations('states'),
-      getPendingRequestForReel(id),
+      getOpenTask(id),
+      getTaskPeople(reel.page_id),
       getRaciConfigForPage(reel.page_id),
       getAdminStatus(),
     ]);
-  const invites = admin.isAdmin ? await listInvitesForReel(id) : [];
+  const [invites, assignable] = admin.isAdmin
+    ? await Promise.all([listInvitesForReel(id), listAssignableProfiles()])
+    : [[], []];
+
+  // What the viewer may do with the task panel; the SQL checks it again.
+  const uid = admin.userId;
+  const isGroupApprover = !!uid && (uid === people.approverId || uid === people.delegateId);
+  const publicationRaci = raci.find((r) => r.phase === 'publication');
+  const inPublicationRaci =
+    !!uid &&
+    !!publicationRaci &&
+    (['responsible', 'approver', 'consulted'] as const).some((role) =>
+      getRaciUsers(publicationRaci, role).includes(uid),
+    );
+  const viewer = {
+    userId: uid,
+    isAdmin: admin.isAdmin,
+    canDecide:
+      !!openTask &&
+      (admin.isAdmin ||
+        openTask.assignee_id === uid ||
+        (openTask.kind !== 'validation' && isGroupApprover)),
+    canSetTrack: admin.isAdmin || (!!uid && uid === people.approverId),
+    canPublish:
+      admin.isAdmin ||
+      inPublicationRaci ||
+      (openTask?.kind === 'scheduling' && openTask.assignee_id === uid),
+  };
+  const linkedTaskClosed = !!linkedTaskId && linkedTaskId !== openTask?.id;
 
   const currentRaci = raci.find((r) => r.phase === reel.phase);
   const isResponsible =
@@ -105,14 +137,17 @@ export default async function ReelDetailPage({
             </span>
           </div>
         </div>
-        <PhaseAdvancePanel
+        <TaskPanel
           reelId={reel.id}
-          currentPhase={reel.phase as PipelinePhase}
-          pending={pending}
-          currentUserId={admin.userId}
-          isAdmin={admin.isAdmin}
-          isResponsible={isResponsible}
-          isApprover={isApprover}
+          state={reel.state}
+          track={reel.track}
+          scriptRev={reel.script_rev}
+          caption={reel.caption}
+          postedUrl={reel.posted_url}
+          task={openTask}
+          linkedTaskClosed={linkedTaskClosed}
+          viewer={viewer}
+          assignable={assignable}
         />
       </header>
 
@@ -126,7 +161,10 @@ export default async function ReelDetailPage({
         </TabsList>
 
         <TabsContent value="script" className="pt-4">
-          <ScriptTab reel={reel} />
+          <ScriptTab
+            reel={reel}
+            scriptLocked={!admin.isAdmin && REEL_STATES.indexOf(reel.state) >= REEL_STATES.indexOf('revisione')}
+          />
         </TabsContent>
         <TabsContent value="voice" className="pt-4">
           <VoiceTab pageId={reel.page_id} />
@@ -146,7 +184,7 @@ export default async function ReelDetailPage({
         <DoDChecklist reelId={reel.id} items={dodItems} editable={dodEditable} />
       ) : null}
 
-      {admin.isAdmin ? <InvitePanel reelId={reel.id} invites={invites} /> : null}
+      {admin.isAdmin ? <InvitePanel invites={invites} /> : null}
     </div>
   );
 }

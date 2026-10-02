@@ -29,10 +29,12 @@ const filesSchema = z.object({
   video_drive_url: z.string().url().nullable().or(z.literal('')).optional(),
 });
 
+// posted_url is not here: since Fase 1 a reel is published through
+// publish_reel() (task panel), and after the contract the column is not
+// writable by users at all.
 const publishSchema = z.object({
   caption: z.string().max(2200).nullable().or(z.literal('')).optional(),
   scheduled_at: z.string().nullable().or(z.literal('')).optional(),
-  posted_url: z.string().url().nullable().or(z.literal('')).optional(),
 });
 
 function emptyToNull<T extends string | null | undefined>(v: T): string | null {
@@ -82,6 +84,8 @@ export async function updateReelScript(
     .update(parsed.data)
     .eq('id', id)
     .select('id');
+  // 42501: the script lock (from revisione on) or a column users may not write.
+  if (error?.code === '42501') return { ok: false, error: 'not_authorized' };
   if (error) return { ok: false, error: 'unknown', message: error.message };
   // RLS filters rows silently: no row back means the user may not edit this reel.
   if (!data?.length) return { ok: false, error: 'not_authorized' };
@@ -109,6 +113,8 @@ export async function updateReelFiles(
     })
     .eq('id', id)
     .select('id');
+  // 42501: the script lock (from revisione on) or a column users may not write.
+  if (error?.code === '42501') return { ok: false, error: 'not_authorized' };
   if (error) return { ok: false, error: 'unknown', message: error.message };
   if (!data?.length) return { ok: false, error: 'not_authorized' };
 
@@ -124,7 +130,6 @@ export async function updateReelPublish(
   const parsed = publishSchema.safeParse({
     caption: emptyToNull(formData.get('caption')?.toString()),
     scheduled_at: scheduledAtRaw,
-    posted_url: emptyToNull(formData.get('posted_url')?.toString()),
   });
   if (!parsed.success) return { ok: false, error: 'invalid_input' };
 
@@ -141,10 +146,11 @@ export async function updateReelPublish(
     .update({
       caption: parsed.data.caption ?? null,
       scheduled_at: scheduledAt,
-      posted_url: parsed.data.posted_url ?? null,
     })
     .eq('id', id)
     .select('id');
+  // 42501: the script lock (from revisione on) or a column users may not write.
+  if (error?.code === '42501') return { ok: false, error: 'not_authorized' };
   if (error) return { ok: false, error: 'unknown', message: error.message };
   if (!data?.length) return { ok: false, error: 'not_authorized' };
 

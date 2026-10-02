@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import type { ReelState } from '@/lib/reels/constants';
 
 export type BatchListRow = {
   id: string;
@@ -63,6 +64,7 @@ export type BatchReel = {
   title: string;
   format: string;
   category: string;
+  state: ReelState;
   phase: string;
   phase_status: string;
   hook: string | null;
@@ -105,7 +107,7 @@ export async function getBatchDetail(id: string): Promise<BatchDetail | null> {
   const { data: reels } = await supabase
     .from('reels')
     .select(
-      'id, code, ordinal, title, format, category, phase, phase_status, hook, parser_warning',
+      'id, code, ordinal, title, format, category, state, phase, phase_status, hook, parser_warning',
     )
     .eq('batch_id', id)
     .order('ordinal', { ascending: true });

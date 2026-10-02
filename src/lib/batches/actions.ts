@@ -8,6 +8,7 @@ import { fetchDocAsText, DriveFetchError } from '@/lib/drive/fetch';
 import { parseScriptDoc } from '@/lib/parser/parse';
 import { buildReelCode, detectBatchYearMonth } from './codes';
 import type { ParsedReel } from '@/lib/parser/types';
+import { REEL_STATES, type ReelState } from '@/lib/reels/constants';
 
 const createBatchSchema = z.object({
   page_id: z.string().uuid(),
@@ -162,6 +163,10 @@ export type ResyncDiff = {
   added: number[];
   removed: number[];
   changed: { ordinal: number; fields: string[] }[];
+  // Changed in the doc but already in production (from revisione on): the
+  // script is locked, so re-sync leaves them alone; changes go through a
+  // proposal (docs/fase1-plan.md §3).
+  locked: { ordinal: number; fields: string[] }[];
   unchanged: number[];
   warnings: string[];
 };
@@ -177,7 +182,7 @@ async function diffParsedAgainstBatch(
   const supabase = await getSupabaseServerClient();
   const { data: existing } = await supabase
     .from('reels')
-    .select('id, ordinal, title, format, hook, corpo, chiusura, cta, notes, parser_warning')
+    .select('id, ordinal, state, title, format, hook, corpo, chiusura, cta, notes, parser_warning')
     .eq('batch_id', batchId);
 
   const byOrdinal = new Map(
@@ -188,7 +193,9 @@ async function diffParsedAgainstBatch(
   const added: number[] = [];
   const removed: number[] = [];
   const changed: ResyncDiff['changed'] = [];
+  const locked: ResyncDiff['locked'] = [];
   const unchanged: number[] = [];
+  const lockFrom = REEL_STATES.indexOf('revisione');
 
   for (const [ordinal, parsed] of parsedByOrdinal) {
     const ex = byOrdinal.get(ordinal);
@@ -204,7 +211,9 @@ async function diffParsedAgainstBatch(
     if ((ex.chiusura ?? null) !== (parsed.chiusura ?? null)) fields.push('chiusura');
     if ((ex.cta ?? null) !== (parsed.cta ?? null)) fields.push('cta');
     if ((ex.notes ?? null) !== (parsed.notes ?? null)) fields.push('notes');
-    if (fields.length > 0) {
+    if (fields.length > 0 && REEL_STATES.indexOf(ex.state as ReelState) >= lockFrom) {
+      locked.push({ ordinal, fields });
+    } else if (fields.length > 0) {
       changed.push({ ordinal, fields });
     } else {
       unchanged.push(ordinal);
@@ -217,8 +226,9 @@ async function diffParsedAgainstBatch(
   removed.sort((a, b) => a - b);
   unchanged.sort((a, b) => a - b);
   changed.sort((a, b) => a.ordinal - b.ordinal);
+  locked.sort((a, b) => a.ordinal - b.ordinal);
 
-  return { added, removed, changed, unchanged, warnings: [] };
+  return { added, removed, changed, locked, unchanged, warnings: [] };
 }
 
 export async function resyncBatch(

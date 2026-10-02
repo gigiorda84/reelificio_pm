@@ -52,11 +52,15 @@ export async function toggleDodItem(
 
   const { data: reel } = await supabase
     .from('reels')
-    .select('id, phase, page_id')
+    .select('id, state, page_id')
     .eq('id', parsed.data.reel_id)
     .maybeSingle();
   if (!reel) return { ok: false, error: 'reel_not_found' };
-  if (reel.phase !== 'editing') return { ok: false, error: 'wrong_phase' };
+  // The DoD is edited while the reel is animated or in final approval (the
+  // engine also ticks most items itself).
+  if (reel.state !== 'animazione' && reel.state !== 'approvazione_finale') {
+    return { ok: false, error: 'wrong_phase' };
+  }
 
   if (parsed.data.checked) {
     const { error } = await supabase.from('reel_dod_items').upsert(

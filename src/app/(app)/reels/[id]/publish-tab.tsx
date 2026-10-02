@@ -64,14 +64,14 @@ export function PublishTab({ reel }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="posted_url">{t('postedUrl')}</Label>
-        <Input
-          id="posted_url"
-          name="posted_url"
-          type="url"
-          placeholder={t('postedUrlPlaceholder')}
-          defaultValue={reel.posted_url ?? ''}
-        />
+        <p className="text-sm font-medium">{t('postedUrl')}</p>
+        {reel.posted_url ? (
+          <a href={reel.posted_url} target="_blank" rel="noreferrer" className="text-sm underline break-all">
+            {reel.posted_url}
+          </a>
+        ) : (
+          <p className="text-xs text-muted-foreground">{t('postedUrlFromTask')}</p>
+        )}
       </div>
 
       <Button type="submit" disabled={pending}>

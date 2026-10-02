@@ -3,137 +3,33 @@
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import { Copy, Link as LinkIcon, Mail, UserPlus, X } from 'lucide-react';
+import { Copy, Mail, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { createInvite, revokeInvite } from '@/lib/invites/actions';
+import { revokeInvite } from '@/lib/invites/actions';
 import { buildInviteUrlClient } from './invite-url-client';
 import type { InviteRow } from '@/lib/invites/queries';
 
 type Props = {
-  reelId: string;
   invites: InviteRow[];
 };
 
-export function InvitePanel({ reelId, invites }: Props) {
+// Invites created before Fase 1: listed with "Revoca" only. Collaborators
+// get accounts now, so no new invite is created here.
+export function InvitePanel({ invites }: Props) {
   const t = useTranslations('invites');
-  const tCommon = useTranslations('common');
-  const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const [lastUrl, setLastUrl] = useState<string | null>(null);
-
-  const submit = (formData: FormData) => {
-    formData.set('reel_id', reelId);
-    startTransition(async () => {
-      const result = await createInvite(formData);
-      if (result.ok) {
-        toast.success(t('created'));
-        if (result.url) setLastUrl(result.url);
-        setOpen(false);
-      } else if (result.error === 'not_authorized') {
-        toast.error(t('notAuthorized'));
-      } else if (result.error === 'invalid_input') {
-        toast.error(t('invalidInput'));
-      } else {
-        toast.error(tCommon('error'));
-      }
-    });
-  };
+  if (invites.length === 0) return null;
 
   return (
     <section className="rounded-lg border p-4 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-medium">{t('title')}</h3>
-          <p className="text-xs text-muted-foreground">{t('description')}</p>
-        </div>
-        <Button size="sm" onClick={() => setOpen(true)}>
-          <UserPlus className="size-3" aria-hidden /> {t('invite')}
-        </Button>
+      <div>
+        <h3 className="text-sm font-medium">{t('title')}</h3>
+        <p className="text-xs text-muted-foreground">{t('description')}</p>
       </div>
-
-      {lastUrl ? <InviteUrlBanner url={lastUrl} onDismiss={() => setLastUrl(null)} /> : null}
-
-      {invites.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{t('empty')}</p>
-      ) : (
-        <ul className="space-y-1.5">
-          {invites.map((inv) => (
-            <InviteListItem key={inv.id} invite={inv} />
-          ))}
-        </ul>
-      )}
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <form action={submit} className="space-y-4">
-            <DialogHeader>
-              <DialogTitle>{t('dialogTitle')}</DialogTitle>
-              <DialogDescription>{t('dialogDescription')}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="external_label">{t('labelField')}</Label>
-                <Input
-                  id="external_label"
-                  name="external_label"
-                  required
-                  maxLength={120}
-                  placeholder={t('labelPlaceholder')}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="invitee_email">{t('emailField')}</Label>
-                <Input
-                  id="invitee_email"
-                  name="invitee_email"
-                  type="email"
-                  maxLength={200}
-                  placeholder="nome@esempio.com"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="expires_in_days">{t('expiresField')}</Label>
-                <Input
-                  id="expires_in_days"
-                  name="expires_in_days"
-                  type="number"
-                  min={1}
-                  max={60}
-                  defaultValue={14}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="notes">{t('notesField')}</Label>
-                <Textarea id="notes" name="notes" rows={2} maxLength={1000} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="ghost"
-                type="button"
-                onClick={() => setOpen(false)}
-                disabled={pending}
-              >
-                {tCommon('cancel')}
-              </Button>
-              <Button type="submit" disabled={pending}>
-                {pending ? tCommon('saving') : t('create')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ul className="space-y-1.5">
+        {invites.map((inv) => (
+          <InviteListItem key={inv.id} invite={inv} />
+        ))}
+      </ul>
     </section>
   );
 }
@@ -217,25 +113,5 @@ function InviteListItem({ invite }: { invite: InviteRow }) {
         </Button>
       ) : null}
     </li>
-  );
-}
-
-function InviteUrlBanner({ url, onDismiss }: { url: string; onDismiss: () => void }) {
-  const t = useTranslations('invites');
-  const copy = async () => {
-    await navigator.clipboard.writeText(url);
-    toast.success(t('copied'));
-  };
-  return (
-    <div className="rounded-md border bg-muted/40 px-3 py-2 flex items-center gap-3">
-      <LinkIcon className="size-4 text-muted-foreground" aria-hidden />
-      <code className="text-xs truncate flex-1">{url}</code>
-      <Button size="sm" variant="outline" onClick={copy}>
-        <Copy className="size-3" aria-hidden /> {t('copyLink')}
-      </Button>
-      <Button size="sm" variant="ghost" onClick={onDismiss}>
-        <X className="size-3" aria-hidden />
-      </Button>
-    </div>
   );
 }

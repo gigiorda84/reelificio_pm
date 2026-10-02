@@ -4,52 +4,18 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import {
-  ALL_PIPELINE_PHASES,
-  PIPELINE_PHASE_ORDER,
-  type PipelinePhase,
-} from '@/lib/reels/constants';
-import { DOD_ITEM_KEYS } from '@/lib/dod/constants';
-import { generateInviteToken, buildInviteUrl } from './tokens';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 
+// Since Fase 1 (R1) collaborators have accounts: no new invites are created.
+// Existing ones keep working until they expire (comments, file links, "work
+// ready"), and admins can revoke them.
 export type InviteActionResult =
-  | { ok: true; token?: string; url?: string }
+  | { ok: true }
   | {
       ok: false;
-      error:
-        | 'invalid_input'
-        | 'not_authenticated'
-        | 'not_authorized'
-        | 'invite_invalid'
-        | 'reel_not_found'
-        | 'already_pending'
-        | 'invalid_phase'
-        | 'dod_incomplete'
-        | 'unknown';
+      error: 'invalid_input' | 'not_authenticated' | 'not_authorized' | 'invite_invalid' | 'unknown';
       message?: string;
     };
-
-const DEFAULT_TTL_DAYS = 14;
-const MAX_TTL_DAYS = 60;
-
-const createSchema = z.object({
-  reel_id: z.string().uuid(),
-  external_label: z.string().min(1).max(120),
-  invitee_email: z
-    .string()
-    .email()
-    .max(200)
-    .or(z.literal(''))
-    .optional()
-    .transform((v) => (v && v.length > 0 ? v : null)),
-  notes: z
-    .string()
-    .max(1000)
-    .or(z.literal(''))
-    .optional()
-    .transform((v) => (v && v.length > 0 ? v : null)),
-  expires_in_days: z.coerce.number().int().min(1).max(MAX_TTL_DAYS).default(DEFAULT_TTL_DAYS),
-});
 
 async function requireAdmin() {
   const supabase = await getSupabaseServerClient();
@@ -64,49 +30,6 @@ async function requireAdmin() {
     .maybeSingle();
   if (!profile?.is_admin) return { ok: false as const, error: 'not_authorized' as const };
   return { ok: true as const, userId: user.id, supabase };
-}
-
-export async function createInvite(formData: FormData): Promise<InviteActionResult> {
-  const parsed = createSchema.safeParse({
-    reel_id: formData.get('reel_id')?.toString() ?? '',
-    external_label: (formData.get('external_label')?.toString() ?? '').trim(),
-    invitee_email: (formData.get('invitee_email')?.toString() ?? '').trim(),
-    notes: (formData.get('notes')?.toString() ?? '').trim(),
-    expires_in_days:
-      formData.get('expires_in_days')?.toString() ?? String(DEFAULT_TTL_DAYS),
-  });
-  if (!parsed.success) return { ok: false, error: 'invalid_input' };
-
-  const auth = await requireAdmin();
-  if (!auth.ok) return { ok: false, error: auth.error };
-
-  // Confirm the reel exists (no need to check membership — admins can invite anywhere).
-  const { data: reel } = await auth.supabase
-    .from('reels')
-    .select('id')
-    .eq('id', parsed.data.reel_id)
-    .maybeSingle();
-  if (!reel) return { ok: false, error: 'reel_not_found' };
-
-  const token = generateInviteToken();
-  const expiresAt = new Date(
-    Date.now() + parsed.data.expires_in_days * 24 * 60 * 60 * 1000,
-  ).toISOString();
-
-  const { error } = await auth.supabase.from('magic_link_invites').insert({
-    token,
-    reel_id: parsed.data.reel_id,
-    scope: 'reel',
-    external_label: parsed.data.external_label,
-    invitee_email: parsed.data.invitee_email,
-    notes: parsed.data.notes,
-    expires_at: expiresAt,
-    created_by: auth.userId,
-  });
-  if (error) return { ok: false, error: 'unknown', message: error.message };
-
-  revalidatePath(`/reels/${parsed.data.reel_id}`);
-  return { ok: true, token, url: buildInviteUrl(token) };
 }
 
 export async function revokeInvite(
@@ -233,6 +156,9 @@ export async function updateFilesAsInvitee(
   return { ok: true };
 }
 
+// "Work ready" from an invite link: a comment on the reel and a message to
+// whoever holds the reel's open task; the task engine decides what comes
+// next (before Fase 1 this filed a phase-advance request outside the engine).
 export async function markDoneAsInvitee(
   formData: FormData,
 ): Promise<InviteActionResult> {
@@ -246,52 +172,37 @@ export async function markDoneAsInvitee(
   if (!invite) return { ok: false, error: 'invite_invalid' };
 
   const admin = getSupabaseAdminClient();
-  const { data: reel } = await admin
-    .from('reels')
-    .select('id, phase')
-    .eq('id', invite.reel_id)
-    .maybeSingle();
-  if (!reel) return { ok: false, error: 'reel_not_found' };
-
-  const fromPhase = reel.phase as PipelinePhase;
-  const fromOrder = PIPELINE_PHASE_ORDER[fromPhase];
-  const toPhase = ALL_PIPELINE_PHASES[fromOrder + 1];
-  if (!toPhase) return { ok: false, error: 'invalid_phase' };
-
-  // DoD gate for editing → publication.
-  if (fromPhase === 'editing' && toPhase === 'publication') {
-    const { count } = await admin
-      .from('reel_dod_items')
-      .select('*', { count: 'exact', head: true })
-      .eq('reel_id', reel.id);
-    if ((count ?? 0) < DOD_ITEM_KEYS.length) {
-      return { ok: false, error: 'dod_incomplete' };
-    }
-  }
-
-  // One pending request per reel is enforced by the partial unique index.
-  const { data: pending } = await admin
-    .from('phase_advance_requests')
-    .select('id')
-    .eq('reel_id', reel.id)
-    .eq('status', 'pending')
-    .maybeSingle();
-  if (pending) return { ok: false, error: 'already_pending' };
-
-  const noteParts = [
-    `Esterno: ${invite.external_label ?? 'collaboratore'}`,
-    parsed.data.note ? parsed.data.note : null,
-  ].filter(Boolean);
-
-  const { error } = await admin.from('phase_advance_requests').insert({
-    reel_id: reel.id,
-    from_phase: fromPhase,
-    to_phase: toPhase,
-    requested_by: null,
-    request_note: noteParts.join(' — '),
-    status: 'pending',
+  const label = invite.external_label ?? 'Esterno';
+  const body = ['Lavoro pronto', parsed.data.note?.trim() || null].filter(Boolean).join(' — ');
+  const { error } = await admin.from('comments').insert({
+    target_type: 'reel',
+    target_id: invite.reel_id,
+    body,
+    author_id: null,
+    invite_id: invite.id,
+    author_label: label,
   });
   if (error) return { ok: false, error: 'unknown', message: error.message };
+
+  const [{ data: task }, { data: reel }] = await Promise.all([
+    admin
+      .from('tasks')
+      .select('assignee_id')
+      .eq('reel_id', invite.reel_id)
+      .in('status', ['unassigned', 'assigned', 'in_progress'])
+      .maybeSingle(),
+    admin.from('reels').select('code, title').eq('id', invite.reel_id).maybeSingle(),
+  ]);
+  if (task?.assignee_id) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? '';
+    const link = `${appUrl}/reels/${invite.reel_id}`;
+    const subject = `${label}: lavoro pronto su ${reel?.code ?? 'un reel'}`;
+    await dispatchNotification({
+      recipientId: task.assignee_id,
+      event: 'mention',
+      payload: { subject, text: `${body}\n\nApri: ${link}`, html: `<p>${subject}</p><p><a href="${link}">Apri il reel</a></p>` },
+    }).catch((err) => console.error('[invite] notify failed', err));
+  }
 
   await admin
     .from('magic_link_invites')

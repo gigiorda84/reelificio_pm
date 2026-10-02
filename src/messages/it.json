@@ -186,8 +186,10 @@
         "changed": "Modificati",
         "unchanged": "Invariati",
         "removed": "Non più presenti (saranno mantenuti)",
-        "noChanges": "Nessuna modifica rispetto all'ultima sincronizzazione."
-      }
+        "noChanges": "Nessuna modifica rispetto all'ultima sincronizzazione.",
+        "locked": "Già in produzione (da revisione in poi): non aggiornati, cambiano solo con una proposta"
+      },
+      "state": "Stato"
     },
     "reel": {
       "phase": {
@@ -240,7 +242,8 @@
       "advancePhase": "Avanza fase",
       "currentPhase": "Fase corrente",
       "openInDrive": "Apri in Drive",
-      "parserWarning": "Il parser non ha riconosciuto tutte le sezioni. Controlla il contenuto."
+      "parserWarning": "Il parser non ha riconosciuto tutte le sezioni. Controlla il contenuto.",
+      "currentTrack": "Binario"
     },
     "tabs": {
       "script": "Script",
@@ -262,7 +265,8 @@
       "save": "Salva script",
       "saving": "Salvataggio…",
       "saved": "Modifiche salvate.",
-      "empty": "Vuoto"
+      "empty": "Vuoto",
+      "locked": "Script bloccato da Revisione in poi: lo modificano solo gli admin; gli altri propongono una modifica."
     },
     "voice": {
       "title": "Voice brief",
@@ -288,9 +292,9 @@
       "scheduledAt": "Data di pubblicazione",
       "scheduledAtHelp": "Quando il reel verrà pubblicato (orario locale).",
       "postedUrl": "URL post pubblicato",
-      "postedUrlPlaceholder": "https://www.instagram.com/reel/…",
       "save": "Salva",
-      "saved": "Pubblicazione aggiornata."
+      "saved": "Pubblicazione aggiornata.",
+      "postedUrlFromTask": "Il link del post si inserisce dal pannello del compito con «Segna come pubblicato»."
     },
     "phase": {
       "advanceTo": "Sposta a",
@@ -480,18 +484,8 @@
   },
   "invites": {
     "title": "Inviti collaboratori",
-    "description": "Genera link magic-link per condividere questo reel con un doppiatore, montatore o validatore esterno.",
-    "invite": "Invita",
+    "description": "Link magic-link creati prima della Fase 1: funzionano fino alla scadenza. I nuovi collaboratori ricevono un account.",
     "empty": "Nessun invito ancora.",
-    "dialogTitle": "Crea invito magic-link",
-    "dialogDescription": "Il link permette di visualizzare il reel, commentare, caricare i link Drive e segnalare il lavoro come pronto. Nessun account richiesto.",
-    "labelField": "Etichetta (chi è)",
-    "labelPlaceholder": "Marco — doppiatore",
-    "emailField": "Email (opzionale)",
-    "expiresField": "Scadenza (giorni)",
-    "notesField": "Note interne",
-    "create": "Crea invito",
-    "created": "Invito creato",
     "copied": "Link copiato",
     "copyLink": "Copia link",
     "revoke": "Revoca",
@@ -503,8 +497,6 @@
     "statusRevoked": "Revocato",
     "used": "Ultimo accesso",
     "unnamed": "(senza etichetta)",
-    "notAuthorized": "Solo gli admin possono creare inviti.",
-    "invalidInput": "Dati non validi.",
     "public": {
       "unavailableTitle": "Link non disponibile",
       "expired": "Questo invito è scaduto. Chiedi all'admin di rigenerarlo.",
@@ -532,14 +524,11 @@
       "commentPosted": "Commento inviato",
       "externalTag": "esterno",
       "markDoneTitle": "Segna lavoro come pronto",
-      "markDoneHelp": "Notifica al team che il tuo lavoro è completato. Sarà richiesta l'approvazione per avanzare di fase.",
+      "markDoneHelp": "Avvisa il team che il tuo lavoro è completato: lasciamo un commento sul reel e avvisiamo chi lo sta seguendo.",
       "markDoneNotePlaceholder": "Nota opzionale per il team",
       "markDoneAction": "Segna come pronto",
       "markDoneSuccess": "Notifica inviata al team",
-      "markDoneAlreadyPending": "C'è già una richiesta in attesa per questo reel.",
-      "markDoneFinalPhase": "Questo reel è già in fase finale.",
-      "inviteInvalid": "Questo link non è più valido.",
-      "markDoneDodIncomplete": "Mancano alcuni criteri della Definition of Done. Chiedi al team di completarli prima."
+      "inviteInvalid": "Questo link non è più valido."
     }
   },
   "dod": {
@@ -595,6 +584,91 @@
       "noStuck": "Nessuna reel ferma da oltre 24h.",
       "bufferLine": "{page}: {count} pronte / soglia {threshold}",
       "noPages": "Nessuna pagina attiva."
+    }
+  },
+  "tasks": {
+    "kind": {
+      "writing": "Scrittura",
+      "review": "Revisione script",
+      "validation": "Validazione scientifica",
+      "dubbing": "Doppiaggio",
+      "audio_approval": "Approvazione audio",
+      "animation": "Animazione",
+      "final_approval": "Approvazione finale",
+      "scheduling": "Programmazione"
+    },
+    "status": {
+      "unassigned": "Da assegnare",
+      "assigned": "Da accettare",
+      "in_progress": "In corso",
+      "delivered": "Consegnato",
+      "approved": "Approvato",
+      "sent_back": "Rimandato",
+      "declined": "Rifiutato",
+      "expired": "Scaduto",
+      "cancelled": "Annullato"
+    },
+    "panel": {
+      "title": "Compito",
+      "noTask": "Nessun compito aperto.",
+      "ideaHint": "Il reel è in Idea: la stesura parte dalla pagina del batch con «Avvia stesura».",
+      "scheduledHint": "Programmato: resta da pubblicare.",
+      "publishedHint": "Pubblicato.",
+      "assignee": "Assegnato a",
+      "nobody": "nessuno",
+      "due": "Scadenza",
+      "slaUsed": "{pct}% del tempo",
+      "express": "Express",
+      "migrated": "Migrato dalla vecchia pipeline: conferma per far partire i tempi.",
+      "previousNote": "Nota del rimando",
+      "closedTaskLink": "Il compito del link è già chiuso: qui sotto c'è quello attuale.",
+      "note": "Nota (facoltativa)",
+      "fileUrl": "Link al file (https://…)",
+      "editingDone": "Montaggio completato",
+      "subtitles": "Sottotitoli inseriti",
+      "sendBackTo": "Rimanda a",
+      "toAnimation": "Animatore",
+      "toDubbing": "Doppiatore (audio da rifare)",
+      "assignTo": "Assegna a",
+      "chooseUser": "Scegli una persona",
+      "caption": "Caption",
+      "scheduledAt": "Data di pubblicazione",
+      "postedUrl": "Link del post pubblicato",
+      "scriptRev": "Revisione dello script: {rev}"
+    },
+    "actions": {
+      "accept": "Accetto",
+      "decline": "Non posso",
+      "deliver": "Consegna",
+      "deliverScript": "Script pronto",
+      "approve": "Approva",
+      "sendBack": "Rimanda",
+      "confirmSendBack": "Conferma rimando",
+      "assign": "Assegna",
+      "confirmMigrated": "Conferma e fai partire i tempi",
+      "setExpress": "Passa a Express",
+      "setBatch": "Torna a Batch",
+      "schedule": "Salva programmazione",
+      "publish": "Segna come pubblicato",
+      "startWriting": "Avvia stesura",
+      "startWritingCount": "Quanti reel"
+    },
+    "done": {
+      "ok": "Fatto.",
+      "startWriting": "Stesura avviata."
+    },
+    "errors": {
+      "not_authorized": "Non puoi fare questa operazione su questo compito.",
+      "invalid_input": "Dati non validi: controlla i campi.",
+      "task_not_found": "Compito non trovato.",
+      "invalid_state": "Il compito è già stato deciso o è cambiato: ricarica la pagina.",
+      "invalid_assignee": "Questa persona non può ricevere questo compito.",
+      "stale": "Il testo è cambiato dopo che l'hai aperto: ricarica e rileggi prima di approvare.",
+      "file_missing": "Manca il file da consegnare.",
+      "dod_incomplete": "La checklist DoD non è completa.",
+      "script_missing": "Lo script è vuoto.",
+      "proposal_stale": "Lo script è cambiato dopo la proposta.",
+      "unknown": "Errore imprevisto, riprova."
     }
   }
 }

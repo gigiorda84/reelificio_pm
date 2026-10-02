@@ -4,7 +4,10 @@ import { getTranslations } from 'next-intl/server';
 import { ChevronLeft, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { getBatchDetail } from '@/lib/batches/queries';
+import { getAdminStatus } from '@/lib/auth/admin';
+import { getRaciConfigForPage, getRaciUsers } from '@/lib/raci/queries';
 import { ResyncButton } from './resync-button';
+import { StartWriting } from './start-writing';
 
 export default async function BatchDetailPage({
   params,
@@ -12,15 +15,25 @@ export default async function BatchDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [tDetail, tList, tStatus, tReel, batch] = await Promise.all([
+  const [tDetail, tList, tStatus, tState, tFormat, batch, admin] = await Promise.all([
     getTranslations('batches.detail'),
     getTranslations('batches.list'),
     getTranslations('batches.status'),
-    getTranslations('batches.reel'),
+    getTranslations('states'),
+    getTranslations('batches.reel.format'),
     getBatchDetail(id),
+    getAdminStatus(),
   ]);
 
   if (!batch) notFound();
+
+  // "Avvia stesura": admins and the script_writing Responsible (the SQL
+  // checks again).
+  const writingRaci = (await getRaciConfigForPage(batch.page_id)).find((r) => r.phase === 'script_writing');
+  const canStartWriting =
+    admin.isAdmin ||
+    (!!admin.userId && !!writingRaci && getRaciUsers(writingRaci, 'responsible').includes(admin.userId));
+  const ideaCount = batch.reels.filter((r) => r.state === 'idea').length;
 
   const warningCount = batch.reels.filter((r) => r.parser_warning).length;
 
@@ -67,6 +80,7 @@ export default async function BatchDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {canStartWriting ? <StartWriting batchId={batch.id} ideaCount={ideaCount} /> : null}
           <ResyncButton batchId={batch.id} />
         </div>
       </div>
@@ -102,7 +116,7 @@ export default async function BatchDetailPage({
                   <th className="px-4 py-2 font-medium w-32">Codice</th>
                   <th className="px-4 py-2 font-medium">Titolo</th>
                   <th className="px-4 py-2 font-medium">Formato</th>
-                  <th className="px-4 py-2 font-medium">Fase</th>
+                  <th className="px-4 py-2 font-medium">{tDetail('state')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -136,12 +150,12 @@ export default async function BatchDetailPage({
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       <Link href={`/reels/${reel.id}`} className="block">
-                        {tReel(`format.${reel.format}` as 'format.porcino_mono')}
+                        {tFormat(reel.format as 'porcino_mono')}
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       <Link href={`/reels/${reel.id}`} className="block">
-                        {tReel(`phase.${reel.phase}` as 'phase.research_prescript')}
+                        {tState(reel.state)}
                       </Link>
                     </td>
                   </tr>
