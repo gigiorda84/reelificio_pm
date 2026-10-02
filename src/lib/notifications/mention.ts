@@ -1,5 +1,6 @@
 import 'server-only';
 import { dispatchToMany } from './dispatch';
+import { mentionRecipients, type ProfileLike } from './recipients';
 import type { CommentTarget } from '@/lib/comments/queries';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
@@ -56,10 +57,22 @@ export async function notifyMentions(args: {
   target: CommentTarget;
   targetId: string;
 }): Promise<void> {
-  const recipients = args.mentionIds.filter((id) => id !== args.authorId);
-  if (recipients.length === 0) return;
+  const candidates = args.mentionIds.filter((id) => id !== args.authorId);
+  if (candidates.length === 0) return;
 
   const supabase = getSupabaseAdminClient();
+  // `*` keeps this working before the Fase 1 columns exist (see recipients.ts).
+  const { data: mentioned } = await supabase.from('profiles').select('*').in('id', candidates);
+  // Until tasks exist no external can see a reel, so externals are never
+  // notified of mentions.
+  const recipients = mentionRecipients({
+    authorId: args.authorId,
+    mentioned: (mentioned ?? []) as ProfileLike[],
+    internalOnly: false,
+    externalsWhoSeeTarget: new Set(),
+  });
+  if (recipients.length === 0) return;
+
   const { data: author } = await supabase
     .from('profiles')
     .select('full_name, email')

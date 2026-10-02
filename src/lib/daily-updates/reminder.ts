@@ -1,6 +1,7 @@
 import 'server-only';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { dispatchNotification } from '@/lib/notifications/dispatch';
+import { internalProfiles } from '@/lib/notifications/recipients';
 import { todayIsoInRome } from './types';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://reellificio-pm.vercel.app';
@@ -11,18 +12,18 @@ export type ReminderReport = {
   alreadySubmitted: number;
 };
 
-// Send the daily-update reminder to every active profile that has not yet
-// submitted an update for today (Europe/Rome calendar day). External
-// magic-link collaborators don't have profiles, so they're naturally excluded.
+// Send the daily-update reminder to every active internal profile that has
+// not yet submitted an update for today (Europe/Rome calendar day). External
+// collaborators never receive it.
 export async function sendDailyReminders(): Promise<ReminderReport> {
   const supabase = getSupabaseAdminClient();
   const today = todayIsoInRome();
 
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, email, full_name');
-
-  const candidates = profiles ?? [];
+  const candidates = await internalProfiles<{
+    id: string;
+    email: string | null;
+    full_name: string | null;
+  }>(supabase);
 
   const { data: submittedRows } = await supabase
     .from('daily_updates')

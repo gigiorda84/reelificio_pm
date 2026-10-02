@@ -1,6 +1,7 @@
 import 'server-only';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { dispatchNotification } from '@/lib/notifications/dispatch';
+import { internalProfiles } from '@/lib/notifications/recipients';
 import { isoDaysAgoInRome, todayIsoInRome } from '@/lib/daily-updates/types';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://reellificio-pm.vercel.app';
@@ -29,9 +30,10 @@ export async function sendWeeklyDigest(): Promise<DigestReport> {
   const sinceIso = new Date(`${weekStart}T00:00:00+02:00`).toISOString();
   const untilIso = new Date(`${todayIsoInRome()}T00:00:00+02:00`).toISOString();
 
-  const [profilesRes, dailyRes, transitionsRes, publishedRes, pagesRes, stuckRes] =
+  // Internal profiles only: external collaborators never get the digest.
+  const [profiles, dailyRes, transitionsRes, publishedRes, pagesRes, stuckRes] =
     await Promise.all([
-      supabase.from('profiles').select('id, email, full_name'),
+      internalProfiles(supabase),
       supabase
         .from('daily_updates')
         .select('user_id, date')
@@ -60,7 +62,6 @@ export async function sendWeeklyDigest(): Promise<DigestReport> {
         .lt('phase_entered_at', new Date(Date.now() - 24 * 3600 * 1000).toISOString()),
     ]);
 
-  const profiles = profilesRes.data ?? [];
   const dailyRows = dailyRes.data ?? [];
   const transitions = transitionsRes.count ?? 0;
   const publishedReels = publishedRes.count ?? 0;
