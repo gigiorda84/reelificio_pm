@@ -416,6 +416,23 @@ Convenzioni valide per tutte le fette:
 - `checks/08_approvals.sql`: approvatore effettivo, assenza → delegato, `set_absence` (solo admin) riassegna, gruppo B, delegato può decidere.
 - `checks/03_phase_advance.sql` diviso: prima del contract il vecchio flusso funziona e aggiorna `state` (questa metà gira **solo in `upgrade.sh`**, perché `run.sh` applica tutte le migrazioni, contract compreso); dopo il contract `decide_phase_advance` non è eseguibile da `authenticated`, insert negato, `phase` senza `state` rifiutato. `checks/02_reels.sql` (update con compito aperto; `posted_url` → 42501 dopo il contract) e `04_scale.sql` (pubblicazione via `publish_reel`). `api-check.mjs`: il flusso `decide_phase_advance` (righe 105-111) diventa `task_action` via RPC; `/rpc/task_action_as`, `/rpc/sweep_tasks`, `/rpc/claim_jobs` come utente → errore; `/rpc/task_action_core` → 404 (schema `private` non esposto).
 
+**Variazioni in esecuzione (2026-10-02):**
+- **Contract fuori da `migrations/` fino alla fine di S4.** Il contract deve avere un timestamp successivo a tutte le migrazioni di expand di S3 e S4, perché la produzione riceve l'expand dal tag `fase1-r1-expand` e poi il contract. Per questo in S2 vive in `supabase/rollback/fase1_r1_recontract.sql` (rieseguibile, insieme a `fase1_r1_uncontract.sql`). `run.sh` lo applica da lì e alla fine di S4 diventa `<ts>_fase1_r1_contract.sql` nel commit taggato `fase1-r1`. Lo staging resta in expand fino ad allora.
+- **I7:** scelta la prima opzione. La versione R1 di `task_action_core` gestisce solo le consegne con link (con `requires_drive` restituisce `file_missing`); S5 la sostituisce con `create or replace`.
+- `checks/03_phase_advance.sql` e la parte "legacy" di `05` (la fase che trascina lo stato, il salvataggio Publish del codice vecchio, I4) sono in `checks-legacy/`, eseguiti da `upgrade.sh` prima del contract.
+- `20261002152359_fase1_task_engine_fix1.sql`: lo stato derivato senza compito aperto e `_last_assignee` non dipendono più dall'ordine di timestamp uguali (stessa transazione). Trovato dallo smoke test sullo staging.
+- Nelle autorizzazioni un confronto con NULL vale "no" (`coalesce`). Prima un compito non assegnato o senza programmazione lasciava passare chiunque; lo hanno trovato i check prima del push.
+- Gli inviti magic link: niente creazione, solo revoca; "lavoro pronto" = commento + notifica diretta all'assegnatario del compito aperto (con il dispatcher di oggi, in attesa dell'outbox di S4).
+
+**Stato (2026-10-02):**
+- Parte SQL fatta (checkpoint del 23 ottobre raggiunto):
+  - motore e correzione spinti sullo staging;
+  - `run.sh` (check 00–08) e `upgrade.sh` (expand → contract → uncontract → avanzamento legacy → re-contract → riconciliazione) verdi su PG16 e PG17.
+- Interfaccia fatta: pannello del compito, "Avvia stesura", pubblicazione via `publish_reel`, re-sync che salta i reel bloccati.
+- `scripts/fase1-seed-staging.ts` eseguito: Pagina Test `TT` e utenti di prova `hello+…@reelificio.com`.
+- Smoke test SQL sullo staging: `TT-2611-01` da `idea` a `pubblicato` (annullato a fine prova).
+- Resta il percorso e2e dall'interfaccia con gli utenti di prova.
+
 **Fatto quando:** su staging gli utenti di `scripts/fase1-seed-staging.ts` (pagina "Pagina Test" prefisso `TT` con `active = false`; autore, approvatore, delegato, SMM interni; doppiatore e animatore **esterni** con titolare e riserva) percorrono un reel da `idea` a `pubblicato` solo dall'interfaccia, consegnando con link; `upgrade.sh` prova expand → contract → uncontract → avanzamento legacy → re-contract → `fase1_reconcile_tasks()`.
 **Verifica:** `run.sh` (checks 00–08), `upgrade.sh`, `pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
 

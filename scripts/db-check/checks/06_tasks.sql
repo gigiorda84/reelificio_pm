@@ -254,17 +254,32 @@ select pg_temp.eq(pg_temp.state('3'), 'programmato', 'state after final approval
 select pg_temp.eq((pg_temp.open_task('3')).kind::text || '/' || (pg_temp.open_task('3')).assignee_id,
                   'scheduling/00000000-0000-0000-0000-000000000064', 'scheduling to the SMM');
 
--- Publication closes the open scheduling task.
+-- Scheduling by the SMM (in the same transaction as every step before it:
+-- the state must not depend on timestamp order), then publication.
 select pg_temp.eq(private.schedule_reel('00000000-0000-0000-0000-00000000000e',
   '30000000-0000-0000-0000-000000000003', 'c', now() + interval '1 day'), 'not_authorized', 'schedule by the dubber');
+select pg_temp.eq(private.schedule_reel('00000000-0000-0000-0000-000000000064',
+  '30000000-0000-0000-0000-000000000003', 'Caption', now() + interval '1 day'), 'ok', 'SMM schedules');
+select pg_temp.eq(pg_temp.state('3') || '/' || coalesce((pg_temp.open_task('3')).kind::text, 'none'),
+                  'programmato/none', 'scheduled, no open task');
 select pg_temp.eq(private.publish_reel('00000000-0000-0000-0000-000000000064',
   '30000000-0000-0000-0000-000000000003', 'https://instagram.com/p/tre'), 'ok', 'SMM publishes');
 select pg_temp.eq(pg_temp.state('3'), 'pubblicato', 'state after publication');
-select pg_temp.eq((select status::text || '/' || decision_note from tasks
-                    where reel_id = '30000000-0000-0000-0000-000000000003' and kind = 'scheduling'),
-                  'delivered/[chiuso dalla pubblicazione]', 'scheduling closed by the publication');
 select pg_temp.eq((select published_at is not null from reels where id = '30000000-0000-0000-0000-000000000003'),
                   true, 'published_at');
+
+-- Publication closes a scheduling task still open (reel 7).
+insert into reels (id, batch_id, page_id, code, ordinal, title) values
+  ('30000000-0000-0000-0000-000000000007', '20000000-0000-0000-0000-000000000001',
+   '10000000-0000-0000-0000-000000000001', 'PP-2610-07', 7, 'Reel sette');
+update reels set state = 'programmato' where id = '30000000-0000-0000-0000-000000000007';
+select private._create_task('30000000-0000-0000-0000-000000000007', 'scheduling',
+  '00000000-0000-0000-0000-000000000064', 'in_progress', '00000000-0000-0000-0000-00000000000a');
+select pg_temp.eq(private.publish_reel('00000000-0000-0000-0000-000000000064',
+  '30000000-0000-0000-0000-000000000007', 'https://instagram.com/p/sette'), 'ok', 'publish with scheduling open');
+select pg_temp.eq((select status::text || '/' || decision_note from tasks
+                    where reel_id = '30000000-0000-0000-0000-000000000007' and kind = 'scheduling'),
+                  'delivered/[chiuso dalla pubblicazione]', 'scheduling closed by the publication');
 
 -- Every operation, refusals included, is in task_events; no Drive jobs
 -- while Drive is off.
