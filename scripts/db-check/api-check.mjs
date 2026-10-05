@@ -269,6 +269,32 @@ const OPEN = ['unassigned', 'assigned', 'in_progress'];
   check('task_previous_note gives nothing on others\' tasks', notMine.data === null, notMine.error ?? notMine.data);
 }
 
+// Notifications (S4): outbox, sweep and stand-up are for the service role
+// (cron routes, drain, webhook) only.
+{
+  for (const [fn, args] of [
+    ['sweep_tasks', {}],
+    ['claim_jobs', { p_limit: 1 }],
+    ['standup_snapshot', {}],
+    ['standup_claim', { p_date: '2026-10-20' }],
+    ['job_health', {}],
+    ['link_telegram', { p_token_hash: 'x', p_chat_id: '1' }],
+  ]) {
+    const res = await user(ADMIN).rpc(fn, args);
+    check(`${fn} denied to users`, res.error?.code === '42501', res.error ?? res.data);
+  }
+  const sweep = await service.rpc('sweep_tasks');
+  check('sweep_tasks for the cron', !sweep.error && typeof sweep.data?.violations === 'number', sweep.error ?? sweep.data);
+  const jobs = await service.rpc('claim_jobs', { p_limit: 50 });
+  check('claim_jobs for the drain', !jobs.error && Array.isArray(jobs.data) && jobs.data.every((j) => j.lease_token), jobs.error ?? jobs.data);
+  const done = jobs.data?.[0]
+    ? await service.rpc('complete_job', { p_id: jobs.data[0].id, p_gen: jobs.data[0].gen, p_lease_token: jobs.data[0].lease_token })
+    : { data: 'ok' };
+  check('complete_job for the drain', done.data === 'ok' || done.data === 'requeued', done.error ?? done.data);
+  const snap = await service.rpc('standup_snapshot');
+  check('standup_snapshot for the cron', !snap.error && Array.isArray(snap.data?.late), snap.error ?? snap.data);
+}
+
 proxy.close();
 if (failures) {
   console.log(`${failures} API check(s) failed`);

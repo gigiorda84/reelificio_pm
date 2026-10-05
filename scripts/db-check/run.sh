@@ -41,4 +41,20 @@ else
   echo "skip:    api-check.mjs (install postgrest to run it)"
 fi
 
+# The sweep skips a reel locked by a running transition (S4): a second
+# connection holds the lock while the sweep runs.
+echo "check:   sweep skips a locked reel"
+[ -n "${REST_PID:-}" ] || "${PSQL[@]}" -f "$HERE/seed.sql" -c 'commit'
+"${PSQL[@]}" -f "$HERE/concurrency/sweep-locked-setup.sql"
+"${PSQL[@]}" -c "begin; select 1 from reels where id = '30000000-0000-0000-0000-0000000000a1' for update; select pg_sleep(3); commit;" &
+LOCKER=$!
+sleep 1
+# Separate statements: one statement does not see the sweep's own writes.
+STAMPED="select overdue_notified_at is not null from tasks where id = '50000000-0000-0000-0000-0000000000a1'"
+got=$("${PSQL_OUT[@]}" -c "select public.sweep_tasks(now()) ->> 'skipped_locked'" -c "$STAMPED" | tr '\n' ' ')
+wait "$LOCKER"
+[ "$got" = "1 f " ] || { echo "FAIL: the sweep did not skip the locked reel ($got)"; exit 1; }
+got=$("${PSQL_OUT[@]}" -c "select public.sweep_tasks(now()) ->> 'skipped_locked'" -c "$STAMPED" | tr '\n' ' ')
+[ "$got" = "0 t " ] || { echo "FAIL: the sweep did not take the reel once unlocked ($got)"; exit 1; }
+
 echo "OK: all migrations applied and all checks passed"
