@@ -28,6 +28,9 @@ export type ReelDetail = {
 
   audio_drive_url: string | null;
   video_drive_url: string | null;
+  // Drive (S5): the reel folder, and when the animator's kit was ready.
+  drive_folder_id: string | null;
+  kit_ready_at: string | null;
   caption: string | null;
   scheduled_at: string | null;
   posted_url: string | null;
@@ -44,7 +47,7 @@ export async function getReelDetail(id: string): Promise<ReelDetail | null> {
   const { data: reel, error } = await supabase
     .from('reels')
     .select(
-      'id, batch_id, page_id, code, ordinal, title, format, category, hook, corpo, chiusura, cta, notes, raw_content, parser_warning, state, track, script_rev, phase, phase_status, phase_entered_at, audio_drive_url, video_drive_url, caption, scheduled_at, posted_url',
+      'id, batch_id, page_id, code, ordinal, title, format, category, hook, corpo, chiusura, cta, notes, raw_content, parser_warning, state, track, script_rev, phase, phase_status, phase_entered_at, audio_drive_url, video_drive_url, drive_folder_id, kit_ready_at, caption, scheduled_at, posted_url',
     )
     .eq('id', id)
     .maybeSingle();

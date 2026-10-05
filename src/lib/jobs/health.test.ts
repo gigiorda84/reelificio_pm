@@ -25,4 +25,9 @@ describe('healthIssues', () => {
     expect(healthIssues({ ...ok, sweep_errors: 1, oldest_job_minutes: 45, dead_letters_24h: 2, violations: 1 }))
       .toEqual(['sweep_errors', 'job_backlog', 'dead_letters', 'violations']);
   });
+
+  it('animations waiting for their Drive kit (absent before S5: fine)', () => {
+    expect(healthIssues({ ...ok, kit_waiting: 2 })).toEqual(['kit_waiting']);
+    expect(healthIssues({ ...ok, kit_waiting: 0 })).toEqual([]);
+  });
 });

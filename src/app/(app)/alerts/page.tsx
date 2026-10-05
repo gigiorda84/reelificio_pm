@@ -6,6 +6,7 @@ import { listAlerts, type AlertWithRefs } from '@/lib/alerts/queries';
 import { CloseAlertButton } from './close-alert-button';
 import { requireInternal } from '@/lib/auth/viewer';
 import { formatRome } from '@/lib/dates';
+import type { HealthIssue } from '@/lib/jobs/health';
 
 export default async function AlertsPage() {
   await requireInternal();
@@ -26,7 +27,7 @@ export default async function AlertsPage() {
             {t('kinds.jobHealth')}
           </span>
           <span className="text-muted-foreground">
-            {issues.map((i) => t(`health.${i as 'sweep_stale' | 'sweep_errors' | 'job_backlog' | 'dead_letters' | 'violations'}`)).join(' · ')}
+            {issues.map((i) => t(`health.${i as HealthIssue}`)).join(' · ')}
           </span>
         </div>
       );

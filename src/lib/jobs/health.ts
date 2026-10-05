@@ -9,11 +9,13 @@ export type JobHealth = {
   violations: number;
   // Reels the last sweep could not process.
   sweep_errors: number;
+  // Animation tasks waiting more than 30 minutes for their Drive kit (S5).
+  kit_waiting?: number;
 };
 
 export const HEALTH_LIMIT_MINUTES = 30;
 
-export type HealthIssue = 'sweep_stale' | 'sweep_errors' | 'job_backlog' | 'dead_letters' | 'violations';
+export type HealthIssue = 'sweep_stale' | 'sweep_errors' | 'job_backlog' | 'dead_letters' | 'violations' | 'kit_waiting';
 
 export function healthIssues(h: JobHealth | null): HealthIssue[] {
   if (!h) return ['sweep_stale'];
@@ -23,5 +25,6 @@ export function healthIssues(h: JobHealth | null): HealthIssue[] {
   if ((h.oldest_job_minutes ?? 0) > HEALTH_LIMIT_MINUTES) out.push('job_backlog');
   if (h.dead_letters_24h > 0) out.push('dead_letters');
   if (h.violations > 0) out.push('violations');
+  if ((h.kit_waiting ?? 0) > 0) out.push('kit_waiting');
   return out;
 }

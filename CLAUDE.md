@@ -33,6 +33,7 @@ Run `scripts/db-check/run.sh` after every migration change, and add a check when
   - Follow the plan slice by slice.
   - Apply the inline fixes I1–I15 listed at the end of the plan.
   - Keep the file current if the plan changes.
+  - S5 (Drive, release R2) runs ahead of R1 on branch `fase-1-s5-drive`, so the R1 tags never contain Drive. R1 fixes go on `fase-1-produzione` and are merged into it. The plan's S5 "Variazioni" explain the migration rename at the R1 cut.
 - Where the Brain docs and the PRD disagree on scope, the Brain docs win for new work. One example: the pipeline moves from 6 linear phases to 8 states with parallel dubbing and animation.
 
 - `docs/reellificio_BP.md` — the **business plan** (v2.0, April 2026). Authoritative description of the production model: phases, RACI, batch structure, KPIs, buffer rules, voice system, onboarding, scalability plan.

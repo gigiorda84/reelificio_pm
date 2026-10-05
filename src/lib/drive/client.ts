@@ -18,10 +18,11 @@ function getServiceAccount() {
 export function getDriveAuth(): JWT {
   if (cached) return cached;
   const { email, privateKey } = getServiceAccount();
+  // Full scope since Fase 1 S5: reel folders, uploads, kit files, shares.
   cached = new JWT({
     email,
     key: privateKey,
-    scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+    scopes: ['https://www.googleapis.com/auth/drive'],
   });
   return cached;
 }

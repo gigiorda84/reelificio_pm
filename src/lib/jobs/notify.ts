@@ -7,6 +7,7 @@ import { afterTelegramFailure, resolveTaskChannels } from '@/lib/notifications/c
 import { isQuietHour } from '@/lib/notifications/quiet-hours';
 import { sendTelegramMessage } from '@/lib/notifications/telegram';
 import {
+  driveIssueMessage,
   proposalMessage,
   taskMessage,
   writingStartedMessage,
@@ -332,9 +333,34 @@ async function notifyProposal(admin: SupabaseClient, job: ClaimedJob, p: Record<
   return 'sent';
 }
 
+// A Drive problem (record_drive_share, mark_drive_reconciled): the admins,
+// and for a share that failed the person too. Delivered like an assignment
+// (Telegram first, email as fallback).
+async function notifyDriveIssue(admin: SupabaseClient, job: ClaimedJob, p: Record<string, unknown>): Promise<Outcome> {
+  const issue = p.code === 'kit_without_audio' ? 'kit_without_audio' : 'share_failed';
+  const reel = await loadReel(admin, String(p.reel_id));
+  const email = typeof p.email === 'string' ? p.email : null;
+  const build = (to: 'admins' | 'person') => driveIssueMessage({ appUrl: appUrl(), reel, issue, email, to });
+  const items = (await recipients(admin, await adminIds(admin))).map((to) => ({ to, msg: build('admins') }));
+  if (issue === 'share_failed' && typeof p.user_id === 'string') {
+    for (const to of await recipients(admin, [p.user_id])) {
+      if (!items.some((i) => i.to.id === to.id)) items.push({ to, msg: build('person') });
+    }
+  }
+  const d: Delivery = {
+    job,
+    event: 'assignment',
+    track: reel.track,
+    meta: { event: 'drive_issue', issue, reel_id: reel.id },
+  };
+  await deliverAll(admin, d, items);
+  return 'sent';
+}
+
 export async function handleNotifyJob(job: ClaimedJob): Promise<Outcome> {
   const admin = getSupabaseAdminClient();
   const p = job.payload;
+  if (p.event === 'drive_issue') return notifyDriveIssue(admin, job, p);
   if (p.event === 'text_proposal') return notifyProposal(admin, job, p);
   if (p.event === 'assignment' && p.batch_id) return notifyWritingStarted(admin, job, p);
   if (typeof p.event === 'string' && TASK_MESSAGE_EVENTS.includes(p.event) && p.task_id) {

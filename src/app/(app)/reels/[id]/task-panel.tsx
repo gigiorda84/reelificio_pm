@@ -3,11 +3,12 @@
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import { Check, Undo2, X, Zap } from 'lucide-react';
+import { Check, ExternalLink, FolderOpen, Undo2, X, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ResumableUpload } from '@/components/drive/resumable-upload';
 import type { ReelState } from '@/lib/reels/constants';
 import {
   ACCEPT_KINDS,
@@ -49,6 +50,20 @@ type Props = {
     canPublish: boolean;
   };
   assignable: AssignableProfile[];
+  drive: TaskDrive;
+};
+
+// Drive around the open task (S5).
+export type TaskDrive = {
+  // Uploads possible: the task was born with Drive on, or the reel has its folder.
+  uploadEnabled: boolean;
+  // The reel folder, for internals and for whoever is working on the reel.
+  folderUrl: string | null;
+  kitReady: boolean;
+  // The newest file uploaded within the open task: what a delivery hands in.
+  taskFile: { name: string } | null;
+  // What the decision is about: the delivered file (or the R1 link).
+  delivered: { fileId: string | null; kind: 'audio' | 'video'; link: string | null } | null;
 };
 
 const LIGHT: Record<'green' | 'yellow' | 'red', string> = {
@@ -72,6 +87,7 @@ export function TaskPanel({
   linkedTaskClosed,
   viewer,
   assignable,
+  drive,
 }: Props) {
   const t = useTranslations('tasks');
   const [pending, startTransition] = useTransition();
@@ -106,6 +122,13 @@ export function TaskPanel({
     !!task && task.status === 'in_progress' && DELIVER_KINDS.includes(task.kind) && (isAssignee || viewer.isAdmin);
   const canDecide = !!task && DECISION_KINDS.includes(task.kind) && viewer.canDecide;
   const canSchedule = !!task && task.kind === 'scheduling' && (isAssignee || viewer.isAdmin);
+  // An animation born with Drive on starts when the kit (approved audio +
+  // script) is in the folder.
+  const kitWaiting = !!task && task.kind === 'animation' && task.requires_drive && !drive.kitReady;
+  const needsFile = !!task && task.requires_drive && task.kind !== 'writing';
+  const kitNote = kitWaiting ? (
+    <p className="rounded-md bg-muted px-3 py-2 text-xs">{t('panel.kitPending')}</p>
+  ) : null;
   const light = task ? semaforo({ startedAt: task.started_at, yellowAt: task.yellow_at, dueAt: task.due_at }) : null;
   const pct = task
     ? slaPercent({ startedAt: task.started_at, yellowAt: task.yellow_at, dueAt: task.due_at, escalateAt: task.escalate_at })
@@ -190,13 +213,14 @@ export function TaskPanel({
 
           {canAccept ? (
             <div className="space-y-2">
+              {kitNote}
               {noteField}
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="outline" disabled={pending}
                   onClick={() => run(() => declineTask(reelId, task.id, note))}>
                   <X className="size-3" aria-hidden /> {t('actions.decline')}
                 </Button>
-                <Button size="sm" disabled={pending} onClick={() => run(() => acceptTask(reelId, task.id))}>
+                <Button size="sm" disabled={pending || kitWaiting} onClick={() => run(() => acceptTask(reelId, task.id))}>
                   <Check className="size-3" aria-hidden /> {t('actions.accept')}
                 </Button>
               </div>
@@ -205,9 +229,18 @@ export function TaskPanel({
 
           {canDeliver ? (
             <div className="space-y-2">
-              {task.kind !== 'writing' ? (
+              {kitNote}
+              {task.kind !== 'writing' && !kitWaiting && drive.uploadEnabled ? (
+                <ResumableUpload taskId={task.id} kind={task.kind === 'dubbing' ? 'audio' : 'video'} />
+              ) : null}
+              {drive.taskFile ? (
+                <p className="text-xs">{t('panel.fileReady', { name: drive.taskFile.name })}</p>
+              ) : null}
+              {task.kind !== 'writing' && !task.requires_drive && !drive.taskFile ? (
                 <div className="space-y-1">
-                  <Label htmlFor="task-file" className="text-xs">{t('panel.fileUrl')}</Label>
+                  <Label htmlFor="task-file" className="text-xs">
+                    {drive.uploadEnabled ? t('panel.orLink') : t('panel.fileUrl')}
+                  </Label>
                   <Input id="task-file" type="url" inputMode="url" placeholder="https://"
                     value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} />
                 </div>
@@ -226,12 +259,14 @@ export function TaskPanel({
               ) : null}
               {noteField}
               <div className="flex justify-end">
-                <Button size="sm" disabled={pending} onClick={() => run(() => deliverTask(reelId, task.id, {
-                  fileUrl: task.kind === 'writing' ? undefined : fileUrl,
-                  editingDone: task.kind === 'animation' ? editingDone : undefined,
-                  subtitles: task.kind === 'animation' ? subtitles : undefined,
-                  note,
-                }))}>
+                <Button size="sm" disabled={pending || kitWaiting || (needsFile && !drive.taskFile)}
+                  onClick={() => run(() => deliverTask(reelId, task.id, {
+                    // An uploaded file wins over a link (SQL).
+                    fileUrl: task.kind === 'writing' || drive.taskFile ? undefined : fileUrl,
+                    editingDone: task.kind === 'animation' ? editingDone : undefined,
+                    subtitles: task.kind === 'animation' ? subtitles : undefined,
+                    note,
+                  }))}>
                   {task.kind === 'writing' ? t('actions.deliverScript') : t('actions.deliver')}
                 </Button>
               </div>
@@ -242,6 +277,20 @@ export function TaskPanel({
             <div className="space-y-2">
               {SCRIPT_DECISION_KINDS.includes(task.kind) ? (
                 <p className="text-xs text-muted-foreground">{t('panel.scriptRev', { rev: scriptRev })}</p>
+              ) : null}
+              {drive.delivered ? (
+                <div className="space-y-1.5">
+                  {drive.delivered.kind === 'audio' && drive.delivered.fileId ? (
+                    <audio controls preload="metadata" src={`/api/media/${drive.delivered.fileId}`} className="w-full" />
+                  ) : null}
+                  {drive.delivered.link ? (
+                    <a href={drive.delivered.link} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs underline">
+                      <ExternalLink className="size-3" aria-hidden />
+                      {drive.delivered.kind === 'audio' ? t('panel.deliveredAudio') : t('panel.deliveredVideo')}
+                    </a>
+                  ) : null}
+                </div>
               ) : null}
               {noteField}
               {sendingBack && task.kind === 'final_approval' ? (
@@ -312,6 +361,13 @@ export function TaskPanel({
                 </Button>
               </div>
             </div>
+          ) : null}
+
+          {drive.folderUrl ? (
+            <a href={drive.folderUrl} target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground underline hover:text-foreground">
+              <FolderOpen className="size-3" aria-hidden /> {t('panel.openFolder')}
+            </a>
           ) : null}
 
           {viewer.isAdmin ? (

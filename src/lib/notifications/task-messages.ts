@@ -225,6 +225,32 @@ export function writingStartedMessage(args: { appUrl: string; batchLabel: string
   };
 }
 
+// A Drive problem the job cannot fix alone (S5): a folder that cannot be
+// shared (to the admins and to the person), a kit without audio (admins).
+export function driveIssueMessage(args: {
+  appUrl: string;
+  reel: { id: string; code: string; title: string };
+  issue: 'share_failed' | 'kit_without_audio';
+  email: string | null;
+  to: 'admins' | 'person';
+}): BuiltMessage {
+  const link = `${args.appUrl}/reels/${args.reel.id}`;
+  const vars = { code: args.reel.code, email: args.email ?? '—' };
+  const key =
+    args.issue === 'kit_without_audio' ? 'kitWithoutAudio' : args.to === 'person' ? 'shareFailedPerson' : 'shareFailedAdmins';
+  const headline = t(`drive.${key}`, vars);
+  const body = t(`drive.${key}Body`, vars);
+  const reelLine = `${args.reel.code} — ${args.reel.title}`;
+  return {
+    subject: headline,
+    text: [headline, reelLine, body, t('openApp', { link })].join('\n\n'),
+    html: `<p><strong>${escapeHtml(headline)}</strong></p><p>${escapeHtml(reelLine)}</p><p>${escapeHtml(body)}</p><p><a href="${escapeHtml(link)}">${escapeHtml(t('open'))}</a></p>`,
+    telegram: [`<b>${escapeHtml(headline)}</b>`, escapeHtml(reelLine), escapeHtml(body), ...(link.startsWith('https://') ? [] : [escapeHtml(link)])].join('\n\n'),
+    buttons: openButton(link).length ? [openButton(link)] : [],
+    link,
+  };
+}
+
 // A text proposal: to the approver (side by side), or its outcome to the
 // person who proposed it.
 export function proposalMessage(args: {

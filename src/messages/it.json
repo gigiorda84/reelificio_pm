@@ -339,7 +339,20 @@
       "openLink": "Apri",
       "save": "Salva file",
       "saved": "File aggiornati.",
-      "noneDelivered": "Nessun file consegnato finora."
+      "noneDelivered": "Nessun file consegnato finora.",
+      "legacyTitle": "Link consegnati prima di Drive",
+      "driveFiles": "File su Drive",
+      "noDriveFiles": "Nessun file su Drive per ora.",
+      "openFolder": "Apri la cartella",
+      "openInDrive": "Apri in Drive",
+      "approved": "approvato",
+      "archived": "in archivio",
+      "kind": {
+        "audio": "Audio",
+        "video": "Video",
+        "script": "Script (kit)",
+        "other": "Link audio (kit)"
+      }
     },
     "publish": {
       "caption": "Caption",
@@ -454,7 +467,8 @@
       "job_backlog": "messaggi fermi in coda",
       "dead_letters": "messaggi non consegnati nelle ultime 24 h",
       "violations": "reel in uno stato incoerente con i compiti",
-      "sweep_errors": "lo sweep non riesce a gestire alcuni reel"
+      "sweep_errors": "lo sweep non riesce a gestire alcuni reel",
+      "kit_waiting": "animazioni ferme in attesa del kit Drive"
     }
   },
   "pipeline": {
@@ -745,7 +759,13 @@
       "caption": "Caption",
       "scheduledAt": "Data di pubblicazione",
       "postedUrl": "Link del post pubblicato",
-      "scriptRev": "Revisione dello script: {rev}"
+      "scriptRev": "Revisione dello script: {rev}",
+      "kitPending": "Kit in preparazione: l’audio approvato e lo script stanno arrivando nella cartella Drive. Il compito parte quando sono pronti.",
+      "fileReady": "Pronto da consegnare: {name}",
+      "orLink": "Oppure incolla un link (https://…)",
+      "deliveredAudio": "Apri l’audio in Drive",
+      "deliveredVideo": "Guarda il video in Drive",
+      "openFolder": "Apri la cartella Drive"
     },
     "actions": {
       "accept": "Accetto",
@@ -780,6 +800,8 @@
       "dod_incomplete": "La checklist DoD non è completa.",
       "script_missing": "Lo script è vuoto.",
       "proposal_stale": "Lo script è cambiato dopo la proposta.",
+      "kit_not_ready": "Il kit per l’animazione è in preparazione: riprova tra un paio di minuti.",
+      "drive_disabled": "Il caricamento su Drive è spento: consegna con un link.",
       "unknown": "Errore imprevisto, riprova."
     },
     "list": {
@@ -797,6 +819,23 @@
       "openVideo": "Guarda il video consegnato",
       "pendingProposals": "{count, plural, =1 {1 proposta di modifica da decidere} other {# proposte di modifica da decidere}}"
     }
+  },
+  "upload": {
+    "chooseAudio": "Carica l’audio",
+    "chooseVideo": "Carica il video",
+    "limit": "Fino a {max}",
+    "uploading": "Caricamento… {pct}%",
+    "pausedShort": "In pausa al {pct}%",
+    "paused": "Connessione persa al {pct}%: riprendo da solo appena torni online, oppure premi Riprendi.",
+    "pause": "Pausa",
+    "resume": "Riprendi",
+    "cancel": "Annulla il caricamento",
+    "verifying": "Controllo del file su Drive…",
+    "done": "Caricato: {name}",
+    "failed": "Caricamento non riuscito: riprova.",
+    "tooLarge": "File troppo grande (massimo {max}).",
+    "wrongType": "Formato non accettato. Ammessi: {types}.",
+    "keepOpen": "Tieni aperta questa pagina finché il caricamento non finisce."
   },
   "notifications": {
     "task": {
@@ -840,6 +879,14 @@
         "from": "Da: {name}",
         "original": "Testo attuale",
         "proposed": "Proposta"
+      },
+      "drive": {
+        "shareFailedAdmins": "📁 Cartella Drive di {code} non condivisa con {email}",
+        "shareFailedAdminsBody": "Di solito l’indirizzo non è un account Google. Fatti dare un’email Google e salvala come drive_email (scripts/fase1-collaborators.ts): al giro successivo la cartella viene condivisa.",
+        "shareFailedPerson": "📁 Non riesco a condividerti la cartella Drive di {code}",
+        "shareFailedPersonBody": "L’indirizzo {email} non risulta un account Google. Manda a chi coordina un’email Google da usare per Drive; intanto script e audio sono nell’app.",
+        "kitWithoutAudio": "📁 Kit di {code} senza audio",
+        "kitWithoutAudioBody": "Il reel arriva dalla vecchia pipeline senza un audio registrato: nella cartella c’è solo lo script. Fai avere all’animatore l’audio approvato."
       }
     },
     "telegram": {
@@ -882,7 +929,8 @@
       "job_backlog": "messaggi in coda da {backlog} min",
       "dead_letters": "{dead, plural, =1 {1 messaggio non consegnato} other {# messaggi non consegnati}} nelle ultime 24 h",
       "violations": "{violations, plural, =1 {1 reel in uno stato incoerente} other {# reel in uno stato incoerente}}",
-      "sweep_errors": "lo sweep non riesce a gestire {errors, plural, =1 {1 reel} other {# reel}}"
+      "sweep_errors": "lo sweep non riesce a gestire {errors, plural, =1 {1 reel} other {# reel}}",
+      "kit_waiting": "{kits, plural, =1 {1 animazione aspetta il kit Drive da più di 30 min} other {# animazioni aspettano il kit Drive da più di 30 min}}"
     }
   }
 }

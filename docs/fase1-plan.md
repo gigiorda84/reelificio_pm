@@ -616,6 +616,68 @@ Se nel frattempo lo stato cambia, `requested_gen` cresce e il job riparte (S4): 
 **Fatto quando:** su "Reelificio Staging" lo scenario E8 passa con `scripts/check-drive-folder.ts` (contenuto e permessi); lo scenario **E13** (passaggio R1 → R2 con un reel per stato, creati con Drive spento) passa prima di accendere Drive sullo staging; un job `drive_reconcile` eseguito due volte di fila e uno interrotto a metà convergono allo stesso stato, senza cartelle doppie; un rimando al doppiaggio rigenera il kit prima di avvisare l'animatore.
 **Verifica:** `run.sh` (checks 00–10), `upgrade.sh` (tappa R1 → R2), `pnpm test`, e2e E1 (R2), E4 (upload ≥ 20 MB), E8, E13.
 
+**Variazioni in esecuzione (2026-10-05):**
+- **S5 parte prima di R1, sul branch `fase-1-s5-drive`** (da `fase-1-produzione`). Così i tag `fase1-r1-expand`/`fase1-r1` del passo 0a non contengono Drive.
+  - Le correzioni di R1 si fanno su `fase-1-produzione` e si uniscono in `fase-1-s5-drive`.
+  - Se una correzione di R1 ridefinisce `_create_task`, `_transition`, `set_app_config` o `sweep_tasks`, la stessa modifica va riportata nella migrazione Drive, che le sostituisce (I7).
+  - Al taglio di R1 la migrazione `20261005122608_fase1_drive.sql` va rinominata con un timestamp successivo al contract. È la procedura degli hotfix di §8, con `supabase migration repair --status reverted` sullo staging se era già stata spinta.
+  - Finché la migrazione Drive è sullo staging e non su `fase-1-produzione`, le migrazioni si spingono sullo staging solo da `fase-1-s5-drive` (la CLI rifiuta versioni remote che non trova in locale).
+- **Upload: `prepare_upload_as` e `finish_upload_as` con `p_actor`, solo service role** (il piano diceva `prepare_upload`/`finish_upload` per `authenticated`).
+  - Le chiama la server action dopo `getUser()`, e la SQL ricontrolla chi tiene il compito.
+  - Motivo: con `finish_upload` aperta agli utenti, un client potrebbe registrare un file che il server non ha verificato su Drive.
+  - L'allowlist di `00_guards.sql` non cambia. `fail_upload` chiude gli upload abbandonati o non verificati.
+- **Il job riporta ogni passo appena fatto:** `save_drive_folder` (la prima cartella salvata vince, l'eventuale doppione va nel cestino), `register_kit_file`, `archive_drive_files`, `record_drive_share`, poi `mark_drive_reconciled`. Ogni elemento creato su Drive porta `appProperties.reelificio` (`reel:<id>`, `file:<id>`, `kit:<tipo>:<hash>`…): un giro ripreso dopo un crash lo ritrova invece di crearlo di nuovo.
+- **`kit_hash` si calcola in SQL** (`private._kit_hash`: sha256 di blocchi, note, testo grezzo e riferimento dell'audio approvato), non in TypeScript.
+  - `mark_drive_reconciled` lo ricalcola e risponde `stale` se nel frattempo è cambiato; il job riparte per la generazione.
+  - Il test del calcolo, legacy compreso, sta in `10_files.sql` invece che in uno unit test.
+- **Ordine del job: cartella → kit → archivio → condivisioni → chiusura** (il piano metteva l'archivio prima del kit). Così lo script superato è già in `archivio/` quando l'animatore riceve l'avviso (AC8).
+- **L'audio del kit si trova seguendo `previous_task_id`** dall'approvazione al doppiaggio (`private._delivered_by`), non per timestamp: dentro una transazione `now()` è uguale per tutti i compiti. Vale anche per la marcatura del file approvato.
+- **In radice restano** per audio e video l'ultima versione e l'ultima approvata; del kit, solo i file dell'ultima generazione. Un vecchio `_audio_link.txt` va in `archivio/` quando il kit passa all'audio caricato.
+- **Avvisi Drive:** nuovo payload `drive_issue` nella coda `notify` per una condivisione fallita (admin e persona) e per un kit senza audio (admin, I6b). Parte una volta per errore e si consegna come `assignment` (Telegram, poi email).
+- **Sweep:** un job Drive in dead letter si ritenta dopo un'ora, al massimo tre fallimenti al giorno per reel; poi restano `job_health` e gli admin.
+- **Correzioni collaterali:**
+  - `updateReelFiles` scrive solo i campi presenti nel form: un campo nascosto per un file approvato non viene più azzerato.
+  - `/api/media/[fileId]` serve solo audio ed è negli `EXTERNAL_PATHS`.
+  - La coda `/approvazioni` mostra il player dell'audio caricato.
+- **I2 (parte r2):** `scripts/fase1-r2-enable-drive.sql` e `rehearse-dump.sh --release r2`. `upgrade.sh` esegue lo script di R2 sui reel in volo (I13). In modalità r1 la prova su dump salta la migrazione Drive, come `upgrade.sh`.
+- **Dalla review indipendente (2026-10-05), tutte applicate:**
+  - **Drive spento non lascia accessi aperti:** `_drive_reconcile` accoda il job anche con Drive spento se la cartella del reel è ancora condivisa; il job allora fa solo le revoche. Lo sweep cerca le condivisioni senza compito anche con Drive spento.
+  - **Nessun blocco da upload abbandonati:** un nuovo upload della stessa persona sullo stesso compito chiude come `failed` quelli rimasti a metà (al posto del limite di 5 in volo). L'uploader chiude la versione riservata quando la sessione scade o non risponde.
+  - **Animazione ferma senza kit:** nuovo segnale `kit_waiting` in `job_health` (compiti `animation` in attesa del kit da più di 30 minuti), quindi nell'avviso `job_health` e nello stand-up.
+  - **Permessi misti:** un permesso con una parte ereditata (membro dello Shared Drive) non si revoca mai, come dice il piano. Una condivisione voluta è già a posto se la persona arriva alla cartella con quel ruolo o uno superiore, anche da membro.
+  - **Lo sweep rimette in coda** una condivisione senza compito al massimo ogni 30 minuti per reel.
+  - **Il kit si riscrive** anche quando cambia il link legacy dell'audio (`audio_drive_url`).
+  - **Uploader più robusto:** guardia sull'avanzamento fermo, annulla durante la preparazione, pausa durante l'attesa tra due tentativi, un solo ciclo alla volta.
+  - **Verifica e media:** `finishUpload` riprova la ricerca per tag (Drive può essere in ritardo) e non tocca un file già `ready`; il timeout del proxy media copre solo l'attesa della risposta, non lo streaming.
+  - **Respinto:** la route media resta legata alla visibilità del reel (D3: compiti aperti e chiusi da ≤ 7 giorni), non alla sola condivisione della cartella.
+- **Staging senza `db push`:** dal Mac la porta 5432 del pooler è bloccata, anche fuori dalla sandbox. La migrazione è stata applicata con la Management API (HTTPS, token della CLI), in un'unica transazione con la sua riga in `supabase_migrations.schema_migrations`, come fa `db push`. `migration list` e `migration repair` la vedono come le altre.
+
+**Stato (2026-10-05):**
+- Fatto e verde in locale:
+  - migrazione `20261005122608_fase1_drive.sql`;
+  - `run.sh` con i check 00–10 e `api-check`;
+  - `upgrade.sh` con la tappa R1 → R2 (fixture `seed-r1-in-flight.sql`, script di R2, `05_drive_switch.sql`);
+  - `run.sh` e `upgrade.sh` anche su PG17;
+  - 93 test;
+  - typecheck, lint e build;
+  - review indipendente del diff, con le correzioni elencate sopra.
+- Smoke test del client Drive sullo Shared Drive "Reelificio Staging", senza toccare il DB, tutto verde: cartelle, ricerca per tag, file del kit, spostamento in `archivio/`, sessione resumable, range audio 206, errore 400 `invalidSharingRequest` per un indirizzo non Google.
+- Staging (2026-10-05, OK dell'utente): migrazione applicata (l'unica in sospeso), guardie del catalogo verdi in sola lettura. Poi E13 ed E8 sui tre reel TT, senza interfaccia:
+  - Come sono stati guidati: transizioni in SQL con attori espliciti; upload veri da Node con sessione resumable a chunk da 8 MiB, verifica e `finish_upload_as`; coda svuotata dalla route `task-sweep` del dev server, cioè dagli handler veri.
+  - E13: tre reel portati con Drive spento in `doppiaggio` (doppiaggio in corso), `animazione` (animazione in corso) e `approvazione_finale`. Poi Drive acceso e backfill: cartelle create, kit legacy (`_audio_link.txt`) pronti per i reel da `animazione` in poi. Ogni compito di R1 si è chiuso con un link, senza `kit_not_ready` né `file_missing`.
+  - Il compito di animazione nato dopo l'accensione ha risposto `kit_not_ready` finché il job non ha scritto il kit. Poi è partito: soglie e messaggio.
+  - E8: video caricato (9 MB, 2 chunk), rimando al doppiaggio, audio caricato (20 MB, 3 chunk) e approvato.
+    - Il kit è stato rigenerato (`script_v2`) prima dell'avviso all'animatore; kit vecchio e video v1 sono in `archivio/`.
+    - Il video v2 è stato consegnato dopo un `file_missing` sul link.
+    - Tutti e tre i reel sono arrivati a `programmato`.
+  - `check-drive-folder.ts` è verde su nomi, radice, archivio, kit e permessi, tranne la condivisione. Un giro in più del job lascia la cartella identica.
+  - Condivisione: gli esterni di prova hanno indirizzi `hello+…@reelificio.com`. Drive li rifiuta (400 `invalidSharingRequest`); l'errore è registrato sulla condivisione e l'avviso `drive_issue` è partito una volta per persona. Le condivisioni si sono chiuse quando si sono chiusi i compiti.
+  - Drive rispento alla fine: i 3 compiti aperti sono tornati ai link (`drive_off`), nessun job in sospeso, `job_health` pulito. Le notifiche dei compiti di R1 generate dal driver sono state saltate, per non riempire la casella di prova.
+- Da fare per chiudere S5:
+  - una condivisione riuscita e la sua revoca (AC8, entro 10 minuti dalla consegna): serve un account Google vero come `drive_email` di un esterno di prova;
+  - E4 con upload ≥ 20 MB da iPhone (U1 nel browser vero, con l'interfaccia);
+  - i reel TT sono in `programmato`: per gli e2e di R1 vanno pubblicati o rifatti.
+
 ### S6 — Collaudo completo, documentazione, R2 · 3,5 giorni (19–24 novembre: collaudo 19–20, R2 lunedì 23, documenti 24)
 
 - Scenari e2e E1–E13 (§7.3) completi su staging con i dati di R2, checklist in `scripts/fase1-e2e/README.md`; tempi di AC2 misurati su iPhone. Se resta tempo: pagina `/collaboratori` e diff parola per parola (tagli di R1), altrimenti Fase 2.
@@ -1138,21 +1200,21 @@ Architect iter3 (`.omc/plans/fase1-produzione-2-0.iter3.architect-review.md`, N1
 **Prima della prova 0a (bloccano il giorno del rilascio):**
 
 - [ ] **I1 — Script TS verso la produzione** (Arch N2, Critic 1). Loader comune `--target staging|production` (`.env.local` o `.env.production.local`) che stampa il project ref, controlla `rbcgtwohcsqjmyjzhlbx` e lo username del bot, e chiede conferma digitata. Gli script solo-staging (`fase1-seed-staging.ts`, `fase1-time-travel.ts`) rifiutano un URL di produzione. In 0a si esegue `fase1-collaborators.ts --target production --dry-run`. Il controllo dopo 6b passa da `psql "$PROD_DB_URL"`; al passo 12 si tolgono le chiavi di produzione dalla shell. Vale anche per 6c (`telegram-set-webhook.ts`), `send-links` e `offboard`. — S1 (loader), S4 (runbook)
-- [ ] **I2 — Configurazione e prova separate per R2** (Arch N1, Critic 2). `scripts/fase1-r2-enable-drive.sql`: solo `drive_enabled = true`, `drive_backfill()` e report dei compiti aperti con `requires_drive = false` per tipo. `rehearse-dump.sh --release r1|r2`: in modalità r2 confronto di schema, solo la migrazione S5, lo script R2, le guardie; niente ricreazione degli esterni né backfill R1. Il §8/R2 (snapshot:454) usa lo script R2, mai `fase1-prod-config.sql`. Lo script della rampa (`fase1-prod-config-ramp.sql`) si prova dentro la prova di R1. — S1 (r1), S5 (r2)
+- [ ] (parte r2 fatta in S5, 2026-10-05: `scripts/fase1-r2-enable-drive.sql`, `rehearse-dump.sh --release r2`; si prova sul dump del taglio di R2) **I2 — Configurazione e prova separate per R2** (Arch N1, Critic 2). `scripts/fase1-r2-enable-drive.sql`: solo `drive_enabled = true`, `drive_backfill()` e report dei compiti aperti con `requires_drive = false` per tipo. `rehearse-dump.sh --release r1|r2`: in modalità r2 confronto di schema, solo la migrazione S5, lo script R2, le guardie; niente ricreazione degli esterni né backfill R1. Il §8/R2 (snapshot:454) usa lo script R2, mai `fase1-prod-config.sql`. Lo script della rampa (`fase1-prod-config-ramp.sql`) si prova dentro la prova di R1. — S1 (r1), S5 (r2)
 - [ ] **I3 — Guardie consapevoli del contract** (Arch N4). Variabile `contract_applied`: in modalità expand l'allowlist di `00_guards.sql` include anche `decide_phase_advance`. Le guardie in modalità expand girano nella prova; sulla produzione si usano `PGOPTIONS='-c default_transaction_read_only=on'` invece di `begin read only`. — S1, S2
 
 **Durante l'esecuzione:**
 
 - [ ] **I4 — Trigger di sincronizzazione a confronto di valori** (Arch N3). I rami legacy scattano solo se `phase` o `published_at` cambiano davvero (`is distinct from`); il ramo `posted_url` imposta anche `phase = 'publication'` come il backfill; stessa regola per `script_rev` e per il blocco dello script (il codice vecchio manda tutti i campi a ogni salvataggio: `src/lib/reels/actions.ts:82`, `:141-145`). Test in `upgrade.sh`: un salvataggio Publish del codice vecchio non sposta indietro un reel in `revisione`/`confermato`/`approvazione_finale`. — S1
 - [ ] **I5 — Base del confronto di schema** (Arch N5, Critic 4). Nuovo dump di produzione in S1 (sola lettura, OK dell'utente) nel formato di §6, con `schema-public.sql` e `migrations.txt`; `drift-allow.txt` costruito da quello, con voci su istruzioni normalizzate e non su blocchi di diff; entrambi i lati con lo stesso `pg_dump` di `libpq@18`. Il criterio di S1 si riferisce a questo dump, non a quello del 2026-10-01. — S1
-- [ ] **I6 — Casi limite del cancello del kit** (Arch N6, Critic 3). (a) Con `drive_enabled = false` i compiti `animation` aperti con `notified_at is null` ricevono soglie da `now()` e la notifica di assegnazione. (b) Un reel migrato da `doppiaggio` in poi senza audio approvato né `audio_drive_url` ha un kit legacy di solo script, considerato pronto, con avviso all'admin ed elenco nel report di R2. (c) L'URL del kit legacy viene dal payload del compito di doppiaggio approvato, non da `reels.audio_drive_url`. Casi in `10_files.sql`. — S5
-- [ ] **I7 — Oggetti di S5 usati in S2** (Arch N7). La versione R1 di `private.task_action_core` e `_create_task` gestisce solo i link; S5 le sostituisce con `create or replace`. In alternativa `kit_ready_at` e `reel_files` nascono in S1. Scelta da annotare nel changelog di S2. — S2
+- [x] (fatto in S5, 2026-10-05: casi in `10_files.sql`) **I6 — Casi limite del cancello del kit** (Arch N6, Critic 3). (a) Con `drive_enabled = false` i compiti `animation` aperti con `notified_at is null` ricevono soglie da `now()` e la notifica di assegnazione. (b) Un reel migrato da `doppiaggio` in poi senza audio approvato né `audio_drive_url` ha un kit legacy di solo script, considerato pronto, con avviso all'admin ed elenco nel report di R2. (c) L'URL del kit legacy viene dal payload del compito di doppiaggio approvato, non da `reels.audio_drive_url`. Casi in `10_files.sql`. — S5
+- [x] (fatto: S2 ha scelto la prima strada; la migrazione Drive di S5 sostituisce `_create_task` e `_transition` con `create or replace`) **I7 — Oggetti di S5 usati in S2** (Arch N7). La versione R1 di `private.task_action_core` e `_create_task` gestisce solo i link; S5 le sostituisce con `create or replace`. In alternativa `kit_ready_at` e `reel_files` nascono in S1. Scelta da annotare nel changelog di S2. — S2
 - [x] (fatto in S3, 2026-10-05) **I8 — Menzioni scritte dagli esterni** (Arch N8). `resolveValidMentions` (`src/lib/comments/actions.ts:41`) risolve tramite `profile_names()`; un commento di un esterno notifica l'approvatore del compito aperto; `updateComment` seleziona anche `internal_only` (`actions.ts:135`). Unit test. — S3
 - [ ] **I9 — Secondo checkpoint martedì 3 novembre** (Arch N9): la parte R1 di E1 è verde sullo staging, altrimenti piano B. Comunicare al team R1 il **16 novembre come impegno** e il 9 novembre come obiettivo ambizioso. — §9
 - [ ] **I10 — Toolchain** (Critic 5). `run.sh`/`upgrade.sh`/`rehearse-dump.sh` chiamano `$PG_BIN/initdb` e `$PG_BIN/pg_ctl` in modo esplicito (`libpq@18/bin` contiene anche `initdb` e `pg_ctl`); dopo l'avvio si verifica `show server_version_num`. Filtro esplicito per gli INSERT di `data.sql` in `auth.identities`, `sessions`, `refresh_tokens`, `flow_state`, `one_time_tokens`, `mfa_amr_claims`. Le colonne della tabella di appoggio di `auth.users` si ricavano dall'intestazione dell'INSERT del dump, non sono fisse a 34. — S1
 - [ ] **I11 — Profilo esistente che in realtà è esterno** (Critic 6). `existing-externals.txt` rivisto e accettato dal report; ban prima del passo 4; conversione al passo 6b con `fase1-collaborators.ts --convert-existing`, poi unban. In S1 si confrontano i 4 profili di produzione con l'allowlist. — S1, S4
 - [ ] **I12 — Fixture di smoke test in produzione** (Critic 7). `fase1-prod-smoke.sql` dopo il passo 8: pagina di test (`active = false`), un reel con un compito di approvazione per un admin collegato a Telegram, un esterno di test con 1 reel (nel CSV); offboarding dell'esterno di test a fine passo 11. — S4
-- [ ] **I13 — Ordine del ramo R1 → R2 in `upgrade.sh`** (Critic 8): migrazione fino al tag `fase1-r1`, fixture, poi S5, poi attivazione di Drive. Così si prova il `create or replace` di S5 su righe esistenti. — S5
+- [x] (fatto in S5, 2026-10-05: `seed-r1-in-flight.sql`, migrazione Drive, `fase1-r2-enable-drive.sql`, `05_drive_switch.sql`) **I13 — Ordine del ramo R1 → R2 in `upgrade.sh`** (Critic 8): migrazione fino al tag `fase1-r1`, fixture, poi S5, poi attivazione di Drive. Così si prova il `create or replace` di S5 su righe esistenti. — S5
 - [ ] **I14 — Dettagli minori** (Arch N10, Critic 9):
   - `standup_claim` confronta `text` con `date`: usare `p_date::text` e inserire la riga `system_heartbeats('standup')`.
   - Il "fatto quando" di S6 cita E1–E13.

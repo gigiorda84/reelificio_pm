@@ -2,6 +2,7 @@ import 'server-only';
 import * as Sentry from '@sentry/nextjs';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { healthIssues, type JobHealth } from './health';
+import { handleDriveReconcile } from './handlers/drive-reconcile';
 import { handleNotifyJob, PermanentJobError, type ClaimedJob } from './notify';
 
 // Empties the outbox (docs/fase1-plan.md §S4): claim → handler → complete or
@@ -17,8 +18,8 @@ function log(fields: Record<string, unknown>) {
 
 async function runJob(job: ClaimedJob): Promise<'sent' | 'stale'> {
   if (job.kind === 'notify') return handleNotifyJob(job);
-  // drive_reconcile is queued only once Drive is on (R2, S5).
-  throw new Error(`no handler for ${job.kind} yet`);
+  if (job.kind === 'drive_reconcile') return handleDriveReconcile(job);
+  throw new PermanentJobError(`no handler for ${String(job.kind)}`);
 }
 
 // Claims a few jobs at a time and stops at the deadline, well inside the

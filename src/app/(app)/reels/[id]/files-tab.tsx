@@ -10,9 +10,11 @@ import { Label } from '@/components/ui/label';
 import { updateReelFiles } from '@/lib/reels/actions';
 import type { ReelDetail } from '@/lib/reels/queries';
 
-type Props = { reel: ReelDetail };
+// The links delivered before Drive (R1), shown while no approved file of the
+// same kind exists on Drive (S5).
+type Props = { reel: ReelDetail; showAudio: boolean; showVideo: boolean };
 
-export function FilesTab({ reel }: Props) {
+export function FilesTab({ reel, showAudio, showVideo }: Props) {
   const t = useTranslations('reels.files');
   const tCommon = useTranslations('common');
   const [pending, startTransition] = useTransition();
@@ -25,8 +27,12 @@ export function FilesTab({ reel }: Props) {
     });
   };
 
+  if (!showAudio && !showVideo) return null;
+
   return (
     <form action={onSubmit} className="space-y-5 max-w-2xl">
+      <p className="text-sm font-medium">{t('legacyTitle')}</p>
+      {showAudio ? (
       <FileField
         label={t('audio')}
         name="audio_drive_url"
@@ -35,6 +41,8 @@ export function FilesTab({ reel }: Props) {
         currentLink={reel.audio_drive_url}
         openLabel={t('openLink')}
       />
+      ) : null}
+      {showVideo ? (
       <FileField
         label={t('video')}
         name="video_drive_url"
@@ -43,6 +51,7 @@ export function FilesTab({ reel }: Props) {
         currentLink={reel.video_drive_url}
         openLabel={t('openLink')}
       />
+      ) : null}
       <Button type="submit" disabled={pending}>
         {pending ? tCommon('saving') : t('save')}
       </Button>

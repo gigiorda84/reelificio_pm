@@ -18,6 +18,8 @@ const EXTERNAL_PATHS = [
   /^\/reels\/[^/]+$/,
   /^\/settings(\/|$)/,
   /^\/auth\//,
+  // The approved audio of their reels (RLS on reel_files decides).
+  /^\/api\/media\/[^/]+$/,
 ];
 
 export async function updateSession(request: NextRequest) {

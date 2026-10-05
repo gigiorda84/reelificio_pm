@@ -104,13 +104,17 @@ export async function updateReelFiles(
   });
   if (!parsed.success) return { ok: false, error: 'invalid_input' };
 
+  // Only the fields on the form: since Drive (S5) a field is hidden once an
+  // approved file of its kind exists, and must not be cleared.
+  const update: Record<string, string | null> = {};
+  if (formData.has('audio_drive_url')) update.audio_drive_url = parsed.data.audio_drive_url ?? null;
+  if (formData.has('video_drive_url')) update.video_drive_url = parsed.data.video_drive_url ?? null;
+  if (Object.keys(update).length === 0) return { ok: true };
+
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from('reels')
-    .update({
-      audio_drive_url: parsed.data.audio_drive_url ?? null,
-      video_drive_url: parsed.data.video_drive_url ?? null,
-    })
+    .update(update)
     .eq('id', id)
     .select('id');
   // 42501: the script lock (from revisione on) or a column users may not write.

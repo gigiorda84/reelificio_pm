@@ -74,6 +74,7 @@ export function formatStandup(args: { snapshot: StandupSnapshot; dayLabel: strin
         backlog: s.health?.oldest_job_minutes ?? 0,
         dead: s.health?.dead_letters_24h ?? 0,
         violations: s.health?.violations ?? 0,
+        kits: s.health?.kit_waiting ?? 0,
       })).join(' · '))}`
     : null;
 

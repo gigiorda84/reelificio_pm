@@ -49,8 +49,11 @@ export function ApprovalCard({ item }: { item: ApprovalItem }) {
     ['CHIUSURA', item.reel.chiusura],
     ['CTA', item.reel.cta],
   ].filter(([, text]) => !!text) as [string, string][];
-  const media = item.kind === 'audio_approval' ? item.reel.audio_drive_url
-    : item.kind === 'final_approval' ? item.reel.video_drive_url : null;
+  // A file on Drive wins over the R1 link; audio plays here (no Google login).
+  const media = item.delivered_file?.web_view_link
+    ?? (item.kind === 'audio_approval' ? item.reel.audio_drive_url
+      : item.kind === 'final_approval' ? item.reel.video_drive_url : null);
+  const audioFileId = item.kind === 'audio_approval' ? item.delivered_file?.id ?? null : null;
 
   return (
     <article className="space-y-3 rounded-xl border bg-background p-4">
@@ -93,6 +96,9 @@ export function ApprovalCard({ item }: { item: ApprovalItem }) {
         </div>
       ) : null}
 
+      {audioFileId ? (
+        <audio controls preload="metadata" src={`/api/media/${audioFileId}`} className="w-full" />
+      ) : null}
       {media ? (
         <a href={media} target="_blank" rel="noreferrer"
           className="inline-flex items-center gap-1.5 text-sm underline">

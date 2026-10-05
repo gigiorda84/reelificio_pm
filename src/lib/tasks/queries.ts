@@ -10,6 +10,9 @@ export type OpenTask = {
   attempt: number;
   origin: 'app' | 'migration';
   escalation_paused: boolean;
+  // Created with Drive on: deliveries need an uploaded file, an animation
+  // waits for the kit.
+  requires_drive: boolean;
   started_at: string | null;
   yellow_at: string | null;
   due_at: string | null;
@@ -30,7 +33,7 @@ export async function getOpenTask(reelId: string): Promise<OpenTask | null> {
   const { data: task, error } = await supabase
     .from('tasks')
     .select(
-      'id, kind, status, assignee_id, attempt, origin, escalation_paused, started_at, yellow_at, due_at, escalate_at, previous_task_id',
+      'id, kind, status, assignee_id, attempt, origin, escalation_paused, requires_drive, started_at, yellow_at, due_at, escalate_at, previous_task_id',
     )
     .eq('reel_id', reelId)
     .in('status', OPEN_STATUSES as TaskStatus[])
@@ -175,6 +178,9 @@ export type ApprovalItem = TaskListItem & {
   };
   previous_note: string | null;
   pending_proposals: number;
+  // The delivered file on Drive (S5): newest audio for an audio approval,
+  // newest video for a final approval. Absent for R1 link deliveries.
+  delivered_file: { id: string; web_view_link: string | null } | null;
 };
 
 export async function countMyApprovals(): Promise<number> {
@@ -207,12 +213,24 @@ export async function listMyApprovals(): Promise<ApprovalItem[]> {
   const typed = (rows ?? []) as unknown as Row[];
   const previousIds = typed.map((r) => r.previous_task_id).filter((x): x is string => !!x);
   const reelIds = typed.map((r) => r.reels.id);
-  const [{ data: previous }, { data: proposals }] = await Promise.all([
+  const [{ data: previous }, { data: proposals }, { data: files }] = await Promise.all([
     previousIds.length
       ? supabase.from('tasks').select('id, decision_note').in('id', previousIds)
       : Promise.resolve({ data: [] as { id: string; decision_note: string | null }[] }),
     supabase.from('text_change_proposals').select('reel_id').in('reel_id', reelIds).eq('status', 'pending'),
+    supabase
+      .from('reel_files')
+      .select('id, reel_id, kind, version, web_view_link')
+      .in('reel_id', reelIds)
+      .eq('status', 'ready')
+      .in('kind', ['audio', 'video'])
+      .order('version', { ascending: false }),
   ]);
+  const newest = new Map<string, { id: string; web_view_link: string | null }>();
+  for (const f of files ?? []) {
+    const key = `${f.reel_id}:${f.kind}`;
+    if (!newest.has(key)) newest.set(key, { id: f.id, web_view_link: f.web_view_link });
+  }
   const notes = new Map((previous ?? []).map((p) => [p.id, p.decision_note]));
   const pending = new Map<string, number>();
   for (const p of proposals ?? []) pending.set(p.reel_id, (pending.get(p.reel_id) ?? 0) + 1);
@@ -226,6 +244,8 @@ export async function listMyApprovals(): Promise<ApprovalItem[]> {
         reel: { ...reel, page_name: pages?.name ?? null },
         previous_note: previous_task_id ? (notes.get(previous_task_id) ?? null) : null,
         pending_proposals: pending.get(reels.id) ?? 0,
+        delivered_file:
+          newest.get(`${reels.id}:${task.kind === 'audio_approval' ? 'audio' : 'video'}`) ?? null,
       } as ApprovalItem;
     }),
   );

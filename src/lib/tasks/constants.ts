@@ -1,6 +1,7 @@
 // Mirror of the task enums and return codes in
-// supabase/migrations/20261002141707_fase1_core.sql and
-// 20261002145906_fase1_task_engine.sql. Labels live in it.json under `tasks.*`.
+// supabase/migrations/20261002141707_fase1_core.sql,
+// 20261002145906_fase1_task_engine.sql and 20261005122608_fase1_drive.sql.
+// Labels live in it.json under `tasks.*`.
 
 export const TASK_KINDS = [
   'writing',
@@ -52,6 +53,9 @@ export const TASK_CODES = [
   'dod_incomplete',
   'script_missing',
   'proposal_stale',
+  // Drive (20261005122608_fase1_drive.sql)
+  'kit_not_ready',
+  'drive_disabled',
 ] as const;
 export type TaskErrorCode = (typeof TASK_CODES)[number];
 

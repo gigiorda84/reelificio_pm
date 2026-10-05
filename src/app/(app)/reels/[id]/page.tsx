@@ -11,6 +11,8 @@ import { getViewer } from '@/lib/auth/viewer';
 import { listInvitesForReel } from '@/lib/invites/queries';
 import { listDodForReel } from '@/lib/dod/queries';
 import { getOpenTask, getTaskPeople, listAssignableProfiles, listProposals } from '@/lib/tasks/queries';
+import { listReelFiles, newestOf } from '@/lib/drive/queries';
+import { folderUrl } from '@/lib/drive/naming';
 import { REEL_STATES } from '@/lib/reels/constants';
 import { ScriptTab } from './script-tab';
 import { ScriptReadOnly } from './script-read-only';
@@ -18,7 +20,8 @@ import { Proposals } from './proposals';
 import { VoiceTab } from './voice-tab';
 import { FilesTab } from './files-tab';
 import { PublishTab } from './publish-tab';
-import { TaskPanel } from './task-panel';
+import { TaskPanel, type TaskDrive } from './task-panel';
+import { DriveFiles } from './drive-files';
 import { InvitePanel } from './invite-panel';
 import { DoDChecklist } from './dod-checklist';
 import { formatRome } from '@/lib/dates';
@@ -35,7 +38,7 @@ export default async function ReelDetailPage({
   const reel = await getReelDetail(id);
   if (!reel) notFound();
 
-  const [tDetail, tTabs, tPhase, tFmt, tCat, tState, tFiles, openTask, people, raci, admin, me, proposals] =
+  const [tDetail, tTabs, tPhase, tFmt, tCat, tState, tFiles, openTask, people, raci, admin, me, proposals, files] =
     await Promise.all([
       getTranslations('reels.detail'),
       getTranslations('reels.tabs'),
@@ -50,6 +53,7 @@ export default async function ReelDetailPage({
       getAdminStatus(),
       getViewer(),
       listProposals(id),
+      listReelFiles(id),
     ]);
   // Externals see the script, the voice brief, the delivered files, the
   // comments and their task; not RACI, DoD, invites or the batch.
@@ -83,6 +87,28 @@ export default async function ReelDetailPage({
       (openTask?.kind === 'scheduling' && openTask.assignee_id === uid),
   };
   const linkedTaskClosed = !!linkedTaskId && linkedTaskId !== openTask?.id;
+
+  // Drive (S5). The folder link goes to internals (members of the Shared
+  // Drive) and to whoever holds the dubbing or animation in progress (the
+  // job shares the folder with them); anyone else would get "access denied".
+  const isWorkHolder =
+    !!openTask && openTask.status === 'in_progress' && ['dubbing', 'animation'].includes(openTask.kind) &&
+    openTask.assignee_id === uid;
+  const workKind = openTask?.kind === 'dubbing' ? 'audio' : openTask?.kind === 'animation' ? 'video' : null;
+  const decidedKind = openTask?.kind === 'audio_approval' ? 'audio' : openTask?.kind === 'final_approval' ? 'video' : null;
+  const decidedFile = decidedKind ? newestOf(files, decidedKind) : null;
+  const legacyLink = decidedKind === 'audio' ? reel.audio_drive_url : decidedKind === 'video' ? reel.video_drive_url : null;
+  const drive: TaskDrive = {
+    uploadEnabled: !!openTask && (openTask.requires_drive || !!reel.drive_folder_id),
+    folderUrl: reel.drive_folder_id && (!isExternal || isWorkHolder) ? folderUrl(reel.drive_folder_id) : null,
+    kitReady: !!reel.kit_ready_at,
+    taskFile: openTask && workKind ? newestOf(files, workKind, openTask.id) : null,
+    delivered: decidedKind
+      ? { fileId: decidedFile?.id ?? null, kind: decidedKind, link: decidedFile?.web_view_link ?? legacyLink }
+      : null,
+  };
+  // The R1 links stay visible until an approved file of the same kind exists.
+  const approved = (kind: 'audio' | 'video') => files.some((f) => f.kind === kind && f.approved_at);
 
   // From revisione on the script is locked except for admins; whoever works
   // on the reel proposes changes (SQL: open task, RACI on the page, admin).
@@ -180,6 +206,7 @@ export default async function ReelDetailPage({
           linkedTaskClosed={linkedTaskClosed}
           viewer={viewer}
           assignable={assignable}
+          drive={drive}
         />
       </header>
 
@@ -208,17 +235,18 @@ export default async function ReelDetailPage({
         <TabsContent value="voice" className="pt-4">
           <VoiceTab pageId={reel.page_id} />
         </TabsContent>
-        <TabsContent value="files" className="pt-4">
+        <TabsContent value="files" className="space-y-6 pt-4">
+          <DriveFiles files={files} folderUrl={drive.folderUrl} />
           {isExternal ? (
             <DeliveredFiles
               links={[
-                [tFiles('audio'), reel.audio_drive_url],
-                [tFiles('video'), reel.video_drive_url],
+                [tFiles('audio'), approved('audio') ? null : reel.audio_drive_url],
+                [tFiles('video'), approved('video') ? null : reel.video_drive_url],
               ]}
-              empty={tFiles('noneDelivered')}
+              empty={files.length ? null : tFiles('noneDelivered')}
             />
           ) : (
-            <FilesTab reel={reel} />
+            <FilesTab reel={reel} showAudio={!approved('audio')} showVideo={!approved('video')} />
           )}
         </TabsContent>
         {isExternal ? null : (
@@ -242,9 +270,9 @@ export default async function ReelDetailPage({
 
 // What the previous step delivered (the approved audio for the animator),
 // read-only: externals cannot write the reel.
-function DeliveredFiles({ links, empty }: { links: [string, string | null][]; empty: string }) {
+function DeliveredFiles({ links, empty }: { links: [string, string | null][]; empty: string | null }) {
   const present = links.filter((l): l is [string, string] => !!l[1]);
-  if (present.length === 0) return <p className="text-sm text-muted-foreground">{empty}</p>;
+  if (present.length === 0) return empty ? <p className="text-sm text-muted-foreground">{empty}</p> : null;
   return (
     <ul className="max-w-2xl space-y-2 text-sm">
       {present.map(([label, url]) => (
