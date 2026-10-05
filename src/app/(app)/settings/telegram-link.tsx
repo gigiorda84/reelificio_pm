@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Check, Copy, Unlink } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { createTelegramLinkToken, unlinkTelegram } from '@/lib/profiles/actions';
+import { formatRome } from '@/lib/dates';
 
 type Props = {
   linked: boolean;
@@ -81,7 +82,7 @@ export function TelegramLink({ linked, botUsername }: Props) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        {t('expires', { time: new Date(link.expiresAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) })}
+        {t('expires', { time: formatRome(link.expiresAt, { hour: '2-digit', minute: '2-digit' }) })}
       </p>
       {botUrl ? (
         <a href={botUrl} target="_blank" rel="noreferrer" className={buttonVariants()}>
