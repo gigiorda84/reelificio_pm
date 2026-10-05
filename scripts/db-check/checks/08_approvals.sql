@@ -1,4 +1,5 @@
--- Approvers (AC11): the default group's approver gets approvals; when away
+-- Approvers (AC11) and production configuration (S3).
+-- The default group's approver gets approvals; when away
 -- (absent_until, set by an admin) new ones go to the delegate and
 -- set_absence moves the open ones; the delegate decides even while the
 -- approver is present; a page in group B uses B's approver with no code
@@ -106,6 +107,70 @@ do $$ declare g uuid; begin
            and kind = 'review' and status = 'in_progress'),
        'send_back', null, null, 'app') <> 'ok' then
     raise exception 'FAIL: group B approver could not decide';
+  end if;
+end $$;
+
+-- Approval queue: the approver sees the page's approvals, Express first;
+-- the delegate too; others nothing.
+update profiles set absent_until = null;
+update pages set approval_group_id = null where id = '10000000-0000-0000-0000-000000000001';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+do $$ begin
+  if (select count(*) from public.approval_queue()) <> 0 then raise exception 'FAIL: member has approvals'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000071', false);
+do $$ declare n int; begin
+  select count(*) into n from public.approval_queue();
+  if n < 1 then raise exception 'FAIL: delegate sees no approvals'; end if;
+end $$;
+reset role;
+update reels set track = 'express' where id = '30000000-0000-0000-0000-000000000002';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+do $$ begin
+  if not (select express from public.approval_queue() limit 1) then
+    raise exception 'FAIL: Express not first in the queue';
+  end if;
+end $$;
+reset role;
+
+-- Configuration from the UI: admins only.
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+do $$ begin
+  if public.set_sla_policy('10000000-0000-0000-0000-000000000001', 'batch', 'dubbing', 600) <> 'not_authorized'
+     or public.set_approval_group((select id from approval_groups where is_default),
+          '00000000-0000-0000-0000-00000000000d', null) <> 'not_authorized' then
+    raise exception 'FAIL: a non-admin changed the configuration';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+do $$ declare g uuid := (select id from approval_groups where is_default); begin
+  if public.set_sla_policy('10000000-0000-0000-0000-000000000001', 'batch', 'dubbing', 600) <> 'ok'
+     or public.set_sla_policy('10000000-0000-0000-0000-000000000001', 'batch', 'dubbing', 720) <> 'ok' then
+    raise exception 'FAIL: admin could not set a page SLA';
+  end if;
+  if public.set_sla_policy(null, 'batch', 'dubbing', null) <> 'invalid_input'
+     or public.set_sla_policy('10000000-0000-0000-0000-000000000001', 'batch', 'dubbing', 0) <> 'invalid_input' then
+    raise exception 'FAIL: bad SLA input accepted';
+  end if;
+  if public.set_approval_group(g, '00000000-0000-0000-0000-00000000000e', null) <> 'invalid_assignee'
+     or public.set_approval_group(g, '00000000-0000-0000-0000-00000000000d', '00000000-0000-0000-0000-00000000000d') <> 'invalid_input' then
+    raise exception 'FAIL: bad approvers accepted';
+  end if;
+  if public.set_approval_group(g, '00000000-0000-0000-0000-00000000000d', '00000000-0000-0000-0000-000000000071') <> 'ok' then
+    raise exception 'FAIL: admin could not set the approvers';
+  end if;
+end $$;
+reset role;
+do $$ begin
+  if private.sla_minutes('10000000-0000-0000-0000-000000000001', 'batch', 'dubbing') <> 720 then
+    raise exception 'FAIL: page SLA override not used';
+  end if;
+  perform private.set_sla_policy('00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', 'batch', 'dubbing', null);
+  if private.sla_minutes('10000000-0000-0000-0000-000000000001', 'batch', 'dubbing') <> 2880 then
+    raise exception 'FAIL: removing the override did not restore the default';
   end if;
 end $$;
 

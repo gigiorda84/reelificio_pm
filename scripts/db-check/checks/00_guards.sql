@@ -18,7 +18,9 @@ declare
     'offboard_collaborator',
     -- Fase 1 (S2): task engine
     'task_action', 'start_writing', 'assign_task', 'confirm_migrated_tasks', 'set_reel_track',
-    'set_absence', 'schedule_reel', 'publish_reel', 'propose_text_change', 'decide_text_proposal'
+    'set_absence', 'schedule_reel', 'publish_reel', 'propose_text_change', 'decide_text_proposal',
+    -- Fase 1 (S3): configuration
+    'set_sla_policy', 'set_approval_group', 'approval_queue', 'task_previous_note'
   ];
   v_bad text;
 begin

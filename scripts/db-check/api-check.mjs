@@ -49,29 +49,52 @@ function check(name, ok, detail) {
   }
 }
 
-// Kanban column query (src/lib/pipeline/queries.ts).
+const OPEN = ['unassigned', 'assigned', 'in_progress'];
+
+// Kanban column query (src/lib/pipeline/queries.ts): macro-phase columns,
+// the open task embedded for the semaforo (closed ones filtered out of the
+// embed, not out of the column), Express first.
 {
-  await service.from('phase_advance_requests').insert({
-    reel_id: REEL1, from_phase: 'script_writing', to_phase: 'dubbing', requested_by: MEMBER, status: 'pending',
-  });
+  const now = Date.now();
+  const iso = (ms) => new Date(now + ms).toISOString();
+  const closed = await service.from('tasks').insert({
+    reel_id: REEL1, kind: 'writing', status: 'delivered', assignee_id: MEMBER,
+    started_at: iso(-7200_000), closed_at: iso(-3600_000),
+  }).select('id').single();
+  const open = await service.from('tasks').insert({
+    reel_id: REEL1, kind: 'writing', status: 'in_progress', assignee_id: MEMBER,
+    started_at: iso(-3600_000), yellow_at: iso(3600_000), due_at: iso(7200_000), escalate_at: iso(10800_000),
+  }).select('id').single();
+  check('fixture tasks for the kanban', !closed.error && !open.error, closed.error ?? open.error);
   const column = (phase) =>
     user(MEMBER)
       .from('reels')
       .select(
-        'id, code, phase, pages(name, code_prefix), batches(label), phase_advance_requests(id)',
+        'id, code, phase, state, track, pages(name, code_prefix), batches(label), tasks(kind, status, started_at, yellow_at, due_at, escalate_at)',
         { count: 'exact' },
       )
       .eq('phase', phase)
       .is('published_at', null)
-      .eq('phase_advance_requests.status', 'pending')
+      .in('tasks.status', OPEN)
+      .order('track', { ascending: false })
       .order('phase_entered_at', { ascending: true })
       .limit(100);
   const { data, count, error } = await column('script_writing');
   check('kanban column loads', !error && data?.length === 1 && count === 1, error ?? data);
   check('kanban embeds page and batch', data?.[0]?.pages?.code_prefix === 'PP' && data?.[0]?.batches?.label === 'Batch Ottobre', data?.[0]);
-  check('kanban flags pending request', data?.[0]?.phase_advance_requests?.length === 1, data?.[0]);
+  check('kanban embeds only the open task', data?.[0]?.tasks?.length === 1 && data[0].tasks[0].status === 'in_progress', data?.[0]);
   const editing = await column('editing');
-  check('non-pending reel has no flag', editing.data?.[0]?.phase_advance_requests?.length === 0, editing.data?.[0]);
+  check('reel without open task has an empty embed', editing.data?.length === 1 && editing.data[0].tasks?.length === 0, editing.error ?? editing.data);
+
+  // /compiti: my open tasks with the reel and its page.
+  const mine = await user(MEMBER)
+    .from('tasks')
+    .select('id, kind, status, due_at, reels(id, code, title, track, pages(name))')
+    .eq('assignee_id', MEMBER)
+    .in('status', OPEN);
+  check('my open tasks with reel and page', mine.data?.length === 1 && mine.data[0].reels?.pages?.name === 'Porcino & Papaya', mine.error ?? mine.data);
+
+  await service.from('tasks').update({ status: 'cancelled', closed_at: new Date().toISOString() }).eq('id', open.data.id);
 }
 
 // Aggregates (dashboard, batch list, alert rules).
@@ -140,6 +163,23 @@ function check(name, ok, detail) {
   check('reconcile denied to users', reconcile.error?.code === '42501', reconcile.error ?? reconcile.data);
 }
 
+// Configuration (S3): the approval queue for the nav badge, SLA and
+// approvers through functions, the reel's approver for the service role.
+{
+  const queue = await user(APPROVER).rpc('approval_queue');
+  check('approval_queue callable', !queue.error && Array.isArray(queue.data), queue.error ?? queue.data);
+  const sla = await user(MEMBER).rpc('set_sla_policy', { p_page_id: null, p_track: 'batch', p_step: 'dubbing', p_minutes: 60 });
+  check('member cannot change an SLA', sla.data === 'not_authorized', sla.error ?? sla.data);
+  const slaRows = await user(MEMBER).from('sla_policies').select('id').is('page_id', null);
+  check('internals read the SLA table', slaRows.data?.length === 20, slaRows.error ?? slaRows.data?.length);
+  const direct = await user(ADMIN).from('sla_policies').update({ minutes: 1 }).eq('track', 'batch').select('id');
+  check('SLA table not writable directly', direct.error?.code === '42501', direct.error ?? direct.data);
+  const approverUser = await user(ADMIN).rpc('reel_approver', { p_reel_id: REEL1 });
+  check('reel_approver denied to users', approverUser.error?.code === '42501', approverUser.error ?? approverUser.data);
+  const approverService = await service.rpc('reel_approver', { p_reel_id: REEL1 });
+  check('reel_approver for the service role', !approverService.error, approverService.error);
+}
+
 // External collaborator (Fase 1): sees only the reel with their task (reel 2,
 // in animation; reel 1 already has its open task).
 {
@@ -182,6 +222,51 @@ function check(name, ok, detail) {
     target_type: 'reel', target_id: REEL2, author_id: EXTERNAL, body: 'x', internal_only: true,
   });
   check('external cannot write internal-only', secret.error?.code === '42501', secret.error);
+
+  // The views of S3: /compiti with the reel embedded, the thread without
+  // internal notes, names only of people on the reel, proposals.
+  const tasks = await ext.from('tasks').select('id, kind, reels(id, code, track, pages(name))').in('status', OPEN);
+  check('external /compiti with the reel', tasks.data?.length === 1 && tasks.data[0].reels?.id === REEL2, tasks.error ?? tasks.data);
+  await user(MEMBER).from('comments').insert({
+    target_type: 'reel', target_id: REEL2, author_id: MEMBER, body: 'Solo per noi', internal_only: true,
+  });
+  const thread = await ext.from('comments').select('id, body, internal_only').eq('target_id', REEL2);
+  check('external thread hides internal notes', thread.data?.length === 1 && thread.data[0].body === 'Consegnato', thread.error ?? thread.data);
+  const hidden = await ext.rpc('profile_names', { p_ids: [MEMBER] });
+  check('an internal note does not reveal its author', hidden.data?.length === 0, hidden.error ?? hidden.data);
+  await user(MEMBER).from('comments').insert({ target_type: 'reel', target_id: REEL2, author_id: MEMBER, body: 'Ok' });
+  const named = await ext.rpc('profile_names', { p_ids: [MEMBER] });
+  check('a visible comment makes its author mentionable', named.data?.length === 1 && !('email' in named.data[0]), named.error ?? named.data);
+  const moved = await ext.from('comments').update({ body: 'x', internal_only: true }).eq('id', comment.data[0].id).select('id');
+  check('external cannot turn a comment internal', !!moved.error || moved.data?.length === 0, moved.error ?? moved.data);
+
+  await service.from('reels').update({ state: 'animazione', hook: 'Hook' }).eq('id', REEL2);
+  const proposal = await ext.rpc('propose_text_change', { p_reel_id: REEL2, p_field: 'hook', p_text: 'Hook nuovo' });
+  check('external proposes a change', proposal.data === 'ok', proposal.error ?? proposal.data);
+  const own = await ext.from('text_change_proposals').select('id, status, original_text, proposed_text').eq('reel_id', REEL2);
+  check('external reads their proposal', own.data?.length === 1 && own.data[0].original_text === 'Hook', own.error ?? own.data);
+  const decide = await ext.rpc('decide_text_proposal', { p_proposal_id: own.data?.[0]?.id, p_decision: 'accepted' });
+  check('external cannot decide a proposal', decide.data === 'not_authorized', decide.error ?? decide.data);
+  const queue = await ext.rpc('approval_queue');
+  check('external approval queue is empty', !queue.error && queue.data?.length === 0, queue.error ?? queue.data);
+
+  // The send-back note of the approver's task reaches the external through
+  // task_previous_note (they cannot read that task); nobody else's note does.
+  const { data: back } = await service.from('tasks').insert({
+    reel_id: REEL2, kind: 'final_approval', status: 'sent_back', assignee_id: APPROVER,
+    decision_note: 'Sottotitoli fuori sincrono', closed_at: new Date().toISOString(),
+  }).select('id').single();
+  const { data: mineTask } = await service.from('tasks').select('id')
+    .eq('reel_id', REEL2).eq('assignee_id', EXTERNAL).in('status', OPEN).single();
+  await service.from('tasks').update({ previous_task_id: back.id }).eq('id', mineTask.id);
+  const direct = await ext.from('tasks').select('decision_note').eq('id', back.id);
+  check('external cannot read the approver task', !direct.error && direct.data?.length === 0, direct.error ?? direct.data);
+  const note = await ext.rpc('task_previous_note', { p_task_id: mineTask.id });
+  check('external reads the send-back note of their task', note.data === 'Sottotitoli fuori sincrono', note.error ?? note.data);
+  const other = await user(OUTSIDER).rpc('task_previous_note', { p_task_id: mineTask.id });
+  check('task_previous_note: internals read it too', other.data === 'Sottotitoli fuori sincrono', other.error ?? other.data);
+  const notMine = await ext.rpc('task_previous_note', { p_task_id: back.id });
+  check('task_previous_note gives nothing on others\' tasks', notMine.data === null, notMine.error ?? notMine.data);
 }
 
 proxy.close();
