@@ -26,13 +26,19 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   if (!resend) return { ok: false, error: 'resend_not_configured' };
 
   const from = process.env.EMAIL_FROM || 'Reelificio <noreply@alphatechnology.ai>';
-  const { data, error } = await resend.emails.send({
-    from,
-    to: input.to,
-    subject: input.subject,
-    html: input.html,
-    text: input.text,
+  // Bounded wait, so a slow Resend cannot hold a drain past its deadline.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<SendEmailResult>((resolve) => {
+    timer = setTimeout(() => resolve({ ok: false, error: 'email_timeout' }), 10_000);
   });
-  if (error) return { ok: false, error: error.message ?? 'unknown' };
-  return { ok: true, id: data?.id ?? '' };
+  const send = resend.emails
+    .send({ from, to: input.to, subject: input.subject, html: input.html, text: input.text })
+    .then(({ data, error }): SendEmailResult =>
+      error ? { ok: false, error: error.message ?? 'unknown' } : { ok: true, id: data?.id ?? '' },
+    );
+  try {
+    return await Promise.race([send, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
 }

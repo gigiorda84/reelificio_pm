@@ -1,33 +1,23 @@
-import 'server-only';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 
-const SEPARATOR = '.';
+// Telegram account linking (docs/fase1-plan.md D4): an opaque one-time token
+// of 32 characters [A-Za-z0-9_-] (valid in a t.me/<bot>?start= deep link),
+// stored only as its sha256 in telegram_link_tokens, valid 15 minutes.
+// public.link_telegram() consumes it.
 
-function getSecret(): string {
-  const s = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (!s) throw new Error('TELEGRAM_WEBHOOK_SECRET missing');
-  return s;
+export const LINK_TOKEN_TTL_MS = 15 * 60 * 1000;
+
+const TOKEN = /^[A-Za-z0-9_-]{32}$/;
+
+export function hashLinkToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }
 
-function sign(payload: string): string {
-  return createHmac('sha256', getSecret())
-    .update(payload)
-    .digest('base64url')
-    .slice(0, 24);
+export function newLinkToken(): { token: string; hash: string } {
+  const token = randomBytes(24).toString('base64url');
+  return { token, hash: hashLinkToken(token) };
 }
 
-// HMAC-signed link token: `<userId>.<sig>`. Stateless — no DB column needed.
-export function buildTelegramLinkToken(userId: string): string {
-  return `${userId}${SEPARATOR}${sign(userId)}`;
-}
-
-export function verifyTelegramLinkToken(token: string): string | null {
-  const [userId, sig] = token.split(SEPARATOR);
-  if (!userId || !sig) return null;
-  const expected = sign(userId);
-  if (sig.length !== expected.length) return null;
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return null;
-  return timingSafeEqual(a, b) ? userId : null;
+export function isLinkToken(value: string): boolean {
+  return TOKEN.test(value);
 }

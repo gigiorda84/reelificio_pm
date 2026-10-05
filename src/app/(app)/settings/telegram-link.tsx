@@ -4,25 +4,34 @@ import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Check, Copy, Unlink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { unlinkTelegram } from '@/lib/profiles/actions';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { createTelegramLinkToken, unlinkTelegram } from '@/lib/profiles/actions';
 
 type Props = {
   linked: boolean;
-  linkToken: string;
   botUsername: string;
 };
 
-export function TelegramLink({ linked, linkToken, botUsername }: Props) {
+// Linking: a one-time token (15 minutes) generated on request, opened with
+// the bot's deep link or sent as /link <token>.
+export function TelegramLink({ linked, botUsername }: Props) {
   const t = useTranslations('settings.telegram');
   const tCommon = useTranslations('common');
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [link, setLink] = useState<{ token: string; expiresAt: string } | null>(null);
 
-  const command = `/link ${linkToken}`;
-  const botUrl = botUsername
-    ? `https://t.me/${botUsername.replace(/^@/, '')}?start=${linkToken}`
-    : null;
+  const bot = botUsername.replace(/^@/, '');
+  const command = link ? `/link ${link.token}` : '';
+  const botUrl = link && bot ? `https://t.me/${bot}?start=${link.token}` : null;
+
+  const generate = () => {
+    startTransition(async () => {
+      const result = await createTelegramLinkToken();
+      if (result.ok) setLink({ token: result.token, expiresAt: result.expiresAt });
+      else toast.error(result.message ?? tCommon('error'));
+    });
+  };
 
   const copy = async () => {
     try {
@@ -58,46 +67,40 @@ export function TelegramLink({ linked, linkToken, botUsername }: Props) {
     );
   }
 
+  if (!link) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">{t('description')}</p>
+        <Button onClick={generate} disabled={pending}>
+          {t('generate')}
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">{t('description')}</p>
-      <ol className="text-sm space-y-2 list-decimal list-inside">
-        <li>
-          {botUrl ? (
-            <>
-              {t('step1Bot')}{' '}
-              <a
-                href={botUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="underline hover:text-foreground"
-              >
-                @{botUsername.replace(/^@/, '')}
-              </a>
-              .
-            </>
-          ) : (
-            t('step1NoBot')
-          )}
-        </li>
-        <li>
-          {t('step2')}
-          <div className="mt-1.5 flex items-center gap-2">
-            <code className="flex-1 rounded-md border bg-muted px-3 py-1.5 text-xs font-mono break-all">
-              {command}
-            </code>
-            <Button variant="outline" size="sm" onClick={copy}>
-              {copied ? (
-                <Check className="size-3.5 mr-1.5" aria-hidden />
-              ) : (
-                <Copy className="size-3.5 mr-1.5" aria-hidden />
-              )}
-              {copied ? t('copied') : t('copy')}
-            </Button>
-          </div>
-        </li>
-        <li>{t('step3')}</li>
-      </ol>
+      <p className="text-sm text-muted-foreground">
+        {t('expires', { time: new Date(link.expiresAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) })}
+      </p>
+      {botUrl ? (
+        <a href={botUrl} target="_blank" rel="noreferrer" className={buttonVariants()}>
+          {t('openBot', { bot })}
+        </a>
+      ) : (
+        <p className="text-sm">{t('step1NoBot')}</p>
+      )}
+      <div className="space-y-1.5 text-sm">
+        <p className="text-muted-foreground">{t('orSend')}</p>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 rounded-md border bg-muted px-3 py-1.5 text-xs font-mono break-all">{command}</code>
+          <Button variant="outline" size="sm" onClick={copy}>
+            {copied ? <Check className="size-3.5 mr-1.5" aria-hidden /> : <Copy className="size-3.5 mr-1.5" aria-hidden />}
+            {copied ? t('copied') : t('copy')}
+          </Button>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">{t('step3')}</p>
     </div>
   );
 }

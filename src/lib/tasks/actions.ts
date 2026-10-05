@@ -1,7 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { z } from 'zod';
+import { drainOutbox } from '@/lib/jobs/drain';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { toTaskError, type TaskErrorCode, type TaskOp } from './constants';
@@ -27,6 +29,9 @@ async function rpc(fn: string, args: Record<string, unknown>, paths: string[]): 
   }
   if (data !== 'ok') return { ok: false, error: toTaskError(data) };
   for (const p of paths) revalidatePath(p);
+  // The notifications the operation queued go out after the response, within
+  // the action's own time limit (the cron drains whatever is left).
+  after(() => drainOutbox({ limit: 10, deadlineMs: 8_000 }).then(() => undefined));
   return { ok: true };
 }
 

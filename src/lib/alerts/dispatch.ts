@@ -18,7 +18,8 @@ async function getAdminRecipients(): Promise<string[]> {
   const { data } = await supabase
     .from('profiles')
     .select('id')
-    .eq('is_admin', true);
+    .eq('is_admin', true)
+    .is('deactivated_at', null);
   return (data ?? []).map((r) => r.id);
 }
 
@@ -47,6 +48,23 @@ function buildBufferMessage(p: AlertProposal) {
   return { subject, text, html };
 }
 
+const HEALTH_LABELS: Record<string, string> = {
+  sweep_stale: 'lo sweep dei compiti non gira',
+  sweep_errors: 'lo sweep non riesce a gestire alcuni reel',
+  job_backlog: 'messaggi fermi in coda',
+  dead_letters: 'messaggi non consegnati',
+  violations: 'reel in uno stato incoerente con i compiti',
+};
+
+function buildJobHealthMessage(p: AlertProposal) {
+  const issues = ((p.payload.issues as string[] | undefined) ?? []).map((i) => HEALTH_LABELS[i] ?? i);
+  const subject = `Salute del sistema — ${issues.join(', ')}`;
+  const detail = `Sweep: ${p.payload.sweep_age_minutes ?? '—'} min fa, reel in errore ${p.payload.sweep_errors ?? 0} · coda: ${p.payload.oldest_job_minutes ?? 0} min · non consegnati (24 h): ${p.payload.dead_letters_24h ?? 0} · incoerenze: ${p.payload.violations ?? 0}`;
+  const text = `${subject}.\n${detail}\nApri Avvisi per registrare la soluzione.`;
+  const html = `<p><strong>${escapeHtml(subject)}</strong></p><p>${escapeHtml(detail)}</p><p>Apri Avvisi per registrare la soluzione.</p>`;
+  return { subject, text, html };
+}
+
 function buildPhaseStuckMessage(p: AlertProposal) {
   const code = String(p.payload.reel_code ?? '');
   const title = String(p.payload.reel_title ?? '');
@@ -67,6 +85,11 @@ export async function dispatchAlertOpened(p: AlertProposal, alertId: string) {
     event = 'buffer_alert';
     recipients = await getAdminRecipients();
     message = buildBufferMessage(p);
+  } else if (p.kind === 'job_health') {
+    // Same switch as the buffer: operational alerts for the admins.
+    event = 'buffer_alert';
+    recipients = await getAdminRecipients();
+    message = buildJobHealthMessage(p);
   } else {
     event = 'phase_stuck_alert';
     const fromRaci = p.page_id && p.phase

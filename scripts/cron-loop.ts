@@ -8,7 +8,7 @@
 //
 // For a protected Vercel Preview set VERCEL_AUTOMATION_BYPASS_SECRET (Project
 // Settings → Deployment Protection → Protection Bypass for Automation).
-// The routes task-sweep and standup arrive in S4; until then they answer 404.
+// standup sends only at 08:30 Rome; add ?force=1 by hand (curl) to send now.
 import { config } from 'dotenv';
 
 config({ path: '.env.local' });

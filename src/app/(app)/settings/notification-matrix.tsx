@@ -6,7 +6,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { saveOwnPrefMatrix } from '@/lib/notifications/prefs-actions';
 import {
-  NOTIFICATION_EVENTS,
+  MATRIX_EVENTS,
+  isTaskEvent,
   type NotificationChannel,
   type NotificationEvent,
 } from '@/lib/notifications/types';
@@ -65,10 +66,11 @@ export function NotificationMatrix({ initial, telegramLinked }: Props) {
             </tr>
           </thead>
           <tbody>
-            {NOTIFICATION_EVENTS.map((event) => (
+            {MATRIX_EVENTS.map((event) => (
               <tr key={event} className="border-t">
                 <td className="px-3 py-2 font-medium whitespace-nowrap">
                   {tEvent(event)}
+                  {isTaskEvent(event) ? <span className="ml-1 text-muted-foreground">*</span> : null}
                 </td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">
                   {t('alwaysOn')}
@@ -92,6 +94,8 @@ export function NotificationMatrix({ initial, telegramLinked }: Props) {
           </tbody>
         </table>
       </div>
+
+      <p className="text-xs text-muted-foreground">{t('taskRule')}</p>
 
       <div className="flex justify-end">
         <Button onClick={save} disabled={pending}>

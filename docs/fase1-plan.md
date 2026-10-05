@@ -531,6 +531,54 @@ Convenzioni valide per tutte le fette:
 **Fatto quando:** su staging (bot di staging + tunnel `cloudflared tunnel --url http://localhost:3000` + `scripts/cron-loop.ts`) un'approvazione da Telegram chiude il compito con `closed_via = 'telegram'` e nessuna email; `scripts/fase1-time-travel.ts` sposta indietro `due_at` → sweep → notifiche attese una sola volta; un processo di drain ucciso a metà non blocca il job oltre il lease; `getWebhookInfo` del bot di staging mostra i tre `allowed_updates`; `fase1-prod-config.sql` e `collaborators.csv` pronti e provati con `rehearse-dump.sh`.
 **Verifica:** `run.sh` (checks 00–09), `pnpm test`, e2e E1 (R1), E3, E5, E9, E10.
 
+**Variazioni in esecuzione (2026-10-05):**
+- **Contract ancora in `supabase/rollback/` (cambia la variazione di S2).** Il contract deve avere un timestamp successivo a ogni migrazione di expand. Le correzioni che emergono dagli e2e prima di R1 sono nuove migrazioni di expand, con timestamp nuovi. Per questo `<ts>_fase1_r1_contract.sql` si crea nella preparazione di R1 (passo 0a), insieme ai tag `fase1-r1-expand` e `fase1-r1`.
+- **Cron non ancora in `vercel.json`.** Con Vercel Hobby un cron sotto il giorno blocca i deploy senza errore (`CLAUDE.md`). Le voci `*/5 * * * *` (`task-sweep`) e `30 6,7 * * *` (`standup`) si aggiungono al passo 6 di R1, dopo l'attivazione di Vercel Pro. Fino ad allora: `scripts/cron-loop.ts`.
+- **Outbox** (`20261005084433_fase1_outbox.sql`):
+  - lease di 2 minuti (non 5), sempre più lungo del `maxDuration` di 60 s;
+  - un job con il lease scaduto al 6° tentativo va in dead letter invece di essere ripreso;
+  - il drain prende i job 10 alla volta e si ferma a 45 s (8 s dentro `after()`);
+  - le chiamate a Telegram ed email hanno un timeout.
+- **Sweep:**
+  - ogni reel gira in una sottotransazione: un reel in errore va in `errors` (e in `job_health`) e gli altri proseguono;
+  - il lock del compito è `skip locked`;
+  - i compiti migrati in pausa non scadono per mancata accettazione: la loro scadenza parte dalla conferma dell'admin;
+  - lo stato `escalation_enabled` è nel report;
+  - il drain del cron gira anche se lo sweep fallisce.
+- **`confirm_migrated_tasks`:** ridefinita nella stessa migrazione con l'ordine dei lock reel → compito. Prima poteva andare in deadlock con lo sweep.
+- **Destinatari dell'escalation:** li calcola la SQL (`recipients` + `admins`).
+- **Handler `notify`:**
+  - ricontrolla che il compito sia ancora aperto e dello stesso assegnatario;
+  - consegna una volta per destinatario e generazione (`notifications.payload.job_key`), prova tutti i destinatari e poi ritenta o manda in dead letter chi è irraggiungibile.
+- **Contenuto dei messaggi (`task-messages.ts`):**
+  - lo script è nel messaggio di chi approva, anche nei promemoria di ritardo;
+  - se il testo è tagliato, Approva non c'è;
+  - la revisione viaggia anche nei pulsanti Rimanda e Annulla;
+  - i pulsanti con URL ci sono solo con un URL pubblico `https://` (Telegram rifiuta localhost), il link resta nel testo.
+- **Telegram:**
+  - il token di collegamento si genera su richiesta in `/settings`; i vecchi token `<uuid>.<firma>` non valgono più (da dire nel rilascio);
+  - `telegram-set-webhook.ts` chiede `--bot <nome>`, verificato con `getMe`, così il webhook del bot di produzione non si sposta per sbaglio.
+- **`/settings`:**
+  - la matrice nasconde `phase_approved` e `phase_stuck_alert`, che non partono più;
+  - gli eventi dei compiti hanno l'asterisco e la regola Telegram/email spiegata sotto.
+- **Avviso `job_health`:** usa l'interruttore di notifica di `buffer_alert`, rinominato "Avvisi operativi (buffer, salute del sistema)".
+- **Stand-up:** `/api/cron/standup?force=1`, sempre con il segreto, lo manda subito (prova manuale). Senza `TELEGRAM_TEAM_CHAT_ID` va per email agli admin.
+- **I12:** `scripts/fase1-prod-smoke.sql` con `mode=create|cleanup`, provato su un Postgres usa e getta.
+
+**Stato (2026-10-05):**
+- Fatto e verde:
+  - migrazione spinta sullo staging;
+  - `run.sh` con i check 00–09, il controllo `skip locked` a due connessioni e `api-check`;
+  - `upgrade.sh`;
+  - 73 test;
+  - typecheck, lint e build;
+  - review indipendente del diff, con 4 correzioni applicate.
+- Provato sullo staging: le route `task-sweep` e `standup` dal server di sviluppo (401 senza segreto; sweep con heartbeat; stand-up fuori orario). Non c'erano compiti aperti, quindi nessun messaggio è partito.
+- Da fare per chiudere S4:
+  - bot di staging (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` in `.env.local`) e tunnel per il webhook;
+  - e2e E1 (R1), E3, E5, E9, E10 con gli utenti di prova;
+  - `fase1-prod-config.sql` e `collaborators.csv` con i dati reali.
+
 ### R1 — Rilascio 1 (prova 5–6 novembre, seconda prova e produzione lunedì 9 novembre) · 1,5 giorni + 2 giorni di stabilizzazione
 
 Procedura in §8 (prova completa su dump il 5–6, congelamento della creazione di account, seconda prova su un dump fresco la mattina del 9, expand, codice, account esterni 6b, webhook 6c, contract, config su una pagina, backfill). Poi due giorni riservati a bug e supporto del primo uso reale con interni ed esterni, prima di iniziare il Drive; a 48 h senza anomalie si estende la rampa degli esterni (D7). Se il checkpoint del 23 ottobre fallisce (§9) le stesse date scorrono di una settimana: R1 lunedì 16 novembre.

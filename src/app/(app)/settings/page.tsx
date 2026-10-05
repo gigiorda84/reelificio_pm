@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { buildTelegramLinkToken } from '@/lib/notifications/telegram-link';
 import { getOwnPrefMatrix } from '@/lib/notifications/prefs';
 import { getViewer } from '@/lib/auth/viewer';
 import { listApprovalGroups } from '@/lib/pages/production';
@@ -31,7 +30,6 @@ export default async function SettingsPage() {
   const profile = profileRes.data;
   const viewer = await getViewer();
   const approvers = viewer?.isAdmin ? await loadApprovers(supabase) : null;
-  const linkToken = buildTelegramLinkToken(user.id);
   const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? '';
 
   return (
@@ -63,7 +61,6 @@ export default async function SettingsPage() {
         <CardContent>
           <TelegramLink
             linked={!!profile?.telegram_chat_id}
-            linkToken={linkToken}
             botUsername={botUsername}
           />
         </CardContent>

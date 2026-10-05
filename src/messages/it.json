@@ -446,7 +446,15 @@
     "hoursInPhase": "{hours}h nella fase",
     "kinds": {
       "bufferLow": "Buffer basso",
-      "phaseStuck": "Fase ferma"
+      "phaseStuck": "Fase ferma",
+      "jobHealth": "Salute sistema"
+    },
+    "health": {
+      "sweep_stale": "lo sweep dei compiti non gira",
+      "job_backlog": "messaggi fermi in coda",
+      "dead_letters": "messaggi non consegnati nelle ultime 24 h",
+      "violations": "reel in uno stato incoerente con i compiti",
+      "sweep_errors": "lo sweep non riesce a gestire alcuni reel"
     }
   },
   "pipeline": {
@@ -519,23 +527,26 @@
       "dailyReminderHint": "Quando ricevere il promemoria per l'aggiornamento giornaliero."
     },
     "telegram": {
-      "description": "Collega Telegram per ricevere le notifiche anche su mobile.",
-      "step1Bot": "Apri il bot",
+      "description": "Collega Telegram: ricevi lì compiti e approvazioni e decidi con un tap.",
       "step1NoBot": "Apri il bot Reelificio PM su Telegram (cerca lo username configurato).",
-      "step2": "Invia questo comando al bot:",
-      "step3": "Riceverai un messaggio di conferma quando l'account è collegato.",
+      "step3": "Il bot ti conferma il collegamento e ti arriva un’email di avviso.",
       "copy": "Copia",
       "copied": "Copiato",
       "linkedDescription": "Account Telegram collegato.",
       "unlink": "Scollega",
       "unlinkConfirm": "Vuoi scollegare l'account Telegram?",
-      "unlinked": "Telegram scollegato."
+      "unlinked": "Telegram scollegato.",
+      "generate": "Collega Telegram",
+      "expires": "Il link vale una sola volta e scade alle {time}.",
+      "openBot": "Apri @{bot} e premi Avvia",
+      "orSend": "Oppure invia questo comando al bot:"
     },
     "matrix": {
       "description": "Per ogni tipo di evento scegli i canali su cui ricevere notifiche.",
       "columnEvent": "Evento",
       "alwaysOn": "Sempre attiva",
-      "telegramNotLinked": "non collegato"
+      "telegramNotLinked": "non collegato",
+      "taskRule": "* Compiti: Telegram è il canale principale. L’email parte solo se Telegram non è collegato, è spento per quell’evento o non riesce a consegnare; mai tutti e due. Di notte (20–8) i messaggi Batch arrivano senza suono, gli Express sempre con suono."
     },
     "channels": {
       "in_app": "In app",
@@ -545,14 +556,17 @@
     },
     "events": {
       "mention": "Menzione in un commento",
-      "assignment": "Assegnazione su un reel",
-      "phase_approval_request": "Richiesta di approvazione fase",
+      "assignment": "Nuovo compito",
+      "phase_approval_request": "Da approvare (script, audio, video)",
       "phase_approved": "Fase approvata",
-      "phase_rejected": "Fase rifiutata",
-      "buffer_alert": "Buffer sotto soglia",
+      "phase_rejected": "Lavoro rimandato",
+      "buffer_alert": "Avvisi operativi (buffer, salute del sistema)",
       "kpi_alert": "Avviso KPI",
       "daily_reminder": "Promemoria giornaliero",
-      "weekly_digest": "Digest settimanale"
+      "weekly_digest": "Digest settimanale",
+      "task_overdue": "Compito in ritardo",
+      "task_escalated": "Ritardo grave di un compito",
+      "text_proposal": "Proposta di modifica al testo"
     },
     "approvers": {
       "approver": "Approvatore",
@@ -782,6 +796,93 @@
       "openAudio": "Ascolta l'audio consegnato",
       "openVideo": "Guarda il video consegnato",
       "pendingProposals": "{count, plural, =1 {1 proposta di modifica da decidere} other {# proposte di modifica da decidere}}"
+    }
+  },
+  "notifications": {
+    "task": {
+      "open": "Apri nell’app",
+      "openApp": "Apri: {link}",
+      "express": "⚡ Express",
+      "due": "Scadenza: {due}",
+      "answerBy": "Rispondi entro {due}",
+      "assignedTo": "Assegnato a: {name}",
+      "nobody": "nessuno",
+      "note": "Nota: {note}",
+      "noteLabel": "Nota:",
+      "rev": "Revisione {rev} del testo",
+      "longScript": "Testo lungo: leggilo e decidi nell’app.",
+      "listen": "🎧 Ascolta l’audio",
+      "watch": "🎬 Guarda il video",
+      "headline": {
+        "assignment": "📝 Nuovo compito: {kind}",
+        "phase_approval_request": "✅ Da approvare: {kind}",
+        "phase_rejected": "↩️ Rimandato: {kind}",
+        "task_overdue": "⏰ In ritardo: {kind}",
+        "task_escalated": "🚨 Ritardo grave: {kind}",
+        "unassigned": "⚠️ Da assegnare: {kind}"
+      },
+      "buttons": {
+        "acc": "Accetto",
+        "dec": "Non posso",
+        "apr": "Approva",
+        "rim": "Rimanda",
+        "rimc": "Conferma rimando",
+        "rimcAnimation": "Conferma: torna all’animazione",
+        "ann": "Annulla"
+      },
+      "writingStarted": "📝 Nuovi compiti di stesura: {batch}",
+      "writingStartedNoAuthor": "⚠️ Stesura avviata senza autore: {batch}",
+      "writingStartedBody": "Li trovi in I miei compiti.",
+      "proposal": {
+        "toApprover": "✏️ Proposta di modifica ({field}) su {code}",
+        "accepted": "✅ Proposta accettata ({field}) su {code}",
+        "rejected": "↩️ Proposta non accettata ({field}) su {code}",
+        "from": "Da: {name}",
+        "original": "Testo attuale",
+        "proposed": "Proposta"
+      }
+    },
+    "telegram": {
+      "help": "Ciao! Per collegare questo account apri Impostazioni nell’app Reelificio e usa «Collega Telegram».",
+      "linked": "✅ Account collegato. Riceverai qui i tuoi compiti e le approvazioni di Reelificio.",
+      "linkInvalid": "❌ Link non valido o scaduto. Generane uno nuovo da Impostazioni nell’app.",
+      "chatTaken": "⚠️ Questo account Telegram è già collegato a un altro profilo Reelificio.",
+      "error": "⚠️ Errore tecnico, riprova più tardi.",
+      "notLinked": "Questo account Telegram non è collegato a Reelificio.",
+      "badButton": "Pulsante non valido.",
+      "linkedEmail": {
+        "subject": "Telegram collegato al tuo profilo Reelificio",
+        "body": "Un account Telegram è stato appena collegato al tuo profilo Reelificio: da ora riceverai lì compiti e approvazioni. Se non lo hai collegato tu, scollegalo subito da Impostazioni e avvisa un admin."
+      },
+      "outcome": {
+        "acc": "✅ Accettato",
+        "dec": "Hai risposto: non posso. Il compito passa alla riserva.",
+        "apr": "✅ Approvato",
+        "rimc": "↩️ Rimandato",
+        "invalid_state": "Già deciso",
+        "not_authorized": "Non autorizzato",
+        "stale": "Testo cambiato: riapri nell’app",
+        "task_not_found": "Compito non trovato",
+        "dod_incomplete": "Checklist incompleta: decidi dall’app",
+        "script_missing": "Lo script è vuoto",
+        "invalid_input": "Operazione non valida",
+        "unknown": "Errore: riprova dall’app"
+      }
+    }
+  },
+  "standup": {
+    "title": "☀️ Stand-up — {day}",
+    "late": "In ritardo ({count})",
+    "dueToday": "Consegne di oggi ({count})",
+    "unassigned": "Da assegnare ({count})",
+    "nothing": "Niente in ritardo, niente in scadenza oggi, niente da assegnare.",
+    "more": "+{count} altri — apri l’app",
+    "health": {
+      "sweep_stale": "lo sweep non gira da {minutes} min",
+      "job_backlog": "messaggi in coda da {backlog} min",
+      "dead_letters": "{dead, plural, =1 {1 messaggio non consegnato} other {# messaggi non consegnati}} nelle ultime 24 h",
+      "violations": "{violations, plural, =1 {1 reel in uno stato incoerente} other {# reel in uno stato incoerente}}",
+      "sweep_errors": "lo sweep non riesce a gestire {errors, plural, =1 {1 reel} other {# reel}}"
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'server-only';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { type PipelinePhase } from '@/lib/reels/constants';
+import { healthIssues, type JobHealth } from '@/lib/jobs/health';
 import { dedupKeyFor, type AlertKind } from './types';
 
 export type AlertProposal = {
@@ -53,6 +54,28 @@ export async function proposeBufferLow(): Promise<AlertProposal[]> {
 // `phase_stuck` is no longer proposed (Fase 1): task deadlines and the
 // sweep's escalation replace it; open ones auto-close on the next run. The
 // enum value stays for the history.
+// Rule 2: system health (docs/fase1-plan.md §7.4) — sweep heartbeat older
+// than 30 min, a due job waiting more than 30 min, dead letters in the last
+// day, reels whose state disagrees with their tasks.
+export async function proposeJobHealth(): Promise<AlertProposal[]> {
+  const { data, error } = await getSupabaseAdminClient().rpc('job_health');
+  if (error) throw error;
+  const health = data as JobHealth | null;
+  const issues = healthIssues(health);
+  if (issues.length === 0) return [];
+  return [
+    {
+      kind: 'job_health',
+      dedup_key: dedupKeyFor('job_health', {}),
+      page_id: null,
+      reel_id: null,
+      phase: null,
+      payload: { issues, ...(health ?? {}) },
+    },
+  ];
+}
+
 export async function runAllRules(): Promise<AlertProposal[]> {
-  return proposeBufferLow();
+  const [buffer, health] = await Promise.all([proposeBufferLow(), proposeJobHealth()]);
+  return [...buffer, ...health];
 }

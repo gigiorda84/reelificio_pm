@@ -24,6 +24,19 @@ export default async function AlertsPage() {
   ]);
 
   const renderHeadline = (a: AlertWithRefs) => {
+    if (a.kind === 'job_health') {
+      const issues = (a.payload?.issues as string[] | undefined) ?? [];
+      return (
+        <div className="text-sm">
+          <span className="inline-flex items-center rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-medium px-2 py-0.5 mr-2">
+            {t('kinds.jobHealth')}
+          </span>
+          <span className="text-muted-foreground">
+            {issues.map((i) => t(`health.${i as 'sweep_stale' | 'sweep_errors' | 'job_backlog' | 'dead_letters' | 'violations'}`)).join(' · ')}
+          </span>
+        </div>
+      );
+    }
     if (a.kind === 'buffer_low') {
       return (
         <div className="text-sm">

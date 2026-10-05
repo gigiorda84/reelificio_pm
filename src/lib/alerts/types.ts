@@ -1,6 +1,6 @@
 import type { PipelinePhase } from '@/lib/reels/constants';
 
-export const ALERT_KINDS = ['buffer_low', 'phase_stuck'] as const;
+export const ALERT_KINDS = ['buffer_low', 'phase_stuck', 'job_health'] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 
 export const ALERT_STATUSES = ['open', 'closed'] as const;
@@ -29,5 +29,6 @@ export function dedupKeyFor(
   parts: { pageId?: string | null; reelId?: string | null; phase?: PipelinePhase | null },
 ): string {
   if (kind === 'buffer_low') return `buffer_low:${parts.pageId ?? ''}`;
+  if (kind === 'job_health') return 'job_health';
   return `phase_stuck:${parts.reelId ?? ''}:${parts.phase ?? ''}`;
 }
