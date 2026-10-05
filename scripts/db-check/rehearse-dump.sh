@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# Rehearsal of the R1 migration on a real production dump (docs/fase1-plan.md
+# Rehearsal of a Fase 1 release on a real production dump (docs/fase1-plan.md
 # §S1 and release steps 0a/0b), on PostgreSQL 17 like production.
 #
 # Usage:
-#   scripts/db-check/rehearse-dump.sh <dump-dir> [--release r1] [--upto <version>]
+#   scripts/db-check/rehearse-dump.sh <dump-dir> [--release r1|r2] [--upto <version>]
 #     [--allowlist <file>] [--csv <file>] [--config <file>] [--as <admin email>]
+#
+# --release r2 (I2): schema comparison, data, then only the Drive migration
+# and scripts/fase1-r2-enable-drive.sql; no externals, no R1 config or
+# backfill (production has them since R1). Counts of reels and tasks must not
+# change, and the guards run in contract mode.
 #
 # <dump-dir> (supabase/backups/<date>-prod/) holds data.sql and, in the format
 # fixed in iter3, schema-public.sql and migrations.txt. Without
@@ -45,8 +50,12 @@ while [ $# -gt 0 ]; do
     *) echo "unknown option $1" >&2; exit 1 ;;
   esac
 done
-[ "$RELEASE" = r1 ] || { echo "--release $RELEASE: only r1 exists until S5 (I2)" >&2; exit 1; }
-for f in "$DUMP/data.sql" "$ALLOWLIST" "$CSV" "$CONFIG"; do
+case "$RELEASE" in
+  r1) NEEDED=("$DUMP/data.sql" "$ALLOWLIST" "$CSV" "$CONFIG") ;;
+  r2) NEEDED=("$DUMP/data.sql") ;;
+  *) echo "--release must be r1 or r2" >&2; exit 1 ;;
+esac
+for f in "${NEEDED[@]}"; do
   [ -f "$f" ] || { echo "STOP: missing $f" >&2; exit 1; }
 done
 
@@ -113,14 +122,36 @@ node "$HERE/dump-tools.mjs" filter-data "$DUMP/data.sql" "$TMP/data.sql"
   set session_replication_role = origin;"
 rm -f "$TMP/data.sql"
 
+# R2: only the Drive migration, then the R2 script; nothing of R1 again.
+if [ "$RELEASE" = r2 ]; then
+  COUNTS="select 'reels|' || count(*) from reels
+          union all select 'tasks|' || status || '|' || count(*) from tasks group by status
+          order by 1"
+  "${PSQL_OUT[@]}" -c "$COUNTS" >"$OUT/counts-before.txt"
+  for f in "$ROOT"/supabase/migrations/*.sql; do
+    v=$(basename "$f" | cut -d_ -f1)
+    [ "$v" -gt "$LAST" ] || continue
+    case "$f" in *_fase1_drive*) apply_migration "$f" ;; *) stop "pending migration $(basename "$f") is not part of R2" ;; esac
+  done
+  "${PSQL_OUT[@]}" -f "$ROOT/scripts/fase1-r2-enable-drive.sql" | tee "$OUT/r2-report.txt"
+  grep -q '^drive_enabled|ok$' "$OUT/r2-report.txt" || stop "drive_enabled not set"
+  "${PSQL_OUT[@]}" -c "$COUNTS" >"$OUT/counts-after.txt"
+  diff "$OUT/counts-before.txt" "$OUT/counts-after.txt" >"$OUT/counts-diff.txt" \
+    || { cat "$OUT/counts-diff.txt" >&2; stop "reels or tasks changed"; }
+  PGOPTIONS="-c db_check.contract_applied=on" "${PSQL[@]}" -f "$HERE/checks/00_guards.sql" || stop "catalog guards"
+  echo "OK: R2 rehearsal green · reports in $OUT"
+  exit 0
+fi
+
 # 4. Report before (stops on a profile outside the internal allowlist).
 ALLOW=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' "$ALLOWLIST" | sed '/^$/d' | paste -sd, -)
 "${PSQL_OUT[@]}" -v phase=before -v allowlist="$ALLOW" -f "$ROOT/scripts/fase1-migration-report.sql" \
   >"$OUT/report-before.txt" 2>&1 || { cat "$OUT/report-before.txt" >&2; stop "report before"; }
 
-# 5. Fase 1 migrations.
+# 5. Fase 1 migrations (R1: the Drive ones belong to R2, as in upgrade.sh).
 for f in "$ROOT"/supabase/migrations/*.sql; do
   v=$(basename "$f" | cut -d_ -f1)
+  case "$f" in *_fase1_drive*) continue ;; esac
   [ "$v" -gt "$LAST" ] && apply_migration "$f"
 done
 
