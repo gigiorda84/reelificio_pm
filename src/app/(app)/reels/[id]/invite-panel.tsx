@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { revokeInvite } from '@/lib/invites/actions';
 import { buildInviteUrlClient } from './invite-url-client';
 import type { InviteRow } from '@/lib/invites/queries';
+import { formatRome } from '@/lib/dates';
+
+const DATE_ONLY = { year: 'numeric', month: 'numeric', day: 'numeric' } as const;
 
 type Props = {
   invites: InviteRow[];
@@ -77,7 +80,7 @@ function InviteListItem({ invite }: { invite: InviteRow }) {
           ) : null}
           <span>
             {t('expires')}:{' '}
-            {new Date(invite.expires_at).toLocaleDateString('it-IT')}
+            {formatRome(invite.expires_at, DATE_ONLY)}
           </span>
           {revoked ? <span className="text-red-600">{t('statusRevoked')}</span> : null}
           {expired && !revoked ? (
@@ -87,7 +90,7 @@ function InviteListItem({ invite }: { invite: InviteRow }) {
             <span className="text-green-700">{t('statusActive')}</span>
           ) : null}
           {invite.used_at ? (
-            <span>· {t('used')} {new Date(invite.used_at).toLocaleDateString('it-IT')}</span>
+            <span>· {t('used')} {formatRome(invite.used_at, DATE_ONLY)}</span>
           ) : null}
         </div>
       </div>

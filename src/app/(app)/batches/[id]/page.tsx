@@ -9,6 +9,7 @@ import { getRaciConfigForPage, getRaciUsers } from '@/lib/raci/queries';
 import { ResyncButton } from './resync-button';
 import { StartWriting } from './start-writing';
 import { requireInternal } from '@/lib/auth/viewer';
+import { formatRome } from '@/lib/dates';
 
 export default async function BatchDetailPage({
   params,
@@ -62,7 +63,14 @@ export default async function BatchDetailPage({
             <span>·</span>
             <span>
               {batch.source_doc_synced_at
-                ? `${tDetail('lastSynced')} ${new Date(batch.source_doc_synced_at).toLocaleString('it-IT')}`
+                ? `${tDetail('lastSynced')} ${formatRome(batch.source_doc_synced_at, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: 'numeric',
+                    second: 'numeric',
+                  })}`
                 : tDetail('neverSynced')}
             </span>
             {batch.source_doc_url ? (

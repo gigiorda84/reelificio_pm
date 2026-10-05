@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 import type { DailyUpdateWithAuthor } from '@/lib/daily-updates/types';
+import { formatRome } from '@/lib/dates';
 
 export function TeamUpdatesList({
   updates,
@@ -106,8 +107,5 @@ function formatDateIt(date: string): string {
 }
 
 function formatTimeIt(iso: string): string {
-  return new Date(iso).toLocaleTimeString('it-IT', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatRome(iso, { hour: '2-digit', minute: '2-digit' });
 }

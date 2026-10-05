@@ -14,13 +14,11 @@ import { DailyUpdateForm } from '@/components/daily-updates/daily-update-form';
 import { TeamUpdatesList } from '@/components/daily-updates/team-updates-list';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requireInternal } from '@/lib/auth/viewer';
+import { formatRome } from '@/lib/dates';
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString('it-IT', {
-    day: '2-digit',
-    month: 'short',
-  });
+  return formatRome(iso, { day: '2-digit', month: 'short' });
 }
 
 export default async function DashboardPage() {

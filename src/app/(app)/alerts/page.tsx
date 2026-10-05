@@ -5,13 +5,7 @@ import { getAdminStatus } from '@/lib/auth/admin';
 import { listAlerts, type AlertWithRefs } from '@/lib/alerts/queries';
 import { CloseAlertButton } from './close-alert-button';
 import { requireInternal } from '@/lib/auth/viewer';
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('it-IT', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  });
-}
+import { formatRome } from '@/lib/dates';
 
 export default async function AlertsPage() {
   await requireInternal();
@@ -107,7 +101,7 @@ export default async function AlertsPage() {
                     <div className="space-y-0.5">
                       {renderHeadline(a)}
                       <p className="text-xs text-muted-foreground">
-                        {t('openedAt', { date: formatDateTime(a.opened_at) })}
+                        {t('openedAt', { date: formatRome(a.opened_at) })}
                       </p>
                     </div>
                     {adminStatus.isAdmin ? (
@@ -141,7 +135,7 @@ export default async function AlertsPage() {
                   <div className="flex items-center justify-between gap-3">
                     {renderHeadline(a)}
                     <span className="text-xs text-muted-foreground">
-                      {formatDateTime(a.closed_at ?? a.opened_at)}
+                      {formatRome(a.closed_at ?? a.opened_at)}
                     </span>
                   </div>
                   {a.proposed_solution ? (

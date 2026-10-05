@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { postCommentAsInvitee } from '@/lib/invites/actions';
 import type { InviteComment } from '@/lib/invites/queries';
+import { formatRome } from '@/lib/dates';
 
 type Props = {
   token: string;
@@ -56,10 +57,7 @@ export function InviteComments({ token, comments }: Props) {
                   ) : null}
                 </span>
                 <span className="text-muted-foreground">
-                  {new Date(c.created_at).toLocaleString('it-IT', {
-                    dateStyle: 'short',
-                    timeStyle: 'short',
-                  })}
+                  {formatRome(c.created_at)}
                 </span>
               </div>
               <p className="text-sm whitespace-pre-wrap mt-1">{c.body}</p>

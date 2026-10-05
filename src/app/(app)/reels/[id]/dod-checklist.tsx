@@ -7,6 +7,7 @@ import { Check } from 'lucide-react';
 import { toggleDodItem } from '@/lib/dod/actions';
 import type { DodItem } from '@/lib/dod/queries';
 import type { DodItemKey } from '@/lib/dod/constants';
+import { formatRome } from '@/lib/dates';
 
 type Props = {
   reelId: string;
@@ -102,10 +103,7 @@ function DoDRow({
         {item.checked && item.checked_at ? (
           <div className="text-xs text-muted-foreground">
             {item.checked_by_label ? <span>{item.checked_by_label} · </span> : null}
-            {new Date(item.checked_at).toLocaleString('it-IT', {
-              dateStyle: 'short',
-              timeStyle: 'short',
-            })}
+            {formatRome(item.checked_at)}
           </div>
         ) : null}
       </div>

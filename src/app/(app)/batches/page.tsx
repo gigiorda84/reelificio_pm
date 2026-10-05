@@ -5,6 +5,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { listBatches } from '@/lib/batches/queries';
 import { requireInternal } from '@/lib/auth/viewer';
+import { formatRome } from '@/lib/dates';
 
 export default async function BatchesListPage() {
   await requireInternal();
@@ -78,10 +79,7 @@ export default async function BatchesListPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {batch.source_doc_synced_at
-                      ? new Date(batch.source_doc_synced_at).toLocaleString('it-IT', {
-                          dateStyle: 'short',
-                          timeStyle: 'short',
-                        })
+                      ? formatRome(batch.source_doc_synced_at)
                       : '—'}
                   </td>
                   <td className="px-4 py-3">{tStatus(batch.status)}</td>
