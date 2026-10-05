@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { toTaskError, type TaskErrorCode, type TaskOp } from './constants';
+import { countMyApprovals } from './queries';
 
 // Every task operation is one SQL function (docs/fase1-plan.md §S2): it
 // checks the caller, moves the reel and returns a code. These actions only
@@ -42,7 +43,7 @@ async function act(
   return rpc(
     'task_action',
     { p_task_id: taskId, p_op: op, p_note: note?.trim() || null, p_payload: payload },
-    [`/reels/${reelId}`, '/pipeline'],
+    [`/reels/${reelId}`, '/pipeline', '/compiti', '/approvazioni'],
   );
 }
 
@@ -176,7 +177,7 @@ export async function decideTextProposal(
   return rpc(
     'decide_text_proposal',
     { p_proposal_id: proposalId, p_decision: decision, p_note: note?.trim() || null },
-    [`/reels/${reelId}`],
+    [`/reels/${reelId}`, '/approvazioni'],
   );
 }
 
@@ -192,4 +193,10 @@ export async function offboardCollaborator(userId: string): Promise<TaskActionRe
   });
   if (error) return { ok: false, error: 'unknown', message: `ban: ${error.message}` };
   return { ok: true };
+}
+
+// The nav badge, refetched on client navigation (the layout does not
+// re-render then). Zero for externals: approval_queue() checks is_internal().
+export async function myApprovalsCount(): Promise<number> {
+  return countMyApprovals();
 }

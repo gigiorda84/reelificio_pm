@@ -3,8 +3,10 @@ import { getTranslations } from 'next-intl/server';
 import { ChevronLeft } from 'lucide-react';
 import { createPage } from '@/lib/pages/actions';
 import { PageForm } from './page-form';
+import { requireInternal } from '@/lib/auth/viewer';
 
 export default async function NewPagePage() {
+  await requireInternal();
   const t = await getTranslations('pages');
 
   return (

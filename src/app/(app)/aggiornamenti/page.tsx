@@ -6,8 +6,10 @@ import {
 } from '@/lib/daily-updates/queries';
 import { DailyUpdateForm } from '@/components/daily-updates/daily-update-form';
 import { TeamUpdatesList } from '@/components/daily-updates/team-updates-list';
+import { requireInternal } from '@/lib/auth/viewer';
 
 export default async function AggiornamentiPage() {
+  await requireInternal();
   const [t, myToday, updates] = await Promise.all([
     getTranslations('dailyUpdates'),
     getMyTodayUpdate(),

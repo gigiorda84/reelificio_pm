@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAdminStatus } from '@/lib/auth/admin';
 import { listAlerts, type AlertWithRefs } from '@/lib/alerts/queries';
 import { CloseAlertButton } from './close-alert-button';
+import { requireInternal } from '@/lib/auth/viewer';
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('it-IT', {
@@ -13,6 +14,7 @@ function formatDateTime(iso: string): string {
 }
 
 export default async function AlertsPage() {
+  await requireInternal();
   const [t, tPhase, adminStatus, open, closed] = await Promise.all([
     getTranslations('alerts'),
     getTranslations('batches.reel.phase'),

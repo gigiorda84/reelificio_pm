@@ -8,12 +8,14 @@ import { getAdminStatus } from '@/lib/auth/admin';
 import { getRaciConfigForPage, getRaciUsers } from '@/lib/raci/queries';
 import { ResyncButton } from './resync-button';
 import { StartWriting } from './start-writing';
+import { requireInternal } from '@/lib/auth/viewer';
 
 export default async function BatchDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireInternal();
   const { id } = await params;
   const [tDetail, tList, tStatus, tState, tFormat, batch, admin] = await Promise.all([
     getTranslations('batches.detail'),

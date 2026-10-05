@@ -8,25 +8,34 @@ import { updatePage, type PageActionResult } from '@/lib/pages/actions';
 import { getRaciConfigForPage } from '@/lib/raci/queries';
 import { listProfiles } from '@/lib/profiles/queries';
 import { getVoiceBriefForPage } from '@/lib/voice-briefs/queries';
+import { getPageProduction, getPageSla, listApprovalGroups } from '@/lib/pages/production';
+import { listAssignableProfiles } from '@/lib/tasks/queries';
 import { PageForm } from '../new/page-form';
 import { RaciEditor } from './raci-editor';
 import { VoiceBriefEditor } from './voice-brief-editor';
+import { ProductionSettings } from './production-settings';
+import { requireInternal } from '@/lib/auth/viewer';
 
 export default async function PageDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const viewer = await requireInternal();
   const { id } = await params;
-  const [t, page, raci, profiles, voiceBrief] = await Promise.all([
+  const [t, page, raci, profiles, voiceBrief, production, sla, groups, candidates] = await Promise.all([
     getTranslations('pages'),
     getPage(id),
     getRaciConfigForPage(id),
     listProfiles(),
     getVoiceBriefForPage(id),
+    getPageProduction(id),
+    getPageSla(id),
+    listApprovalGroups(),
+    listAssignableProfiles(),
   ]);
 
-  if (!page) notFound();
+  if (!page || !production) notFound();
 
   // Bind id into the action so the form can call it without re-passing.
   const updateAction = async (formData: FormData): Promise<PageActionResult> => {
@@ -69,6 +78,24 @@ export default async function PageDetailPage({
               buffer_threshold: page.buffer_threshold,
               active: page.active,
             }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-medium">
+            {t('detail.section.production')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ProductionSettings
+            pageId={id}
+            initial={production}
+            candidates={candidates}
+            sla={sla}
+            groups={groups}
+            editable={viewer.isAdmin}
           />
         </CardContent>
       </Card>

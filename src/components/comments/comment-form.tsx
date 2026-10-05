@@ -16,9 +16,11 @@ type Props = {
   targetType: CommentTarget;
   targetId: string;
   profiles: ProfileLite[];
+  // Internals on a reel thread may write a "Nota interna" externals never see.
+  allowInternal?: boolean;
 };
 
-export function CommentForm({ targetType, targetId, profiles }: Props) {
+export function CommentForm({ targetType, targetId, profiles, allowInternal = false }: Props) {
   const t = useTranslations('comments');
   const [pending, startTransition] = useTransition();
   const [body, setBody] = useState('');
@@ -54,7 +56,13 @@ export function CommentForm({ targetType, targetId, profiles }: Props) {
         required
         onChange={(b) => setBody(b)}
       />
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-4">
+        {allowInternal ? (
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title={t('internalOnlyHint')}>
+            <input type="checkbox" name="internal_only" />
+            {t('internalOnly')}
+          </label>
+        ) : null}
         <Button type="submit" disabled={pending || !body.trim()}>
           {pending ? t('posting') : t('post')}
         </Button>

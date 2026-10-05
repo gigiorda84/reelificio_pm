@@ -39,12 +39,14 @@ export async function sendWeeklyDigest(): Promise<DigestReport> {
         .select('user_id, date')
         .gte('date', weekStart)
         .lte('date', weekEnd),
+      // Tasks closed with an outcome (delivered, approved, sent back): the
+      // work done in the week, now that phases advance through tasks.
       supabase
-        .from('phase_advance_requests')
+        .from('tasks')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'approved')
-        .gte('decided_at', sinceIso)
-        .lt('decided_at', untilIso),
+        .in('status', ['delivered', 'approved', 'sent_back'])
+        .gte('closed_at', sinceIso)
+        .lt('closed_at', untilIso),
       supabase
         .from('reels')
         .select('id', { count: 'exact', head: true })
@@ -160,7 +162,7 @@ function renderText(d: RenderInput): string {
   lines.push(`Tasso di completamento: ${d.completionPct}% (${d.submitted}/${d.expectedSlots})`);
   lines.push('');
   lines.push('PRODUZIONE');
-  lines.push(`Avanzamenti di fase approvati: ${d.transitions}`);
+  lines.push(`Compiti completati: ${d.transitions}`);
   lines.push(`Reel in pubblicazione: ${d.publishedReels}`);
   lines.push('');
   lines.push('BUFFER PUBBLICAZIONE');
@@ -202,7 +204,7 @@ function renderHtml(d: RenderInput): string {
 
     <h3>Produzione</h3>
     <ul>
-      <li>Avanzamenti di fase approvati: <strong>${d.transitions}</strong></li>
+      <li>Compiti completati: <strong>${d.transitions}</strong></li>
       <li>Reel in pubblicazione: <strong>${d.publishedReels}</strong></li>
       <li>Reel ferme da oltre 24h: <strong>${d.stuckReels}</strong></li>
     </ul>

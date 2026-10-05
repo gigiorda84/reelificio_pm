@@ -2,7 +2,9 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import {
   ALL_PIPELINE_PHASES,
   type PipelinePhase,
+  type ReelState,
 } from '@/lib/reels/constants';
+import type { TaskKind, TaskStatus } from '@/lib/tasks/constants';
 
 export type PipelineCard = {
   id: string;
@@ -18,7 +20,19 @@ export type PipelineCard = {
   page_code_prefix: string;
   batch_id: string;
   batch_label: string;
-  has_pending_request: boolean;
+  state: ReelState;
+  track: 'batch' | 'express';
+  // The open task (at most one), for the semaforo.
+  task: PipelineTask | null;
+};
+
+export type PipelineTask = {
+  kind: TaskKind;
+  status: TaskStatus;
+  started_at: string | null;
+  yellow_at: string | null;
+  due_at: string | null;
+  escalate_at: string | null;
 };
 
 export type PipelineFilters = {
@@ -46,13 +60,17 @@ type BoardRow = {
   phase_entered_at: string;
   page_id: string;
   batch_id: string;
+  state: ReelState;
+  track: 'batch' | 'express';
   pages: { name: string; code_prefix: string } | null;
   batches: { label: string } | null;
-  phase_advance_requests: { id: string }[];
+  tasks: PipelineTask[];
 };
 
-// Active (not yet published) reels, one capped query per phase. Page and batch
-// names plus the pending-request flag come embedded, so no id lists are sent.
+// Active (not yet published) reels, one capped query per macro-phase (the
+// columns stay the six RACI phases; `phase` follows the state). Page, batch
+// and the open task come embedded, so no id lists are sent. Express first,
+// then the longest in the phase.
 export async function getPipelineBoard(
   filters: PipelineFilters = {},
 ): Promise<PipelineBoard> {
@@ -63,12 +81,13 @@ export async function getPipelineBoard(
       let q = supabase
         .from('reels')
         .select(
-          'id, code, title, format, category, phase, phase_status, phase_entered_at, page_id, batch_id, pages(name, code_prefix), batches(label), phase_advance_requests(id)',
+          'id, code, title, format, category, phase, phase_status, phase_entered_at, page_id, batch_id, state, track, pages(name, code_prefix), batches(label), tasks(kind, status, started_at, yellow_at, due_at, escalate_at)',
           { count: 'exact' },
         )
         .eq('phase', phase)
         .is('published_at', null)
-        .eq('phase_advance_requests.status', 'pending')
+        .in('tasks.status', ['unassigned', 'assigned', 'in_progress'])
+        .order('track', { ascending: false })
         .order('phase_entered_at', { ascending: true })
         .limit(PIPELINE_COLUMN_LIMIT);
       if (filters.pageId) q = q.eq('page_id', filters.pageId);
@@ -98,7 +117,9 @@ export async function getPipelineBoard(
       page_code_prefix: r.pages?.code_prefix ?? '??',
       batch_id: r.batch_id,
       batch_label: r.batches?.label ?? '—',
-      has_pending_request: r.phase_advance_requests.length > 0,
+      state: r.state,
+      track: r.track,
+      task: r.tasks[0] ?? null,
     }));
   }
 

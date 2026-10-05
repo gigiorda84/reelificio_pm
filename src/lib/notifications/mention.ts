@@ -1,6 +1,7 @@
 import 'server-only';
 import { dispatchToMany } from './dispatch';
 import {
+  externalCommentApprover,
   mentionRecipients,
   taskGrantsVisibility,
   type ProfileLike,
@@ -128,6 +129,42 @@ export async function notifyMentions(args: {
     text,
     html,
     meta: { target: args.target, target_id: args.targetId, link: link.url },
+  });
+}
+
+// A comment by an external on a reel reaches its effective approver, who
+// would not otherwise see it (I8). Skipped when already mentioned.
+export async function notifyApproverOfExternalComment(args: {
+  authorId: string;
+  body: string;
+  reelId: string;
+  alreadyNotified: string[];
+}): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+  const [{ data: approverId }, { data: author }] = await Promise.all([
+    supabase.rpc('reel_approver', { p_reel_id: args.reelId }),
+    supabase.from('profiles').select('*').eq('id', args.authorId).maybeSingle(),
+  ]);
+  const recipient = externalCommentApprover({
+    author: author as (ProfileLike & { full_name?: string | null }) | null,
+    approverId: (approverId as string | null) ?? null,
+    alreadyNotified: args.alreadyNotified,
+  });
+  if (!recipient) return;
+
+  const authorLabel = (author as { full_name?: string | null }).full_name?.trim() || 'Un collaboratore';
+  const link = await targetLink('reel', args.reelId);
+  const subject = `${authorLabel} ha commentato ${link.label}`;
+  await dispatchToMany([recipient], 'mention', {
+    subject,
+    text: `${args.body}\n\nApri: ${link.url}`,
+    html: `
+      <p>${escapeHtml(authorLabel)} ha commentato <a href="${link.url}">${escapeHtml(link.label)}</a>:</p>
+      <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444;">
+        ${escapeHtml(args.body).replace(/\n/g, '<br/>')}
+      </blockquote>
+    `.trim(),
+    meta: { target: 'reel', target_id: args.reelId, link: link.url },
   });
 }
 

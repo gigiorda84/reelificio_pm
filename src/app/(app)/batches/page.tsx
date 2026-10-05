@@ -4,8 +4,10 @@ import { Plus } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { listBatches } from '@/lib/batches/queries';
+import { requireInternal } from '@/lib/auth/viewer';
 
 export default async function BatchesListPage() {
+  await requireInternal();
   const tList = await getTranslations('batches.list');
   const tStatus = await getTranslations('batches.status');
   const { rows: batches, total } = await listBatches();

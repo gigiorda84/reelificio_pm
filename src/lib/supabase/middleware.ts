@@ -4,9 +4,20 @@ import { NextResponse, type NextRequest } from 'next/server';
 const PUBLIC_PATHS = [
   '/login',
   '/auth/callback',
+  '/auth/confirm',
   '/invite',
   '/api/telegram/webhook',
   '/api/cron',
+];
+
+// Where everyone lands: the open tasks of the signed-in user.
+export const HOME = '/compiti';
+
+const EXTERNAL_PATHS = [
+  /^\/compiti(\/|$)/,
+  /^\/reels\/[^/]+$/,
+  /^\/settings(\/|$)/,
+  /^\/auth\//,
 ];
 
 export async function updateSession(request: NextRequest) {
@@ -52,9 +63,27 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && pathname === '/login') {
-    const dashUrl = request.nextUrl.clone();
-    dashUrl.pathname = '/dashboard';
-    return NextResponse.redirect(dashUrl);
+    const homeUrl = request.nextUrl.clone();
+    homeUrl.pathname = HOME;
+    homeUrl.search = '';
+    return NextResponse.redirect(homeUrl);
+  }
+
+  // External collaborators only reach their tasks, the reels of those tasks
+  // and their settings (RLS already hides everything else; this keeps them
+  // off pages built for internals). Server Components check again.
+  if (user && !isPublic && !EXTERNAL_PATHS.some((re) => re.test(pathname))) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('account_type')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (profile?.account_type === 'external') {
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = HOME;
+      homeUrl.search = '';
+      return NextResponse.redirect(homeUrl);
+    }
   }
 
   return response;

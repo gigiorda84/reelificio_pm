@@ -64,3 +64,17 @@ export function taskGrantsVisibility(t: TaskLike, now: Date = new Date()): boole
   if (!OUTCOME.includes(t.status) || !t.closed_at) return false;
   return now.getTime() - Date.parse(t.closed_at) < RECENT_MS;
 }
+
+// A comment by an external reaches the reel's effective approver (I8):
+// not when the author is internal, the approver is unknown or is the author,
+// or they were already notified as a mention.
+export function externalCommentApprover(args: {
+  author: ProfileLike | null;
+  approverId: string | null;
+  alreadyNotified: readonly string[];
+}): string | null {
+  const { author, approverId } = args;
+  if (!author || author.account_type !== 'external' || !approverId) return null;
+  if (approverId === author.id || args.alreadyNotified.includes(approverId)) return null;
+  return approverId;
+}

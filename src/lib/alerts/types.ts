@@ -24,10 +24,6 @@ export type AlertRow = {
   updated_at: string;
 };
 
-// Stuck-phase threshold from BP §3.1. Kept generous in MVP; can move to a
-// per-page config later.
-export const PHASE_STUCK_MS = 24 * 60 * 60 * 1000;
-
 export function dedupKeyFor(
   kind: AlertKind,
   parts: { pageId?: string | null; reelId?: string | null; phase?: PipelinePhase | null },

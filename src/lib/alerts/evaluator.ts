@@ -13,7 +13,7 @@ export type EvaluatorReport = {
 
 export async function evaluateAlerts(now = new Date()): Promise<EvaluatorReport> {
   const supabase = getSupabaseAdminClient();
-  const proposals = await runAllRules(now);
+  const proposals = await runAllRules();
 
   // Snapshot currently-open alerts, keyed by dedup_key.
   const { data: openAlerts } = await supabase

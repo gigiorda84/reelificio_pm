@@ -3,8 +3,10 @@ import { getTranslations } from 'next-intl/server';
 import { ChevronLeft } from 'lucide-react';
 import { listPages } from '@/lib/pages/queries';
 import { BatchForm } from './batch-form';
+import { requireInternal } from '@/lib/auth/viewer';
 
 export default async function NewBatchPage() {
+  await requireInternal();
   const t = await getTranslations('batches');
   const pages = (await listPages()).filter((p) => p.active);
 

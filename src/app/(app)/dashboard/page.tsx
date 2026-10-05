@@ -13,6 +13,7 @@ import {
 import { DailyUpdateForm } from '@/components/daily-updates/daily-update-form';
 import { TeamUpdatesList } from '@/components/daily-updates/team-updates-list';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requireInternal } from '@/lib/auth/viewer';
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null;
@@ -23,6 +24,7 @@ function formatDate(iso: string | null): string | null {
 }
 
 export default async function DashboardPage() {
+  await requireInternal();
   const supabase = await getSupabaseServerClient();
   const {
     data: { user },

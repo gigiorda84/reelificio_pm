@@ -462,6 +462,45 @@ Convenzioni valide per tutte le fette:
 **Fatto quando:** da iPhone (staging su URL pubblico, §7.3) Gabri-test approva 3 elementi in < 2 min; kanban con badge e semaforo corretti; configurazione completa di "Pagina Test" (inclusi due override SLA) dall'interfaccia; un doppiatore esterno di test creato con `scripts/fase1-collaborators.ts` entra con il magic link, vede 1 reel, `/pipeline` lo rimanda a `/compiti`, propone una modifica che l'approvatore accetta; `fase1-collaborators.ts offboard` su un esterno di test → 0 reel visibili, login bloccato e compito riassegnato.
 **Verifica:** `run.sh`, `pnpm typecheck && pnpm lint && pnpm test && pnpm build`, e2e E2/E4/E6/E11/E12 (parte R1).
 
+**Variazioni in esecuzione (2026-10-05):**
+- Migrazione `20261005075537_fase1_config.sql`, spinta sullo staging:
+  - `set_sla_policy` e `set_approval_group` (solo admin): SLA e approvatori non hanno grant di scrittura diretta;
+  - `approval_queue()`: coda di `/approvazioni` e badge del menu;
+  - `reel_approver(reel)`, solo service role: serve a I8.
+- Seconda verifica nei Server Component: `requireInternal()` (`src/lib/auth/viewer.ts`) in ogni pagina per interni. `getViewer()` legge una sola volta per richiesta il proprio profilo.
+- Script bloccato: per i non admin e per gli esterni la scheda Script è `script-read-only.tsx`, con "Proponi modifica" per blocco. L'editor resta agli admin e agli stati prima di `revisione`. Le proposte (`proposals.tsx`) stanno sotto lo script.
+- Esterni nella scheda File: link in sola lettura a quanto consegnato (non possono scrivere il reel). Scheda Pubblica, DoD, inviti e batch nascosti.
+- Commenti:
+  - menzioni proposte a un esterno: solo le persone già presenti nel thread;
+  - "Nota interna" solo nei thread dei reel;
+  - un interno cambia il flag sui propri commenti.
+- I15:
+  - le route di auth condividono `src/lib/auth/redirect.ts`;
+  - `next` rifiuta anche `\` (il parser URL legge `/\host` come `//host`);
+  - il redirect conserva la query, per esempio `?task=`;
+  - il login mostra "link non valido o scaduto", prima l'errore non compariva.
+- Alert: `phase_stuck` non viene più proposto e gli alert aperti si chiudono da soli al giro successivo. Il digest conta i compiti chiusi con esito.
+- Dalla review del diff (2026-10-05):
+  - `20261005082955_fase1_previous_note.sql`, spinta sullo staging: `task_previous_note(task)` restituisce la nota di rimando a chi ha il compito. Prima un esterno non la vedeva, perché il compito precedente è dell'approvatore e la RLS glielo nasconde.
+  - Date in ora di Roma con `formatRome()` (`src/lib/dates.ts`) su compiti, pannello, proposte, assenze e commenti. Su Vercel il server è in UTC.
+  - Nella card di `/approvazioni` la nota di un "Rimanda" annullato non parte più con "Approva".
+  - Il badge "Approvazioni" si aggiorna anche nella navigazione client.
+  - La coda mostra al massimo 100 elementi, per non superare la lunghezza degli URL.
+  - Le notifiche dei commenti partono in `after()`.
+- Rischio noto, non trattato: i link di sicurezza delle email (per esempio Outlook Safe Links) aprono il link con una GET. Possono consumare il token monouso di `/auth/confirm` prima del clic dell'utente. Se succede con un esterno, si aggiunge una pagina intermedia con un pulsante che invia la conferma in POST.
+
+**Stato (2026-10-05):**
+- Fatto e verde:
+  - `run.sh` con i nuovi check in `08_approvals.sql` e `api-check.mjs`: kanban con embed del compito aperto, `/compiti`, configurazione, esterno con thread, nomi, proposte e coda vuota;
+  - `upgrade.sh`;
+  - `pnpm typecheck && pnpm lint && pnpm test && pnpm build`, 42 test;
+  - le due migrazioni spinte sullo staging.
+- Provato nel browser senza login: `/auth/confirm` con token non valido torna al login con l'avviso, le route protette rimandano al login.
+- Da fare:
+  - template "Magic Link" e `site_url` sullo staging, poi sulla produzione al rilascio;
+  - e2e dall'interfaccia con gli utenti di prova (serve un login reale);
+  - dati di "Pagina Test" e nome del delegato (`docs/fase1-decisioni.md`, "Ancora da fare").
+
 ### S4 — Notifiche operative: outbox, Telegram con pulsanti, sweep, stand-up · 4 giorni (30 ottobre pomeriggio–5 novembre mattina)
 
 **Obiettivo:** il sistema rincorre le persone al posto di Gabri.
@@ -1060,7 +1099,7 @@ Architect iter3 (`.omc/plans/fase1-produzione-2-0.iter3.architect-review.md`, N1
 - [ ] **I5 — Base del confronto di schema** (Arch N5, Critic 4). Nuovo dump di produzione in S1 (sola lettura, OK dell'utente) nel formato di §6, con `schema-public.sql` e `migrations.txt`; `drift-allow.txt` costruito da quello, con voci su istruzioni normalizzate e non su blocchi di diff; entrambi i lati con lo stesso `pg_dump` di `libpq@18`. Il criterio di S1 si riferisce a questo dump, non a quello del 2026-10-01. — S1
 - [ ] **I6 — Casi limite del cancello del kit** (Arch N6, Critic 3). (a) Con `drive_enabled = false` i compiti `animation` aperti con `notified_at is null` ricevono soglie da `now()` e la notifica di assegnazione. (b) Un reel migrato da `doppiaggio` in poi senza audio approvato né `audio_drive_url` ha un kit legacy di solo script, considerato pronto, con avviso all'admin ed elenco nel report di R2. (c) L'URL del kit legacy viene dal payload del compito di doppiaggio approvato, non da `reels.audio_drive_url`. Casi in `10_files.sql`. — S5
 - [ ] **I7 — Oggetti di S5 usati in S2** (Arch N7). La versione R1 di `private.task_action_core` e `_create_task` gestisce solo i link; S5 le sostituisce con `create or replace`. In alternativa `kit_ready_at` e `reel_files` nascono in S1. Scelta da annotare nel changelog di S2. — S2
-- [ ] **I8 — Menzioni scritte dagli esterni** (Arch N8). `resolveValidMentions` (`src/lib/comments/actions.ts:41`) risolve tramite `profile_names()`; un commento di un esterno notifica l'approvatore del compito aperto; `updateComment` seleziona anche `internal_only` (`actions.ts:135`). Unit test. — S3
+- [x] (fatto in S3, 2026-10-05) **I8 — Menzioni scritte dagli esterni** (Arch N8). `resolveValidMentions` (`src/lib/comments/actions.ts:41`) risolve tramite `profile_names()`; un commento di un esterno notifica l'approvatore del compito aperto; `updateComment` seleziona anche `internal_only` (`actions.ts:135`). Unit test. — S3
 - [ ] **I9 — Secondo checkpoint martedì 3 novembre** (Arch N9): la parte R1 di E1 è verde sullo staging, altrimenti piano B. Comunicare al team R1 il **16 novembre come impegno** e il 9 novembre come obiettivo ambizioso. — §9
 - [ ] **I10 — Toolchain** (Critic 5). `run.sh`/`upgrade.sh`/`rehearse-dump.sh` chiamano `$PG_BIN/initdb` e `$PG_BIN/pg_ctl` in modo esplicito (`libpq@18/bin` contiene anche `initdb` e `pg_ctl`); dopo l'avvio si verifica `show server_version_num`. Filtro esplicito per gli INSERT di `data.sql` in `auth.identities`, `sessions`, `refresh_tokens`, `flow_state`, `one_time_tokens`, `mfa_amr_claims`. Le colonne della tabella di appoggio di `auth.users` si ricavano dall'intestazione dell'INSERT del dump, non sono fisse a 34. — S1
 - [ ] **I11 — Profilo esistente che in realtà è esterno** (Critic 6). `existing-externals.txt` rivisto e accettato dal report; ban prima del passo 4; conversione al passo 6b con `fase1-collaborators.ts --convert-existing`, poi unban. In S1 si confrontano i 4 profili di produzione con l'allowlist. — S1, S4
@@ -1076,7 +1115,7 @@ Architect iter3 (`.omc/plans/fase1-produzione-2-0.iter3.architect-review.md`, N1
   - `requires_drive` resta finché esiste il percorso di incidente "Drive spento"; la data di rimozione si fissa all'inizio della Fase 2.
   - Non fare affidamento sul trigger `handle_new_auth_user` per `account_type`: GoTrue può scrivere `app_metadata` dopo l'INSERT, quindi contano gli aggiornamenti espliciti di `invite-users.ts` e `set_collaborator_as`.
 
-- [ ] **I15 — Magic link valido in qualunque browser** (trovato nella prova dello staging, 2026-10-02).
+- [ ] (codice fatto in S3, 2026-10-05; manca il template sullo staging e sulla produzione) **I15 — Magic link valido in qualunque browser** (trovato nella prova dello staging, 2026-10-02).
   - **Problema:** il login usa PKCE (`exchangeCodeForSession` in `src/app/auth/callback/route.ts`). Un link aperto in un browser diverso da quello che l'ha chiesto, per esempio dall'app di posta o dal telefono, fallisce con `code challenge does not match previously saved code verifier`. Per gli esterni (AC4) è un blocco.
   - **Correzione:**
     - nuova route `src/app/auth/confirm/route.ts` che chiama `verifyOtp({ type, token_hash })` lato server e scrive i cookie sulla risposta di redirect, come fa già la callback;

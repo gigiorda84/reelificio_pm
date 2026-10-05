@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { buildTelegramLinkToken } from '@/lib/notifications/telegram-link';
 import { getOwnPrefMatrix } from '@/lib/notifications/prefs';
+import { getViewer } from '@/lib/auth/viewer';
+import { listApprovalGroups } from '@/lib/pages/production';
 import { ProfileForm } from './profile-form';
 import { TelegramLink } from './telegram-link';
 import { NotificationMatrix } from './notification-matrix';
+import { ApproversSettings, type InternalPerson } from './approvers-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +29,8 @@ export default async function SettingsPage() {
   ]);
 
   const profile = profileRes.data;
+  const viewer = await getViewer();
+  const approvers = viewer?.isAdmin ? await loadApprovers(supabase) : null;
   const linkToken = buildTelegramLinkToken(user.id);
   const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? '';
 
@@ -72,6 +77,38 @@ export default async function SettingsPage() {
           <NotificationMatrix initial={matrix} telegramLinked={!!profile?.telegram_chat_id} />
         </CardContent>
       </Card>
+
+      {approvers ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-medium">{t('section.approvers')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ApproversSettings groups={approvers.groups} people={approvers.people} />
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
+}
+
+// Admin: approval groups and the internals who may approve or be absent.
+async function loadApprovers(supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>) {
+  const [groups, { data }] = await Promise.all([
+    listApprovalGroups(),
+    supabase
+      .from('profiles')
+      .select('id, full_name, email, absent_until')
+      .eq('account_type', 'internal')
+      .is('deactivated_at', null)
+      .order('full_name'),
+  ]);
+  const now = Date.now();
+  const people: InternalPerson[] = (data ?? []).map((p) => ({
+    id: p.id,
+    label: p.full_name?.trim() || p.email,
+    absent_until: p.absent_until,
+    away: !!p.absent_until && Date.parse(p.absent_until) > now,
+  }));
+  return { groups, people };
 }

@@ -10,7 +10,9 @@ import {
   ALL_PIPELINE_PHASES,
   type PipelinePhase,
 } from '@/lib/reels/constants';
+import { semaforo } from '@/lib/tasks/semaforo';
 import { PipelineFilters } from './filters';
+import { requireInternal } from '@/lib/auth/viewer';
 
 const STATUS_DOT: Record<'green' | 'yellow' | 'red', string> = {
   green: 'bg-emerald-500',
@@ -29,16 +31,18 @@ export default async function PipelinePage({
 }: {
   searchParams: Promise<{ page?: string; batch?: string }>;
 }) {
+  await requireInternal();
   const sp = await searchParams;
   const filters = {
     pageId: sp.page || undefined,
     batchId: sp.batch || undefined,
   };
 
-  const [t, tPhaseShort, tFmt, board, pages, batches] = await Promise.all([
+  const [t, tPhaseShort, tState, tKind, board, pages, batches] = await Promise.all([
     getTranslations('pipeline'),
     getTranslations('batches.reel.phaseShort'),
-    getTranslations('batches.reel.format'),
+    getTranslations('states'),
+    getTranslations('tasks.kind'),
     getPipelineBoard(filters),
     listPagesForFilter(),
     listBatchesForFilter(filters.pageId),
@@ -78,8 +82,9 @@ export default async function PipelinePage({
                 today={today}
                 t={{
                   phaseShort: tPhaseShort,
-                  fmt: tFmt,
-                  pendingBadge: t('pendingBadge'),
+                  state: tState,
+                  kind: tKind,
+                  express: t('express'),
                   daysIn: t,
                   today: t('today'),
                   empty: t('phaseEmpty'),
@@ -101,8 +106,9 @@ type ColumnProps = {
   today: Date;
   t: {
     phaseShort: (key: string) => string;
-    fmt: (key: string) => string;
-    pendingBadge: string;
+    state: (key: string) => string;
+    kind: (key: string) => string;
+    express: string;
     daysIn: (key: 'daysIn', vars: { count: number }) => string;
     today: string;
     empty: string;
@@ -130,6 +136,9 @@ function Column({ phase, cards, total, today, t }: ColumnProps) {
         ) : (
           cards.map((c) => {
             const days = daysSince(c.phase_entered_at, today);
+            const light = c.task
+              ? semaforo({ startedAt: c.task.started_at, yellowAt: c.task.yellow_at, dueAt: c.task.due_at }, today)
+              : null;
             return (
               <Link
                 key={c.id}
@@ -142,7 +151,7 @@ function Column({ phase, cards, total, today, t }: ColumnProps) {
                   </span>
                   <span
                     aria-hidden
-                    className={`size-2 rounded-full mt-1 ${STATUS_DOT[c.phase_status]}`}
+                    className={`size-2 rounded-full mt-1 ${light ? STATUS_DOT[light] : 'bg-zinc-300'}`}
                   />
                 </div>
                 <p className="mt-1 text-sm font-medium leading-snug line-clamp-2">
@@ -155,11 +164,17 @@ function Column({ phase, cards, total, today, t }: ColumnProps) {
                     {days === 0 ? t.today : t.daysIn('daysIn', { count: days })}
                   </span>
                 </div>
-                {c.has_pending_request ? (
-                  <p className="mt-2 inline-block rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 text-[10px] px-2 py-0.5">
-                    {t.pendingBadge}
-                  </p>
-                ) : null}
+                <div className="mt-2 flex flex-wrap items-center gap-1 text-[10px]">
+                  {c.track === 'express' ? (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-800 dark:bg-red-950 dark:text-red-200">
+                      {t.express}
+                    </span>
+                  ) : null}
+                  <span className="rounded-full border px-2 py-0.5">{t.state(c.state)}</span>
+                  {c.task ? (
+                    <span className="text-muted-foreground">{t.kind(c.task.kind)}</span>
+                  ) : null}
+                </div>
               </Link>
             );
           })

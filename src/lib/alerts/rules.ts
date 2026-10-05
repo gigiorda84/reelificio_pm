@@ -1,7 +1,7 @@
 import 'server-only';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { type PipelinePhase } from '@/lib/reels/constants';
-import { PHASE_STUCK_MS, dedupKeyFor, type AlertKind } from './types';
+import { dedupKeyFor, type AlertKind } from './types';
 
 export type AlertProposal = {
   kind: AlertKind;
@@ -50,48 +50,9 @@ export async function proposeBufferLow(): Promise<AlertProposal[]> {
   return proposals;
 }
 
-// Rule 2: a reel has sat in the same phase > 24h with no comment activity.
-export async function proposePhaseStuck(now = new Date()): Promise<AlertProposal[]> {
-  const supabase = getSupabaseAdminClient();
-  const cutoff = new Date(now.getTime() - PHASE_STUCK_MS).toISOString();
-
-  // Working-phase reels entered before the cutoff with no reel comment since
-  // then; the comment check runs in SQL (no long id lists over the wire).
-  const { data: reels, error } = await supabase.rpc('stuck_reels', { p_cutoff: cutoff });
-  if (error) throw error;
-  if (!reels?.length) return [];
-
-  const proposals: AlertProposal[] = [];
-  for (const r of reels as {
-    id: string;
-    code: string;
-    title: string;
-    page_id: string;
-    phase: string;
-    phase_entered_at: string;
-  }[]) {
-    const phase = r.phase as PipelinePhase;
-    proposals.push({
-      kind: 'phase_stuck',
-      dedup_key: dedupKeyFor('phase_stuck', { reelId: r.id, phase }),
-      page_id: r.page_id,
-      reel_id: r.id,
-      phase,
-      payload: {
-        reel_code: r.code,
-        reel_title: r.title,
-        phase,
-        phase_entered_at: r.phase_entered_at,
-        hours_in_phase: Math.floor(
-          (now.getTime() - new Date(r.phase_entered_at).getTime()) / 3_600_000,
-        ),
-      },
-    });
-  }
-  return proposals;
-}
-
-export async function runAllRules(now = new Date()): Promise<AlertProposal[]> {
-  const [a, b] = await Promise.all([proposeBufferLow(), proposePhaseStuck(now)]);
-  return [...a, ...b];
+// `phase_stuck` is no longer proposed (Fase 1): task deadlines and the
+// sweep's escalation replace it; open ones auto-close on the next run. The
+// enum value stays for the history.
+export async function runAllRules(): Promise<AlertProposal[]> {
+  return proposeBufferLow();
 }

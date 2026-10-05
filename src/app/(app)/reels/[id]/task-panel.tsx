@@ -29,6 +29,7 @@ import {
 } from '@/lib/tasks/actions';
 import type { AssignableProfile, OpenTask } from '@/lib/tasks/queries';
 import { semaforo, slaPercent } from '@/lib/tasks/semaforo';
+import { formatRome } from '@/lib/dates';
 
 type Props = {
   reelId: string;
@@ -57,7 +58,7 @@ const LIGHT: Record<'green' | 'yellow' | 'red', string> = {
 };
 
 function fmt(iso: string | null): string {
-  return iso ? new Date(iso).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+  return iso ? formatRome(iso) : '—';
 }
 
 export function TaskPanel({

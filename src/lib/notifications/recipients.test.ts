@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
 import {
+  externalCommentApprover,
   internalProfiles,
   isActiveInternal,
   mentionRecipients,
@@ -123,5 +124,19 @@ describe('taskGrantsVisibility', () => {
     for (const status of ['declined', 'expired', 'cancelled']) {
       expect(taskGrantsVisibility({ assignee_id: 'x', status, closed_at: daysAgo(0) }, now)).toBe(false);
     }
+  });
+});
+
+describe('externalCommentApprover', () => {
+  const ext = { id: 'ext', account_type: 'external' };
+
+  it('notifies the approver of a comment by an external', () => {
+    expect(externalCommentApprover({ author: ext, approverId: 'gabri', alreadyNotified: [] })).toBe('gabri');
+  });
+
+  it('skips internal authors, a missing approver and one already mentioned', () => {
+    expect(externalCommentApprover({ author: { id: 'int' }, approverId: 'gabri', alreadyNotified: [] })).toBeNull();
+    expect(externalCommentApprover({ author: ext, approverId: null, alreadyNotified: [] })).toBeNull();
+    expect(externalCommentApprover({ author: ext, approverId: 'gabri', alreadyNotified: ['gabri'] })).toBeNull();
   });
 });

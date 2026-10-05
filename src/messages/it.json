@@ -13,11 +13,14 @@
       "submitting": "Invio in corso…",
       "linkSent": "Controlla la tua email — ti abbiamo inviato il link.",
       "error": "Qualcosa è andato storto. Riprova.",
-      "notInvited": "Questa email non è abilitata. Chiedi a un admin di invitarti."
+      "notInvited": "Questa email non è abilitata. Chiedi a un admin di invitarti.",
+      "linkFailed": "Il link non è valido, è scaduto o è già stato usato. Chiedine uno nuovo qui sotto."
     },
     "logout": "Esci"
   },
   "nav": {
+    "tasks": "Compiti",
+    "approvals": "Approvazioni",
     "dashboard": "Dashboard",
     "pipeline": "Pipeline",
     "updates": "Aggiornamenti",
@@ -126,7 +129,53 @@
         "general": "Generale",
         "voiceBrief": "Voice brief",
         "raci": "RACI",
-        "comingSoon": "Disponibile in uno sprint successivo."
+        "comingSoon": "Disponibile in uno sprint successivo.",
+        "production": "Produzione"
+      }
+    },
+    "production": {
+      "requiresValidation": "Validazione scientifica prima di Confermato",
+      "roles": {
+        "dubber_titular_id": "Doppiatore titolare",
+        "dubber_reserve_id": "Doppiatore di riserva",
+        "animator_titular_id": "Animatore titolare",
+        "animator_reserve_id": "Animatore di riserva",
+        "validator_id": "Validatore"
+      },
+      "none": "— nessuno —",
+      "external": "esterno",
+      "rolesHint": "Solo profili compatibili: interni, o esterni del tipo giusto. Titolare e riserva sono persone diverse, e così doppiatore e animatore titolari. Senza titolare né riserva il compito resta da assegnare.",
+      "approvalGroup": "Gruppo approvatori",
+      "defaultGroup": "Gruppo predefinito",
+      "save": "Salva produzione",
+      "saved": "Impostazioni salvate.",
+      "sla": {
+        "title": "SLA della pagina",
+        "hint": "Ore lavorative per il Batch (sabato e domenica non contano), ore reali per l’Express. Vuoto = valore predefinito, mostrato in grigio. Valgono per i compiti creati da ora.",
+        "step": "Passo",
+        "batch": "Batch",
+        "express": "Express",
+        "default": "{hours} h",
+        "save": "Salva SLA",
+        "steps": {
+          "writing": "Stesura",
+          "review": "Revisione",
+          "validation": "Validazione",
+          "dubbing_accept": "Accettazione doppiaggio",
+          "dubbing": "Doppiaggio",
+          "audio_approval": "Approvazione audio",
+          "animation_accept": "Accettazione animazione",
+          "animation": "Animazione",
+          "final_approval": "Approvazione finale",
+          "scheduling": "Programmazione"
+        }
+      },
+      "errors": {
+        "invalid_input": "Valori non validi: controlla i campi.",
+        "not_admin": "Solo gli admin possono modificare queste impostazioni.",
+        "invalid_assignee": "Una persona non è compatibile con il ruolo scelto.",
+        "same_person": "Titolare e riserva devono essere persone diverse, e così doppiatore e animatore titolari.",
+        "unknown": "Errore imprevisto, riprova."
       }
     }
   },
@@ -243,7 +292,8 @@
       "currentPhase": "Fase corrente",
       "openInDrive": "Apri in Drive",
       "parserWarning": "Il parser non ha riconosciuto tutte le sezioni. Controlla il contenuto.",
-      "currentTrack": "Binario"
+      "currentTrack": "Binario",
+      "backToTasks": "Torna ai miei compiti"
     },
     "tabs": {
       "script": "Script",
@@ -266,7 +316,11 @@
       "saving": "Salvataggio…",
       "saved": "Modifiche salvate.",
       "empty": "Vuoto",
-      "locked": "Script bloccato da Revisione in poi: lo modificano solo gli admin; gli altri propongono una modifica."
+      "locked": "Script bloccato da Revisione in poi: lo modificano solo gli admin; gli altri propongono una modifica.",
+      "propose": "Proponi modifica",
+      "sendProposal": "Invia proposta",
+      "cancel": "Annulla",
+      "proposalSent": "Proposta inviata: decide l'approvatore."
     },
     "voice": {
       "title": "Voice brief",
@@ -284,7 +338,8 @@
       "videoPlaceholder": "https://drive.google.com/…",
       "openLink": "Apri",
       "save": "Salva file",
-      "saved": "File aggiornati."
+      "saved": "File aggiornati.",
+      "noneDelivered": "Nessun file consegnato finora."
     },
     "publish": {
       "caption": "Caption",
@@ -304,6 +359,21 @@
     "errors": {
       "invalidInput": "Dati non validi.",
       "unknown": "Operazione non riuscita."
+    },
+    "proposals": {
+      "title": "Proposte di modifica",
+      "original": "Testo originale (rev {rev})",
+      "proposed": "Proposta",
+      "note": "Nota (facoltativa)",
+      "accept": "Accetta",
+      "reject": "Rifiuta",
+      "accepted": "Proposta accettata: script aggiornato.",
+      "rejected": "Proposta rifiutata.",
+      "status": {
+        "pending": "In attesa",
+        "accepted": "Accettata",
+        "rejected": "Rifiutata"
+      }
     }
   },
   "raci": {
@@ -390,8 +460,8 @@
     "phaseEmpty": "—",
     "daysIn": "{count, plural, =1 {1 giorno} other {# giorni}}",
     "today": "Oggi",
-    "pendingBadge": "in approvazione",
-    "truncated": "Le {shown} più vecchie di {total}: filtra per pagina o batch per vederle tutte."
+    "truncated": "Le {shown} più vecchie di {total}: filtra per pagina o batch per vederle tutte.",
+    "express": "Express"
   },
   "comments": {
     "title": "Commenti",
@@ -409,7 +479,9 @@
     "errors": {
       "empty": "Il commento non può essere vuoto.",
       "unknown": "Operazione non riuscita."
-    }
+    },
+    "internalOnly": "Nota interna",
+    "internalOnlyHint": "Visibile solo agli interni: i collaboratori esterni non la vedono."
   },
   "voiceBriefs": {
     "save": "Salva voice brief",
@@ -436,7 +508,8 @@
     "section": {
       "profile": "Profilo",
       "telegram": "Telegram",
-      "notifications": "Notifiche"
+      "notifications": "Notifiche",
+      "approvers": "Approvatori e assenze"
     },
     "profile": {
       "fullName": "Nome completo",
@@ -480,6 +553,30 @@
       "kpi_alert": "Avviso KPI",
       "daily_reminder": "Promemoria giornaliero",
       "weekly_digest": "Digest settimanale"
+    },
+    "approvers": {
+      "approver": "Approvatore",
+      "delegate": "Delegato",
+      "nobody": "— nessuno —",
+      "groupHint": "L’approvatore riceve le approvazioni di script, audio e video finale; il delegato le riceve quando l’approvatore è assente e può decidere anche quando è presente. Cambiare qui non sposta le approvazioni già aperte.",
+      "save": "Salva approvatori",
+      "saved": "Approvatori salvati.",
+      "absenceTitle": "Assenze",
+      "absenceHint": "Chi è assente non riceve nuove approvazioni; quelle aperte passano a chi approva al suo posto.",
+      "person": "Persona",
+      "until": "Assente fino al",
+      "setAbsence": "Imposta assenza",
+      "absenceSaved": "Assenza impostata: le approvazioni aperte sono state spostate.",
+      "absentUntil": "{name} assente fino al {until}",
+      "back": "Togli assenza",
+      "backSaved": "Assenza tolta.",
+      "errors": {
+        "invalid_input": "Dati non validi.",
+        "not_admin": "Solo gli admin possono modificare gli approvatori.",
+        "invalid_assignee": "Approvatore e delegato devono essere interni.",
+        "same_person": "Approvatore e delegato devono essere persone diverse.",
+        "unknown": "Errore imprevisto, riprova."
+      }
     }
   },
   "invites": {
@@ -651,7 +748,8 @@
       "schedule": "Salva programmazione",
       "publish": "Segna come pubblicato",
       "startWriting": "Avvia stesura",
-      "startWritingCount": "Quanti reel"
+      "startWritingCount": "Quanti reel",
+      "cancel": "Annulla"
     },
     "done": {
       "ok": "Fatto.",
@@ -669,6 +767,21 @@
       "script_missing": "Lo script è vuoto.",
       "proposal_stale": "Lo script è cambiato dopo la proposta.",
       "unknown": "Errore imprevisto, riprova."
+    },
+    "list": {
+      "title": "I miei compiti",
+      "subtitle": "Express prima, poi la scadenza più vicina.",
+      "empty": "Nessun compito aperto. Ottimo lavoro!",
+      "unassignedTitle": "Da assegnare",
+      "unassignedSubtitle": "Compiti che nessuno ha potuto prendere: assegnali dal pannello del reel."
+    },
+    "approvals": {
+      "title": "Approvazioni",
+      "subtitle": "{count, plural, =0 {Niente da approvare.} =1 {1 elemento in attesa.} other {# elementi in attesa.}}",
+      "empty": "Nessuna approvazione in attesa.",
+      "openAudio": "Ascolta l'audio consegnato",
+      "openVideo": "Guarda il video consegnato",
+      "pendingProposals": "{count, plural, =1 {1 proposta di modifica da decidere} other {# proposte di modifica da decidere}}"
     }
   }
 }

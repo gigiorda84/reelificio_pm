@@ -12,10 +12,11 @@ import {
   MentionTextarea,
   type MentionTextareaHandle,
 } from './mention-textarea';
+import { formatRome } from '@/lib/dates';
 
-type Props = { comment: CommentRow; profiles: ProfileLite[] };
+type Props = { comment: CommentRow; profiles: ProfileLite[]; allowInternal?: boolean };
 
-export function CommentItem({ comment, profiles }: Props) {
+export function CommentItem({ comment, profiles, allowInternal = false }: Props) {
   const t = useTranslations('comments');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
@@ -74,12 +75,17 @@ export function CommentItem({ comment, profiles }: Props) {
         <div className="flex items-baseline gap-2">
           <p className="text-sm font-medium">{displayName}</p>
           <p className="text-xs text-muted-foreground">
-            {created.toLocaleString('it-IT', {
-              dateStyle: 'short',
-              timeStyle: 'short',
-            })}
+            {formatRome(created)}
             {wasEdited ? ` · ${t('edited')}` : ''}
           </p>
+          {comment.internal_only ? (
+            <span
+              className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+              title={t('internalOnlyHint')}
+            >
+              {t('internalOnly')}
+            </span>
+          ) : null}
         </div>
         {comment.is_own && !editing ? (
           <div className="flex gap-1">
@@ -120,7 +126,13 @@ export function CommentItem({ comment, profiles }: Props) {
             initialMentions={comment.mentions}
             onChange={(b) => setDraft(b)}
           />
-          <div className="flex justify-end gap-2">
+          <div className="flex items-center justify-end gap-2">
+            {allowInternal ? (
+              <label className="mr-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                <input type="checkbox" name="internal_only" defaultChecked={comment.internal_only} />
+                {t('internalOnly')}
+              </label>
+            ) : null}
             <Button
               type="button"
               variant="ghost"

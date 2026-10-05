@@ -4,8 +4,10 @@ import { Plus } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { listPages } from '@/lib/pages/queries';
+import { requireInternal } from '@/lib/auth/viewer';
 
 export default async function PagesListPage() {
+  await requireInternal();
   const t = await getTranslations('pages.list');
   const pages = await listPages();
 

@@ -10,9 +10,9 @@ import { Label } from '@/components/ui/label';
 import { updateReelScript } from '@/lib/reels/actions';
 import type { ReelDetail } from '@/lib/reels/queries';
 
-// scriptLocked: from revisione on only admins edit the text (the SQL enforces
-// it); everyone else proposes changes.
-type Props = { reel: ReelDetail; scriptLocked: boolean };
+// The editable script: before revisione, or for admins at any time (the SQL
+// enforces it). Everyone else gets ScriptReadOnly and proposes changes.
+type Props = { reel: ReelDetail };
 
 const FORMATS = [
   'porcino_mono',
@@ -23,7 +23,7 @@ const FORMATS = [
 ] as const;
 const CATEGORIES = ['safe', 'adapted', 'test'] as const;
 
-export function ScriptTab({ reel, scriptLocked }: Props) {
+export function ScriptTab({ reel }: Props) {
   const t = useTranslations('reels.script');
   const tFmt = useTranslations('batches.reel.format');
   const tCat = useTranslations('batches.reel.category');
@@ -41,10 +41,6 @@ export function ScriptTab({ reel, scriptLocked }: Props) {
 
   return (
     <form action={onSubmit} className="space-y-5 max-w-3xl">
-      {scriptLocked ? (
-        <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">{t('locked')}</p>
-      ) : null}
-      <fieldset disabled={scriptLocked} className="space-y-5">
       {reel.parser_warning ? (
         <div className="rounded-md border border-amber-300/70 bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/30 px-4 py-3 text-sm flex items-start gap-2">
           <AlertTriangle className="size-4 mt-0.5 shrink-0" aria-hidden />
@@ -130,9 +126,8 @@ export function ScriptTab({ reel, scriptLocked }: Props) {
         defaultValue={reel.notes ?? ''}
         rows={3}
       />
-      </fieldset>
       <div>
-        <Button type="submit" disabled={pending || scriptLocked}>
+        <Button type="submit" disabled={pending}>
           {pending ? t('saving') : t('save')}
         </Button>
       </div>
