@@ -15,9 +15,12 @@ import { listReelFiles, newestOf } from '@/lib/drive/queries';
 import { folderUrl } from '@/lib/drive/naming';
 import { REEL_STATES } from '@/lib/reels/constants';
 import { listAlternatives, listScriptHistory } from '@/lib/script-lab/versions';
+import { checkReels } from '@/lib/script-lab/recent';
+import type { CheckWarning } from '@/lib/script-lab/checks';
 import { ScriptTab } from './script-tab';
 import { Alternatives } from './alternatives';
 import { VersionHistory } from './version-history';
+import { ChecksPanel } from './checks-panel';
 import { ScriptReadOnly } from './script-read-only';
 import { Proposals } from './proposals';
 import { VoiceTab } from './voice-tab';
@@ -139,9 +142,14 @@ export default async function ReelDetailPage({
     (admin.isAdmin ||
       (!!uid && !!writingRaci && getRaciUsers(writingRaci, 'responsible').includes(uid)) ||
       (!!openTask && openTask.assignee_id === uid));
-  const [alternatives, history] = isExternal
-    ? [[], []]
-    : await Promise.all([listAlternatives(id), listScriptHistory(id)]);
+  const [alternatives, history, checks] = isExternal
+    ? [[], [], new Map<string, CheckWarning[]>()]
+    : await Promise.all([
+        listAlternatives(id),
+        listScriptHistory(id),
+        checkReels([{ id, page_id: reel.page_id, hook: reel.hook, corpo: reel.corpo, chiusura: reel.chiusura, cta: reel.cta }]),
+      ]);
+  const warnings = checks.get(id) ?? [];
 
   const currentRaci = raci.find((r) => r.phase === reel.phase);
   const isResponsible =
@@ -216,6 +224,7 @@ export default async function ReelDetailPage({
           state={reel.state}
           track={reel.track}
           scriptRev={reel.script_rev}
+          checkWarnings={warnings.length}
           caption={reel.caption}
           postedUrl={reel.posted_url}
           task={openTask}
@@ -251,6 +260,7 @@ export default async function ReelDetailPage({
           />
           {isExternal ? null : (
             <>
+              <ChecksPanel warnings={warnings} />
               <Alternatives
                 reelId={reel.id}
                 alternatives={alternatives}

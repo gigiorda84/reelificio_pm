@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeMix, estimateSeconds, sameText, type VersionText } from './mix';
+import { composeMix, sameText, type VersionText } from './mix';
 
 const a: VersionText = { id: 'a', model: 'm/alpha', hook: 'Hook A', corpo: 'Corpo A', chiusura: 'Chiusura A', cta: 'CTA A', notes: 'Regia A' };
 const b: VersionText = { id: 'b', model: 'm/beta', hook: 'Hook B', corpo: 'Corpo B', chiusura: null, cta: 'CTA B', notes: 'Regia B' };
@@ -38,13 +38,5 @@ describe('sameText', () => {
     expect(sameText(m, a)).toBe(true);
     expect(sameText(m, { ...a, notes: null })).toBe(false);
     expect(sameText(composeMix('a', { cta: 'b' }, [a, b])!, a)).toBe(false);
-  });
-});
-
-describe('estimateSeconds', () => {
-  it('counts words with letters or digits at the reading speed', () => {
-    expect(estimateSeconds({ hook: 'Uno due tre', corpo: 'quattro — cinque!', cta: null }, 2.5)).toBe(2);
-    expect(estimateSeconds({ hook: 'parola '.repeat(100) }, 2.5)).toBe(40);
-    expect(estimateSeconds({}, 0)).toBe(0);
   });
 });

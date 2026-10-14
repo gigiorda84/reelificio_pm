@@ -37,6 +37,9 @@ type Props = {
   state: ReelState;
   track: 'batch' | 'express';
   scriptRev: number;
+  // Warnings of the automatic checks on the script (Fase 2 S5): shown next
+  // to the delivery and the decision, never blocking them.
+  checkWarnings: number;
   caption: string | null;
   postedUrl: string | null;
   task: OpenTask | null;
@@ -81,6 +84,7 @@ export function TaskPanel({
   state,
   track,
   scriptRev,
+  checkWarnings,
   caption,
   postedUrl,
   task,
@@ -258,6 +262,11 @@ export function TaskPanel({
                 </div>
               ) : null}
               {noteField}
+              {task.kind === 'writing' && checkWarnings > 0 ? (
+                <a href="#controlli" className="block text-xs text-amber-700 underline dark:text-amber-400">
+                  {t('panel.checkWarnings', { count: checkWarnings })}
+                </a>
+              ) : null}
               <div className="flex justify-end">
                 <Button size="sm" disabled={pending || kitWaiting || (needsFile && !drive.taskFile)}
                   onClick={() => run(() => deliverTask(reelId, task.id, {
@@ -277,6 +286,11 @@ export function TaskPanel({
             <div className="space-y-2">
               {SCRIPT_DECISION_KINDS.includes(task.kind) ? (
                 <p className="text-xs text-muted-foreground">{t('panel.scriptRev', { rev: scriptRev })}</p>
+              ) : null}
+              {SCRIPT_DECISION_KINDS.includes(task.kind) && checkWarnings > 0 ? (
+                <a href="#controlli" className="block text-xs text-amber-700 underline dark:text-amber-400">
+                  {t('panel.checkWarnings', { count: checkWarnings })}
+                </a>
               ) : null}
               {drive.delivered ? (
                 <div className="space-y-1.5">

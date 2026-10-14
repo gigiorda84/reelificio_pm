@@ -9,11 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { decideTask } from '@/lib/tasks/actions';
 import type { ApprovalItem } from '@/lib/tasks/queries';
+import type { CheckWarning } from '@/lib/script-lab/checks';
+import { CheckWarnings } from '@/components/script-lab/check-warnings';
 
 // One approval, built for a phone: what to judge, then Approva (one tap) or
 // Rimanda (tap → optional note → confirm; final approval goes back to the
-// animator unless "dubbing" is chosen).
-export function ApprovalCard({ item }: { item: ApprovalItem }) {
+// animator unless "dubbing" is chosen). For a script, the warnings of the
+// automatic checks (Fase 2 S5) sit above the text; they never block.
+export function ApprovalCard({ item, warnings = [] }: { item: ApprovalItem; warnings?: CheckWarning[] }) {
   const t = useTranslations('tasks');
   const [pending, startTransition] = useTransition();
   const [sendingBack, setSendingBack] = useState(false);
@@ -82,6 +85,7 @@ export function ApprovalCard({ item }: { item: ApprovalItem }) {
 
       {isScript ? (
         <div className="space-y-2 text-sm">
+          <CheckWarnings warnings={warnings} compact />
           {blocks.length ? (
             blocks.map(([label, text]) => (
               <div key={label}>

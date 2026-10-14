@@ -167,6 +167,7 @@ export async function listUnassignedTasks(): Promise<TaskListItem[]> {
 
 export type ApprovalItem = TaskListItem & {
   reel: TaskListItem['reel'] & {
+    page_id: string;
     script_rev: number;
     hook: string | null;
     corpo: string | null;
@@ -204,7 +205,7 @@ export async function listMyApprovals(): Promise<ApprovalItem[]> {
   const { data: rows, error: rowsError } = await supabase
     .from('tasks')
     .select(
-      'id, kind, status, started_at, yellow_at, due_at, escalate_at, previous_task_id, reels(id, code, title, track, script_rev, hook, corpo, chiusura, cta, raw_content, audio_drive_url, video_drive_url, pages(name))',
+      'id, kind, status, started_at, yellow_at, due_at, escalate_at, previous_task_id, reels(id, page_id, code, title, track, script_rev, hook, corpo, chiusura, cta, raw_content, audio_drive_url, video_drive_url, pages(name))',
     )
     .in('id', ids);
   if (rowsError) throw rowsError;

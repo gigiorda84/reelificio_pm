@@ -302,6 +302,15 @@
       "not_authorized": "Non hai i permessi per modificare questo script.",
       "invalid_input": "Richiesta non valida.",
       "unknown": "Operazione non riuscita, riprova."
+    },
+    "checks": {
+      "title": "Controlli",
+      "none": "Nessun avviso sul testo salvato.",
+      "hint": "Avvisi sul testo salvato: non bloccano la consegna, e li vede anche l'approvatore.",
+      "bannedWord": "Parola vietata «{match}» in {block}.",
+      "duration": "Durata stimata {seconds} s ({words} parole): la bibbia chiede {min}–{max} s.",
+      "repeatedSame": "{block} uguale a quella di {code}.",
+      "repeatedSimilar": "{block} molto simile a quella di {code} ({percent}%)."
     }
   },
   "batches": {
@@ -874,7 +883,8 @@
       "orLink": "Oppure incolla un link (https://…)",
       "deliveredAudio": "Apri l’audio in Drive",
       "deliveredVideo": "Guarda il video in Drive",
-      "openFolder": "Apri la cartella Drive"
+      "openFolder": "Apri la cartella Drive",
+      "checkWarnings": "{count, plural, one {# avviso sul testo} other {# avvisi sul testo}}: non bloccano, li vede l'approvatore."
     },
     "actions": {
       "accept": "Accetto",

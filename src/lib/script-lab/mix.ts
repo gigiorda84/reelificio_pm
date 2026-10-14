@@ -57,12 +57,3 @@ export function sameText(
 ): boolean {
   return BLOCKS.every((b) => (mix.blocks[b] ?? null) === (current[b] ?? null)) && (mix.notes ?? null) === (current.notes ?? null);
 }
-
-// Words and estimated seconds of a text at a reading speed (S5 reuses it).
-export function estimateSeconds(blocks: Partial<Record<Block, string | null>>, wordsPerSecond: number): number {
-  const words = BLOCKS.map((b) => blocks[b] ?? '')
-    .join(' ')
-    .split(/\s+/)
-    .filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
-  return wordsPerSecond > 0 ? Math.round(words / wordsPerSecond) : 0;
-}
