@@ -378,6 +378,26 @@ Avvio di S0 in ritardo: la finestra del 14–16 ottobre è in parte spesa per le
 - il dev server fa login sul sandbox e si rifiuta di partire con il ref dello staging;
 - la prova Vercel su Hobby è annotata e quella su Pro è pianificata.
 
+**Stato (2026-10-14):**
+- **Fatto e verde:**
+  - worktree `../Reelificio_PM-fase2`, branch `fase-2-script-lab` da `fase-1-s5-drive` (`ea8df2f`);
+  - `supabase/fase2/000_guards.sql`: `_assert_body` più i pin md5 di `private.start_writing`, `public.start_writing` e `public.claim_jobs`, controllati solo finché esiste la firma di Fase 1. Sono rieseguibili, e un carattere cambiato in `start_writing` fa fallire la guardia (provato);
+  - `001_enum_values.sql`;
+  - `run.sh` e `upgrade.sh` verdi con la tappa Fase 2 (`apply_fase2` in `lib.sh`; la tappa R1 salta `*_fase2_*`);
+  - allowlist con la sezione Fase 2.
+- **Sandbox `reelificio-pm-fase2`** (ref `vgpjcqttekxxnkaeyhmh`, org Free AlphaTechnology.ai, Francoforte, PG 17.11), creato via Management API con l'OK dell'utente:
+  - migrazioni, contract di R1 e Fase 2 applicati con `scripts/fase2-sandbox-migrate.ts` (un file per richiesta, atomico: provato con un errore voluto). La seconda esecuzione non ha nulla da fare. `00_guards.sql` è verde sul sandbox;
+  - auth come lo staging: iscrizioni chiuse, magic link, SMTP Resend con mittente "Reelificio Fase 2 (sandbox)", redirect `localhost` e anteprime `*-gigiordas-projects`;
+  - `scripts/fase2-seed.ts`: admin `hello@reelificio.com` più il fixture di Fase 1 (Pagina Test TT, 9 utenti di prova, batch).
+- **Ambiente e strumenti:**
+  - `scripts/fase2-dev.sh` si rifiuta di partire con il ref dello staging, con un `.env.local` nel worktree o con Drive, Telegram o Sentry valorizzati (provato);
+  - il dev server sul sandbox risponde, e `task-sweep` aggiorna il battito del sandbox mentre quello dello staging resta fermo;
+  - `scripts/fase2-promote.sh` (`--dry-run`, `--check`, `--rebase`) provato su un clone usa e getta. Rifiuta la promozione senza il contract di R1 come migrazione e con timestamp futuri, e `--check` vede un hotfix successivo;
+  - target `sandbox` in `scripts/lib/target.ts`; `.env.example` con `OPENROUTER_API_KEY` e `AI_PROVIDER`.
+- **Da fare:**
+  - login dal browser sul sandbox (magic link nella casella `hello@`);
+  - variabili Preview del branch verso il sandbox, push del branch e prova `after()` / `maxDuration` su Hobby, da ripetere su Pro. Servono gli OK dell'utente.
+
 ### S2 — Bibbia · 2,5 giorni · senza chiave
 
 **SQL** `010_bible.sql`:

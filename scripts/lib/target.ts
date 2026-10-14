@@ -3,6 +3,8 @@
 //   --target staging     (default) loads .env.local
 //   --target production  loads .env.production.local, prints the project and
 //                        asks to type the project ref before going on
+//   --target sandbox     loads .env.fase2.local: the Fase 2 sandbox project
+//                        (docs/fase2-plan.md D-A, DB1), fake data only
 //
 // The project ref in the URL must match the target, so a misplaced env file
 // stops the script instead of writing to the wrong database. Staging-only
@@ -16,16 +18,18 @@ import WebSocket from 'ws';
 (globalThis as unknown as { WebSocket: typeof WebSocket }).WebSocket =
   WebSocket as unknown as typeof globalThis.WebSocket;
 
-export type Target = 'staging' | 'production';
+export type Target = 'staging' | 'production' | 'sandbox';
 
 export const PROJECT_REFS: Record<Target, string> = {
   staging: 'zrzgxudzetuztleujfri',
   production: 'rbcgtwohcsqjmyjzhlbx',
+  sandbox: 'vgpjcqttekxxnkaeyhmh',
 };
 
-const ENV_FILES: Record<Target, string> = {
+export const ENV_FILES: Record<Target, string> = {
   staging: '.env.local',
   production: '.env.production.local',
+  sandbox: '.env.fase2.local',
 };
 
 export type Loaded = {
@@ -46,8 +50,8 @@ export async function loadTarget(
   const i = args.indexOf('--target');
   if (i >= 0) {
     const value = args[i + 1];
-    if (value !== 'staging' && value !== 'production') {
-      throw new Error('--target must be staging or production');
+    if (value !== 'staging' && value !== 'production' && value !== 'sandbox') {
+      throw new Error('--target must be staging, production or sandbox');
     }
     target = value;
     args.splice(i, 2);

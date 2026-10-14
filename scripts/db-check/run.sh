@@ -17,6 +17,8 @@ if ! ls "$ROOT"/supabase/migrations/*_fase1_r1_contract.sql >/dev/null 2>&1; the
   echo "migrate: fase1_r1_recontract.sql (contract, from supabase/rollback)"
   "${PSQL[@]}" --single-transaction -f "$ROOT/supabase/rollback/fase1_r1_recontract.sql"
 fi
+# Fase 2 goes on top of R1 and R2; the Fase 1 checks below must still pass.
+apply_fase2
 export PGOPTIONS="-c db_check.contract_applied=on"
 
 for f in "$HERE"/checks/*.sql; do

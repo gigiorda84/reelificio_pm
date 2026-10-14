@@ -25,7 +25,7 @@ echo "seed:    seed-legacy.sql"
 # flight (I13).
 for f in "$ROOT"/supabase/migrations/*.sql; do
   v=$(basename "$f" | cut -d_ -f1)
-  case "$f" in *_fase1_drive*) continue ;; esac
+  case "$f" in *_fase1_drive*|*_fase2_*) continue ;; esac
   [ "$v" -gt "$LAST_FASE0" ] && apply_migration "$f"
 done
 
@@ -83,4 +83,16 @@ done
 upgrade_check 05_drive_switch.sql
 guards contract
 
-echo "OK: upgrade from Fase 0, contract, uncontract, reconcile and the R1 → R2 switch verified"
+# Fase 2 (docs/fase2-plan.md §7.2), over R2 with reels in flight: from
+# supabase/fase2/ before the promotion, as *_fase2_* migrations after it.
+if fase2_promoted; then
+  for f in "$ROOT"/supabase/migrations/*_fase2_*.sql; do
+    apply_migration "$f"
+  done
+else
+  apply_fase2
+fi
+if [ -f "$HERE/checks-upgrade/06_fase2.sql" ]; then upgrade_check 06_fase2.sql; fi
+guards contract
+
+echo "OK: upgrade from Fase 0, contract, uncontract, reconcile, the R1 → R2 switch and Fase 2 verified"

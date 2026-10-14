@@ -56,3 +56,21 @@ apply_migration() {
   echo "migrate: $(basename "$1")"
   "${PSQL[@]}" --single-transaction -f "$1"
 }
+
+# Fase 2 (docs/fase2-plan.md D-A): its SQL lives in supabase/fase2/ until
+# scripts/fase2-promote.sh moves it into supabase/migrations/ as *_fase2_*.
+fase2_promoted() {
+  ls "$ROOT"/supabase/migrations/*_fase2_*.sql >/dev/null 2>&1
+}
+
+# Applies supabase/fase2/*.sql in name order, one transaction per file. A
+# no-op once promoted: the files are then ordinary migrations.
+apply_fase2() {
+  fase2_promoted && return 0
+  local f
+  for f in "$ROOT"/supabase/fase2/*.sql; do
+    [ -e "$f" ] || continue
+    echo "migrate: fase2/$(basename "$f")"
+    "${PSQL[@]}" --single-transaction -f "$f"
+  done
+}

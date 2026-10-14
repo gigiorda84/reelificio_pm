@@ -21,6 +21,7 @@ declare
     'set_absence', 'schedule_reel', 'publish_reel', 'propose_text_change', 'decide_text_proposal',
     -- Fase 1 (S3): configuration
     'set_sla_policy', 'set_approval_group', 'approval_queue', 'task_previous_note'
+    -- Fase 2 (docs/fase2-plan.md §7.2): each slice adds its RPCs here
   ];
   v_bad text;
 begin
