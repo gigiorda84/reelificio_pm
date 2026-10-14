@@ -673,10 +673,23 @@ Se nel frattempo lo stato cambia, `requested_gen` cresce e il job riparte (S4): 
   - `check-drive-folder.ts` è verde su nomi, radice, archivio, kit e permessi, tranne la condivisione. Un giro in più del job lascia la cartella identica.
   - Condivisione: gli esterni di prova hanno indirizzi `hello+…@reelificio.com`. Drive li rifiuta (400 `invalidSharingRequest`); l'errore è registrato sulla condivisione e l'avviso `drive_issue` è partito una volta per persona. Le condivisioni si sono chiuse quando si sono chiusi i compiti.
   - Drive rispento alla fine: i 3 compiti aperti sono tornati ai link (`drive_off`), nessun job in sospeso, `job_health` pulito. Le notifiche dei compiti di R1 generate dal driver sono state saltate, per non riempire la casella di prova.
+- Anteprime Vercel (2026-10-14): fino a quel giorno l'ambiente Preview condivideva tutte le variabili con la produzione, quindi le anteprime usavano il database di produzione. Corretto con l'OK dell'utente:
+  - Supabase, `CRON_SECRET` e `GOOGLE_SHARED_DRIVE_ID` hanno valori dello staging solo per Preview;
+  - `NEXT_PUBLIC_APP_URL` è impostato per ciascun branch di anteprima;
+  - Telegram è spento sulle anteprime;
+  - la verifica: lo sweep chiamato sulle due anteprime aggiorna il battito nello staging.
+
+  Lo staging (piano Free) era in pausa dopo 9 giorni senza attività; l'utente l'ha riattivato. Ai suoi redirect consentiti è stato aggiunto `https://*-gigiordas-projects.vercel.app/**`.
+- E4 da iPhone (2026-10-14), sull'anteprima di `fase-1-s5-drive` con Drive acceso sullo staging, reel TT-2611-04 creato dal motore:
+  - il doppiatore esterno (`hello+doppiatore@…`) ha fatto login con magic link (Safari + app Mail), accettato, caricato l'audio dall'uploader a chunk, proposto una modifica all'HOOK e consegnato;
+  - file `TT-2611-04_audio_v1.mp3` (6,5 MB, verificato e `ready` in ~3 s), compito di approvazione audio creato;
+  - `check-drive-folder.ts` verde;
+  - la cartella l'ha creata il job eseguito da Vercel, quindi l'env Drive dell'anteprima è a posto.
+
+  Non provati: un file ≥ 20 MB, cioè più chunk, e la ripresa dopo un'interruzione su iPhone (già provata nello spike S0 e dal driver su staging con 20 MB), e un commento dell'esterno. L'utente ha considerato E4 sufficiente così. Drive rispento alla fine.
 - Da fare per chiudere S5:
   - una condivisione riuscita e la sua revoca (AC8, entro 10 minuti dalla consegna): serve un account Google vero come `drive_email` di un esterno di prova;
-  - E4 con upload ≥ 20 MB da iPhone (U1 nel browser vero, con l'interfaccia);
-  - i reel TT sono in `programmato`: per gli e2e di R1 vanno pubblicati o rifatti.
+  - i reel TT sono in `programmato` (TT-2611-04 in `doppiaggio`, approvazione audio aperta): per gli e2e di R1 vanno pubblicati o rifatti.
 
 ### S6 — Collaudo completo, documentazione, R2 · 3,5 giorni (19–24 novembre: collaudo 19–20, R2 lunedì 23, documenti 24)
 
