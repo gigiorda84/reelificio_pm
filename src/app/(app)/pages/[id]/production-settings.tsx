@@ -85,6 +85,14 @@ export function ProductionSettings({ pageId, initial, candidates, sla, groups, e
           />
           {t('requiresValidation')}
         </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.script_lab_enabled}
+            onChange={(e) => setForm({ ...form, script_lab_enabled: e.target.checked })}
+          />
+          {t('scriptLab')}
+        </label>
         <div className="grid gap-4 md:grid-cols-2">
           {ROLE_FIELDS.map((field) => (
             <div key={field} className="space-y-1.5">

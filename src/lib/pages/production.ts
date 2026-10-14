@@ -8,6 +8,8 @@ import { ROLE_FIELDS, SLA_STEPS, type RoleField, type SlaStep, type SlaTrack } f
 export type PageProduction = {
   requires_scientific_validation: boolean;
   approval_group_id: string | null;
+  // Fase 2 Script Lab switch (docs/fase2-plan.md S2), off by default.
+  script_lab_enabled: boolean;
 } & Record<RoleField, string | null>;
 
 export type SlaCell = {
@@ -29,7 +31,7 @@ export async function getPageProduction(pageId: string): Promise<PageProduction 
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from('pages')
-    .select(`requires_scientific_validation, approval_group_id, ${ROLE_FIELDS.join(', ')}`)
+    .select(`requires_scientific_validation, approval_group_id, script_lab_enabled, ${ROLE_FIELDS.join(', ')}`)
     .eq('id', pageId)
     .maybeSingle();
   if (error) throw error;

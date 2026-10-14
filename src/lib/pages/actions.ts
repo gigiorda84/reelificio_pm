@@ -144,6 +144,7 @@ const productionSchema = z.object({
   animator_reserve_id: optionalUuid,
   validator_id: optionalUuid,
   approval_group_id: optionalUuid.optional(),
+  script_lab_enabled: z.boolean().optional(),
 });
 
 // Validation flag, titulars, reserves, validator and group, written directly

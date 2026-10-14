@@ -1,7 +1,7 @@
 // Fixture for the Fase 2 sandbox (docs/fase2-plan.md S0, §7.3). Sandbox
 // only; safe to run again.
 //
-//   pnpm exec tsx scripts/fase2-seed.ts [--as hello@reelificio.com]
+//   pnpm exec tsx scripts/fase2-seed.ts [--as hello@reelificio.com] [--no-bible]
 //
 // 1. The admin (--as): created in auth if missing, marked internal and admin.
 // 2. The Fase 1 fixture, by running scripts/fase1-seed-staging.ts against the
@@ -13,7 +13,9 @@
 // No email is sent: users are created confirmed, and the magic link is
 // requested from the login page when needed.
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { bibleSchema, voiceSchema } from '../src/lib/bible/schema';
 import { loadTarget } from './lib/target';
 
 async function main() {
@@ -59,6 +61,33 @@ async function main() {
     ],
     { stdio: 'inherit' },
   );
+
+  // 3. The P&P bible on Pagina Test, only while the bible is still empty
+  // (version 1), so a later e2e edit is never overwritten. Written with the
+  // service role: save_bible() needs a signed-in editor.
+  if (!args.includes('--no-bible')) {
+    const fixture = JSON.parse(readFileSync(join(__dirname, '../tests/fixtures/bible-porcino-papaya.json'), 'utf8'));
+    const bible = bibleSchema.parse(fixture.bible);
+    const voice = voiceSchema.parse(fixture.voice);
+    const page = await admin.from('pages').select('id').eq('slug', 'pagina-test').single();
+    if (page.error) throw new Error(`page: ${page.error.message}`);
+    const current = await admin.from('page_bibles').select('version').eq('page_id', page.data.id).maybeSingle();
+    if (current.error) throw new Error(`bible: ${current.error.message}`);
+    if (!current.data || current.data.version === 1) {
+      const b = await admin
+        .from('page_bibles')
+        .upsert({ page_id: page.data.id, ...bible, version: 2, updated_by: id }, { onConflict: 'page_id' })
+        .select('id');
+      const v = await admin
+        .from('voice_briefs')
+        .upsert({ page_id: page.data.id, ...voice, updated_by: id }, { onConflict: 'page_id' })
+        .select('id');
+      if (b.error || v.error) throw new Error(`bible seed: ${b.error?.message ?? v.error?.message}`);
+      console.log('bible: Porcino & Papaya on Pagina Test');
+    } else {
+      console.log(`bible: already edited (version ${current.data.version}), left as is`);
+    }
+  }
 
   console.log('OK: sandbox seeded');
 }

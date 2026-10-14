@@ -1,0 +1,41 @@
+{
+  "_comment": "Bible of Porcino & Papaya for the Fase 2 sandbox and the S1 spike (docs/fase2-plan.md S0, S1), written by hand from porcino-papaya-may.txt. No personal data.",
+  "bible": {
+    "tone": "Divulgazione su sesso, salute e relazioni con dati veri e ironia. Battute secche, frasi brevi a capo, pause scritte con i puntini. Mai volgare: allusivo sì, esplicito no. Il dato scientifico apre, la battuta chiude.",
+    "characters": "Porcino: fungo maschio, sfacciato e vanitoso, tira tutto verso il sesso, si crede irresistibile; parla diretto, gonfia i risultati, sillaba le parole quando vuole convincere (\"sem-pli-ce!\"). Non diventa mai volgare né aggressivo.\nPapaya: frutto femmina, ironica e asciutta, competente, smonta Porcino con una riga sola; parte dai dati e dal benessere, entra \"secca\". Non fa la predica e non usa termini tecnici senza spiegarli.\nFormati: monologo di uno dei due con cameo dell'altro in chiusura, oppure botta e risposta.",
+    "themes": ["sesso e salute", "relazioni", "sonno", "stress", "invecchiamento", "dating"],
+    "keywords": ["sesso", "coppia", "cuore", "ormoni", "dopamina", "tinder"],
+    "allowed_ctas": [
+      "Seguici. Perché queste cose non te le ha spiegate nessuno… e si vede.",
+      "Seguici. Che qui i dati fanno più rumore delle opinioni.",
+      "Seguici. Che la mente umana è più strana del tuo algoritmo."
+    ],
+    "duration_min_s": 30,
+    "duration_max_s": 45,
+    "words_per_second": 2.5,
+    "example_scripts": [
+      {
+        "title": "Infarto",
+        "hook": "Farlo almeno due volte a settimana riduce il rischio di infarto!",
+        "corpo": "Chi fa sesso almeno due volte a settimana ha meno rischio di problemi al cuore. Abbassa la pressione. Riduce lo stress. Ti fa dormire meglio. Praticamente quello che fa la palestra… ma senza svegliarti alle sei.",
+        "chiusura": "Parla col tuo cardiologo. Ma soprattutto parla col tuo partner.\nPapaya (entra secca): \"Non sono un farmaco.\"\nPorcino: \"Strano. Funzioni meglio di molte terapie.\"",
+        "cta": "Seguici. Perché se devo salvarti la vita… almeno fammi crescere il profilo."
+      },
+      {
+        "title": "Mortalità",
+        "hook": "Le donne che lo fanno raramente hanno fino al 70% di rischio in più di morire prima.",
+        "corpo": "Ora calma. Non è il sesso in sé. È quello che rappresenta. Quando manca… manca connessione, manca intimità, manca benessere.",
+        "chiusura": "Perché io non sono un optional… sono qui per essere vissuta.\nPorcino (prova a inserirsi): \"Finalmente qualcuno lo dice.\"\nPapaya: \"Non parlavo con te.\"",
+        "cta": "Seguici. Che qui i dati fanno più rumore delle opinioni."
+      }
+    ],
+    "default_models": []
+  },
+  "voice": {
+    "adjectives": ["ironico", "caldo", "secco", "complice"],
+    "banned_words": ["scopare", "figa", "cazzo"],
+    "reference_audio_urls": [],
+    "allowed_liberties": "Piccole interiezioni e pause prima della battuta; nessuna parola aggiunta ai dati.",
+    "anomaly_procedure": "Se una battuta non suona, segnalala con una proposta di modifica invece di cambiarla."
+  }
+}

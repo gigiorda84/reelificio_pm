@@ -127,7 +127,7 @@
       "back": "Torna alle pagine",
       "section": {
         "general": "Generale",
-        "voiceBrief": "Voice brief",
+        "bible": "Bibbia",
         "raci": "RACI",
         "comingSoon": "Disponibile in uno sprint successivo.",
         "production": "Produzione"
@@ -135,6 +135,7 @@
     },
     "production": {
       "requiresValidation": "Validazione scientifica prima di Confermato",
+      "scriptLab": "Script Lab attivo (generazione AI degli script con «Avvia stesura»)",
       "roles": {
         "dubber_titular_id": "Doppiatore titolare",
         "dubber_reserve_id": "Doppiatore di riserva",
@@ -177,6 +178,69 @@
         "same_person": "Titolare e riserva devono essere persone diverse, e così doppiatore e animatore titolari.",
         "unknown": "Errore imprevisto, riprova."
       }
+    }
+  },
+  "bible": {
+    "title": "Bibbia della pagina",
+    "intro": "Tono, personaggi, regole e voce della pagina: la generazione degli script parte da qui.",
+    "readOnly": "Solo gli admin e il Responsible della scrittura della pagina possono modificarla.",
+    "open": "Apri la bibbia",
+    "complete": "Bibbia completa.",
+    "incomplete": "Da completare: {missing}.",
+    "gaps": {
+      "tone": "tono",
+      "characters": "personaggi",
+      "duration": "durata",
+      "cta": "almeno una CTA"
+    },
+    "namesWarning": "Nei testi compaiono nomi di persone del team ({names}). Se non sono personaggi, toglili: i nomi veri non devono arrivare ai modelli AI.",
+    "sections": {
+      "tone": "Tono",
+      "characters": "Personaggi",
+      "duration": "Durata",
+      "ctas": "CTA ammesse",
+      "themes": "Temi e keyword",
+      "examples": "Script di esempio",
+      "models": "Modelli predefiniti",
+      "voice": "Voce"
+    },
+    "hints": {
+      "tone": "Come parla la pagina: registro, umorismo, cosa evita.",
+      "characters": "Per ogni personaggio: chi è, carattere, voce, tic, cosa non direbbe mai.",
+      "duration": "Durata ammessa in secondi (5–180) e velocità di lettura in parole al secondo, per stimare la durata degli script.",
+      "onePerLine": "Una per riga.",
+      "themes": "Separa i valori con una virgola. Temi e keyword servono anche alla ricerca delle idee.",
+      "examples": "Fino a {max} script approvati che rappresentano bene la pagina.",
+      "models": "Fino a 3 id di modelli OpenRouter, separati da virgola, preselezionati in «Avvia stesura». La scelta da un elenco arriva con la generazione.",
+      "voice": "La sezione che vedono anche i doppiatori.",
+      "csv": "Separa i valori con una virgola.",
+      "banned": "Separa i valori con una virgola. Le vedono i doppiatori e le usano la generazione e i controlli."
+    },
+    "fields": {
+      "durationMin": "Minimo (s)",
+      "durationMax": "Massimo (s)",
+      "wordsPerSecond": "Parole al secondo",
+      "themes": "Temi",
+      "keywords": "Keyword",
+      "exampleTitle": "Titolo",
+      "adjectives": "Aggettivi",
+      "bannedWords": "Parole vietate",
+      "referenceAudio": "Riferimenti audio",
+      "allowedLiberties": "Libertà consentite",
+      "anomalyProcedure": "Procedura anomalie"
+    },
+    "addExample": "Aggiungi esempio",
+    "removeExample": "Togli esempio",
+    "copyFrom": "Copia da un reel approvato…",
+    "copy": "Copia",
+    "save": "Salva bibbia",
+    "saving": "Salvataggio…",
+    "saved": "Bibbia salvata.",
+    "errors": {
+      "stale": "Qualcun altro ha salvato la bibbia nel frattempo: ricarica la pagina e riapplica le modifiche.",
+      "not_authorized": "Solo gli admin e il Responsible della scrittura della pagina possono modificare la bibbia.",
+      "invalid_input": "Controlla i campi: durata tra 5 e 180 secondi (minimo ≤ massimo), al massimo 3 modelli diversi, link audio che iniziano con http.",
+      "unknown": "Salvataggio non riuscito, riprova."
     }
   },
   "batches": {
@@ -504,25 +568,6 @@
     },
     "internalOnly": "Nota interna",
     "internalOnlyHint": "Visibile solo agli interni: i collaboratori esterni non la vedono."
-  },
-  "voiceBriefs": {
-    "save": "Salva voice brief",
-    "saving": "Salvataggio…",
-    "saved": "Voice brief salvato.",
-    "fields": {
-      "adjectives": "Aggettivi",
-      "referenceAudio": "Riferimenti audio",
-      "bannedWords": "Parole vietate",
-      "allowedLiberties": "Libertà consentite",
-      "anomalyProcedure": "Procedura anomalie"
-    },
-    "hints": {
-      "csv": "Separa i valori con una virgola.",
-      "urlsPerLine": "Un URL per riga."
-    },
-    "errors": {
-      "notAdmin": "Solo gli admin possono modificare il voice brief."
-    }
   },
   "settings": {
     "title": "Impostazioni",

@@ -7,12 +7,12 @@ import { getPage } from '@/lib/pages/queries';
 import { updatePage, type PageActionResult } from '@/lib/pages/actions';
 import { getRaciConfigForPage } from '@/lib/raci/queries';
 import { listProfiles } from '@/lib/profiles/queries';
-import { getVoiceBriefForPage } from '@/lib/voice-briefs/queries';
+import { getBible } from '@/lib/bible/queries';
+import { bibleCompleteness } from '@/lib/bible/schema';
 import { getPageProduction, getPageSla, listApprovalGroups } from '@/lib/pages/production';
 import { listAssignableProfiles } from '@/lib/tasks/queries';
 import { PageForm } from '../new/page-form';
 import { RaciEditor } from './raci-editor';
-import { VoiceBriefEditor } from './voice-brief-editor';
 import { ProductionSettings } from './production-settings';
 import { requireInternal } from '@/lib/auth/viewer';
 
@@ -23,12 +23,13 @@ export default async function PageDetailPage({
 }) {
   const viewer = await requireInternal();
   const { id } = await params;
-  const [t, page, raci, profiles, voiceBrief, production, sla, groups, candidates] = await Promise.all([
+  const [t, tBible, page, raci, profiles, { bible }, production, sla, groups, candidates] = await Promise.all([
     getTranslations('pages'),
+    getTranslations('bible'),
     getPage(id),
     getRaciConfigForPage(id),
     listProfiles(),
-    getVoiceBriefForPage(id),
+    getBible(id),
     getPageProduction(id),
     getPageSla(id),
     listApprovalGroups(),
@@ -36,6 +37,7 @@ export default async function PageDetailPage({
   ]);
 
   if (!page || !production) notFound();
+  const bibleGaps = bibleCompleteness(bible).missing;
 
   // Bind id into the action so the form can call it without re-passing.
   const updateAction = async (formData: FormData): Promise<PageActionResult> => {
@@ -103,11 +105,21 @@ export default async function PageDetailPage({
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-medium">
-            {t('detail.section.voiceBrief')}
+            {t('detail.section.bible')}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <VoiceBriefEditor pageId={id} initial={voiceBrief} />
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {bibleGaps.length === 0
+              ? tBible('complete')
+              : tBible('incomplete', { missing: bibleGaps.map((m) => tBible(`gaps.${m}`)).join(', ') })}
+          </p>
+          <Link
+            href={`/pages/${id}/bibbia`}
+            className="text-sm font-medium underline underline-offset-4 hover:text-foreground"
+          >
+            {tBible('open')}
+          </Link>
         </CardContent>
       </Card>
 
