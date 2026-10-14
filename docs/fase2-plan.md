@@ -512,7 +512,11 @@ Avvio di S0 in ritardo: la finestra del 14–16 ottobre è in parte spesa per le
   - (2) il re-sync applica alle revisioni dell'anteprima confermata, controlla l'admin una volta sola prima di scrivere, e mostra i reel non aggiornati (`skipped`) nel dialogo dopo l'applicazione.
   - Tra le minori è corretta la base delle alternative quando cambiano (S6). Restano: due proposte identiche pendenti sullo stesso campo, dove la versione indica la più recente, e le note di regia della base che sostituiscono le note (volute; le precedenti restano nello storico).
 - **`scripts/test-resync.ts`:** prova solo la logica del diff, che non è cambiata, e legge lo staging. Il percorso di applicazione è coperto da `13_versions.sql` e da `api-check`; la prova dal vivo del re-sync si fa in S3 con F2-E2, quando un batch del Doc viene importato sul sandbox.
-- **Da fare:** prova dell'utente (F2-E6, F2-E7) sul sandbox.
+- **S4 chiusa il 2026-10-15.** L'assistente ha fatto le prove in Chrome sul sandbox con la sessione admin dell'utente, su TT-2611-02 (in `bozza`, compito `writing` aperto):
+  - **F2-E6:** base `demo/alpha`, CTA da `demo/beta`; l'anteprima mostra "CTA · demo/beta"; Applica → "Script aggiornato."; il form mostra il testo del mix (rev 1); hook corretto a mano e salvato. Storico: Import → Mix → Modifica;
+  - **F2-E7:** Ripristina sulla versione Import → testo originale, rev 3, voce "Ripristino" che punta all'Import. "Script pronto" → `revisione`, revisione assegnata ad Approvatore Test; il pannello Alternative dice "solo in Bozza", senza pulsanti, e lo Storico non ha più Ripristina;
+  - **DB:** `import@0 → mix@1` (con `block_sources`) `→ manuale@2 → ripristino@3`. La provenienza alla consegna è: base `demo/alpha`, blocchi `manuale`, `edited_after_mix`. Nessun errore in console;
+  - **Non provato dall'interfaccia:** la proposta accettata, perché come admin il reel in `revisione` mostra il form modificabile e non "Proponi". È coperta da `13_versions.sql` tramite `decide_text_proposal`.
 
 ### S1 — Spike AI su 3 modelli · 1 giorno · **con chiave (entro venerdì 30 ottobre)**
 
