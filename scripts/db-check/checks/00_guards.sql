@@ -22,7 +22,8 @@ declare
     -- Fase 1 (S3): configuration
     'set_sla_policy', 'set_approval_group', 'approval_queue', 'task_previous_note',
     -- Fase 2 (docs/fase2-plan.md §7.2): each slice adds its RPCs here
-    'save_bible'
+    'save_bible',
+    'save_reel_script', 'apply_script_version', 'restore_script_version', 'reel_script_provenance'
   ];
   v_bad text;
 begin

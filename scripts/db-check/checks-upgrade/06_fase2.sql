@@ -31,4 +31,22 @@ begin
   if exists (select 1 from pages where script_lab_enabled) then
     raise exception 'FAIL: the Script Lab is on for a page after the migration';
   end if;
+
+  -- S4 backfill: every reel with text has exactly one `import` version with
+  -- its current text and revision; a reel without text has none.
+  if exists (
+       select 1 from reels r
+        where coalesce(r.hook, r.corpo, r.chiusura, r.cta, r.notes, r.raw_content) is not null
+          and (select count(*) from script_versions v
+                where v.reel_id = r.id and v.source = 'import'
+                  and (v.hook, v.corpo, v.chiusura, v.cta, v.notes, v.raw_content, v.script_rev)
+                      is not distinct from (r.hook, r.corpo, r.chiusura, r.cta, r.notes, r.raw_content, r.script_rev)) <> 1)
+     or exists (
+       select 1 from reels r join script_versions v on v.reel_id = r.id
+        where coalesce(r.hook, r.corpo, r.chiusura, r.cta, r.notes, r.raw_content) is null) then
+    raise exception 'FAIL: the import backfill of script_versions';
+  end if;
+  if (select count(*) from script_versions) = 0 then
+    raise exception 'FAIL: the fixture has no reel with text to backfill';
+  end if;
 end $$;

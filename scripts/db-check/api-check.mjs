@@ -337,6 +337,49 @@ const OPEN = ['unassigned', 'assigned', 'in_progress'];
   check('anon reads no bible', !!anon.error || anon.data?.length === 0, anon.error ?? anon.data);
 }
 
+// Fase 2 S4 — script versions (docs/fase2-plan.md AC16–19): a reel born with
+// text gets an `import` version; the Responsible saves and mixes through the
+// RPCs; a caller cannot claim the `mix` source; the external reads no
+// version, and no one writes script_versions directly.
+{
+  const EXTERNAL = '00000000-0000-0000-0000-00000000000e';
+  const { data: reel, error: insErr } = await service.from('reels').insert({
+    batch_id: BATCH, page_id: '10000000-0000-0000-0000-000000000001', code: 'PP-2610-40', ordinal: 40,
+    title: 'Versioni via API', phase: 'script_writing', hook: 'Hook importato',
+  }).select('id, script_rev').single();
+  check('service role inserts a reel with text', !insErr, insErr);
+  const imported = await user(MEMBER).from('script_versions').select('source').eq('reel_id', reel?.id);
+  check('a reel with text has an import version', imported.data?.length === 1 && imported.data[0].source === 'import', imported.error ?? imported.data);
+
+  const saved = await user(MEMBER).rpc('save_reel_script', {
+    p_reel_id: reel?.id, p_fields: { hook: 'Hook rivisto', corpo: 'Corpo' }, p_expected_rev: reel?.script_rev,
+  });
+  check('Responsible save_reel_script', saved.data === 'ok', saved.error ?? saved.data);
+  const stale = await user(MEMBER).rpc('save_reel_script', {
+    p_reel_id: reel?.id, p_fields: { hook: 'vecchio' }, p_expected_rev: reel?.script_rev,
+  });
+  check('save_reel_script on an old revision is stale', stale.data === 'stale', stale.error ?? stale.data);
+  const claimed = await user(ADMIN).rpc('save_reel_script', {
+    p_reel_id: reel?.id, p_fields: { hook: 'x' }, p_expected_rev: reel?.script_rev + 1, p_source: 'mix',
+  });
+  check('nobody declares the mix source', claimed.data === 'invalid_input', claimed.error ?? claimed.data);
+
+  const { data: alt } = await service.from('script_versions').insert({
+    reel_id: reel?.id, source: 'ai', model: 'm/alpha', hook: 'Hook AI', corpo: 'Corpo AI', chiusura: 'C', cta: 'CTA AI',
+  }).select('id').single();
+  const mixed = await user(MEMBER).rpc('apply_script_version', {
+    p_reel_id: reel?.id, p_base: alt?.id, p_blocks: {}, p_expected_rev: reel?.script_rev + 1,
+  });
+  check('Responsible applies an alternative', mixed.data === 'ok', mixed.error ?? mixed.data);
+  const prov = await user(MEMBER).rpc('reel_script_provenance', { p_reel_id: reel?.id });
+  check('provenance names the base model', prov.data?.base_model === 'm/alpha', prov.error ?? prov.data);
+
+  const extVersions = await user(EXTERNAL).from('script_versions').select('id');
+  check('external reads no script version', !extVersions.error && extVersions.data?.length === 0, extVersions.error ?? extVersions.data);
+  const direct = await user(ADMIN).from('script_versions').insert({ reel_id: reel?.id, source: 'manuale' }).select('id');
+  check('no direct insert into script_versions', direct.error?.code === '42501', direct.error ?? direct.data);
+}
+
 proxy.close();
 if (failures) {
   console.log(`${failures} API check(s) failed`);
