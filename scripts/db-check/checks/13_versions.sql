@@ -62,8 +62,10 @@ do $$ declare v0 integer := pg_temp.rev(); begin
      or (pg_temp.last()).hook <> 'H1' or (pg_temp.last()).script_rev <> v0 + 1 then
     raise exception 'FAIL: manual version (rev %, versions %)', pg_temp.rev(), pg_temp.nver();
   end if;
-  if public.save_reel_script(pg_temp.r1(), '{"hook": "H1", "title": "Nuovo titolo"}', v0 + 1) <> 'ok'
-     or pg_temp.nver() <> 1 or pg_temp.rev() <> v0 + 1 then
+  if public.save_reel_script(pg_temp.r1(), '{"hook": "H1", "title": "Nuovo titolo"}', v0 + 1) <> 'ok' then
+    raise exception 'FAIL: saving the same text with a new title';
+  end if;
+  if pg_temp.nver() <> 1 or pg_temp.rev() <> v0 + 1 then
     raise exception 'FAIL: a version without a text change';
   end if;
   if public.save_reel_script(pg_temp.r1(), '{"hook": "vecchio"}', v0) <> 'stale' then
@@ -80,8 +82,10 @@ do $$ declare v0 integer := pg_temp.rev(); begin
 
   -- Re-sync: admins only, source `resync`.
   perform pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
-  if public.save_reel_script(pg_temp.r1(), '{"corpo": "C dal Doc"}', v0 + 1, 'resync') <> 'ok'
-     or (pg_temp.last()).source <> 'resync' then
+  if public.save_reel_script(pg_temp.r1(), '{"corpo": "C dal Doc"}', v0 + 1, 'resync') <> 'ok' then
+    raise exception 'FAIL: admin re-sync save';
+  end if;
+  if (pg_temp.last()).source <> 'resync' then
     raise exception 'FAIL: admin re-sync version';
   end if;
 end $$;
@@ -220,9 +224,11 @@ do $$ declare v0 integer := pg_temp.rev(); n bigint := pg_temp.nver(); v_prop uu
   end if;
 
   -- An admin typing in revisione: `manuale`.
-  if public.save_reel_script(pg_temp.r1(), '{"corpo": "Corpo admin"}', pg_temp.rev()) <> 'ok'
-     or (pg_temp.last()).source <> 'manuale' then
+  if public.save_reel_script(pg_temp.r1(), '{"corpo": "Corpo admin"}', pg_temp.rev()) <> 'ok' then
     raise exception 'FAIL: admin edit in revisione';
+  end if;
+  if (pg_temp.last()).source <> 'manuale' then
+    raise exception 'FAIL: admin edit in revisione not recorded as manuale';
   end if;
 end $$;
 

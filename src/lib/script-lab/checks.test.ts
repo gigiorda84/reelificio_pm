@@ -58,6 +58,12 @@ describe('estimateDuration (AC20)', () => {
     expect(spokenText(chiusura).trim()).toBe('"Non sono un farmaco."\n  "Strano. Funziona."');
     expect(estimateDuration(blocks({ chiusura }), 1).words).toBe(6);
   });
+
+  it('reads a sentence with a colon in full', () => {
+    expect(estimateDuration(blocks({ corpo: 'Oggi vi spiego tre cose: primo, dormi.' }), 1).words).toBe(7);
+    expect(estimateDuration(blocks({ corpo: 'Sai qual è la verità: nessuna.' }), 1).words).toBe(6);
+    expect(estimateDuration(blocks({ corpo: 'Porcino Junior: "Ciao."' }), 1).words).toBe(1);
+  });
 });
 
 describe('similarity', () => {

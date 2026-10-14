@@ -39,8 +39,10 @@ async function loadContexts(pageIds: string[]): Promise<Map<string, PageCheckCon
   return contexts;
 }
 
-// The newest reels of a page with a CTA or a closing: enough rows to drop the
-// reels being checked and still keep RECENT_LIMIT for each of them.
+// The newest reels of a page with a CTA or a closing, enough rows to drop
+// each checked reel itself and still keep RECENT_LIMIT. The reels of a batch
+// share their created_at (one insert), so the code breaks ties and the
+// window is the same on the reel page and in the approval queue.
 async function loadRecent(pageId: string, extra: number): Promise<(RecentClosing & { id: string })[]> {
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
@@ -49,13 +51,25 @@ async function loadRecent(pageId: string, extra: number): Promise<(RecentClosing
     .eq('page_id', pageId)
     .or('cta.not.is.null,chiusura.not.is.null')
     .order('created_at', { ascending: false })
+    .order('code', { ascending: false })
     .limit(RECENT_LIMIT + extra);
   if (error) throw error;
   return (data ?? []) as (RecentClosing & { id: string })[];
 }
 
 // Warnings for each reel, keyed by reel id: one query per table and page.
+// The checks only inform, so a failure here leaves the page without them
+// instead of breaking it.
 export async function checkReels(reels: CheckableReel[]): Promise<Map<string, CheckWarning[]>> {
+  try {
+    return await computeChecks(reels);
+  } catch (err) {
+    console.error('[script-lab] checks failed', err);
+    return new Map();
+  }
+}
+
+async function computeChecks(reels: CheckableReel[]): Promise<Map<string, CheckWarning[]>> {
   const out = new Map<string, CheckWarning[]>();
   if (reels.length === 0) return out;
   const pageIds = [...new Set(reels.map((r) => r.page_id))];

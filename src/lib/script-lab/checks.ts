@@ -74,11 +74,12 @@ export function findBannedWords(blocks: ScriptBlocks, bannedWords: string[]): Ex
 }
 
 // Spoken words: speaker labels at the start of a line ("Porcino:", "Papaya
-// (entra secca):") and stage notes in parentheses are not read aloud.
+// (entra secca):", up to three capitalised words) and stage notes in
+// parentheses are not read aloud. "Oggi vi spiego tre cose: …" is spoken.
 export function spokenText(text: string): string {
   return text
     .split(/\r?\n/)
-    .map((line) => line.replace(/^\s*\p{Lu}[\p{L}' ]{0,30}(\([^)]*\))?\s*:/u, ''))
+    .map((line) => line.replace(/^\s*\p{Lu}[\p{L}'’]*(?:\s+\p{Lu}[\p{L}'’]*){0,2}\s*(\([^)]*\))?\s*:/u, ''))
     .join('\n')
     .replace(/\([^)]*\)/g, ' ');
 }

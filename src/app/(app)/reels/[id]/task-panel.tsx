@@ -31,6 +31,7 @@ import {
 import type { AssignableProfile, OpenTask } from '@/lib/tasks/queries';
 import { semaforo, slaPercent } from '@/lib/tasks/semaforo';
 import { formatRome } from '@/lib/dates';
+import { showReelSection } from './reel-tabs';
 
 type Props = {
   reelId: string;
@@ -74,6 +75,12 @@ const LIGHT: Record<'green' | 'yellow' | 'red', string> = {
   yellow: 'bg-amber-500',
   red: 'bg-red-500',
 };
+
+// The checks live in the Script tab, which may not be the open one.
+function showChecks(e: React.MouseEvent) {
+  e.preventDefault();
+  showReelSection({ tab: 'script', anchor: 'controlli' });
+}
 
 function fmt(iso: string | null): string {
   return iso ? formatRome(iso) : '—';
@@ -263,7 +270,7 @@ export function TaskPanel({
               ) : null}
               {noteField}
               {task.kind === 'writing' && checkWarnings > 0 ? (
-                <a href="#controlli" className="block text-xs text-amber-700 underline dark:text-amber-400">
+                <a href="#controlli" onClick={showChecks} className="block text-xs text-amber-700 underline dark:text-amber-400">
                   {t('panel.checkWarnings', { count: checkWarnings })}
                 </a>
               ) : null}
@@ -288,7 +295,7 @@ export function TaskPanel({
                 <p className="text-xs text-muted-foreground">{t('panel.scriptRev', { rev: scriptRev })}</p>
               ) : null}
               {SCRIPT_DECISION_KINDS.includes(task.kind) && checkWarnings > 0 ? (
-                <a href="#controlli" className="block text-xs text-amber-700 underline dark:text-amber-400">
+                <a href="#controlli" onClick={showChecks} className="block text-xs text-amber-700 underline dark:text-amber-400">
                   {t('panel.checkWarnings', { count: checkWarnings })}
                 </a>
               ) : null}

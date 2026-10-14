@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ChevronLeft } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ReelTabs } from './reel-tabs';
 import { CommentsThread } from '@/components/comments/comments-thread';
 import { getReelDetail } from '@/lib/reels/queries';
 import { getRaciConfigForPage, getRaciUsers } from '@/lib/raci/queries';
@@ -235,7 +236,7 @@ export default async function ReelDetailPage({
         />
       </header>
 
-      <Tabs defaultValue="script">
+      <ReelTabs defaultValue="script">
         <TabsList>
           <TabsTrigger value="script">{tTabs('script')}</TabsTrigger>
           <TabsTrigger value="voice">{tTabs('voice')}</TabsTrigger>
@@ -303,7 +304,7 @@ export default async function ReelDetailPage({
         <TabsContent value="comments" className="pt-4">
           <CommentsThread targetType="reel" targetId={reel.id} />
         </TabsContent>
-      </Tabs>
+      </ReelTabs>
 
       {showDod ? (
         <DoDChecklist reelId={reel.id} items={dodItems} editable={dodEditable} />
