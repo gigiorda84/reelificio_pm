@@ -493,6 +493,27 @@ Avvio di S0 in ritardo: la finestra del 14–16 ottobre è in parte spesa per le
 
 **Fatto quando:** F2-E6 (con alternative finte) e F2-E7 passano sul sandbox; `scripts/test-resync.ts` è verde.
 
+**Stato (2026-10-15):**
+- **Fatto e verde:**
+  - `supabase/fase2/020_versions.sql` come da D-E (V1c). I due aiuti previsti nello schema `public` sono incorporati nelle RPC, per non esporli via API. `created_at` è `clock_timestamp()`, così l'ordine resta giusto anche dentro una transazione. La provenienza senza consegna considera tutte le versioni;
+  - `13_versions.sql`:
+    - ogni percorso con la sua fonte (modifica, re-sync, mix, ripristino, proposta accettata tramite `decide_text_proposal`, import);
+    - nessuna versione senza cambio; `stale`; parità con l'update diretto per i 5 utenti del seed; rifiuti in `revisione`; provenienza; esterni;
+    - una prova di mutazione (controllo di chi compone tolto) lo fa fallire;
+  - `api-check` (8 controlli); `06_fase2.sql` con il backfill `import`;
+  - `src/lib/script-lab/{mix,versions,actions}.ts` con 6 test;
+  - `alternatives.tsx` e `version-history.tsx` nella scheda Script, solo per gli interni;
+  - `updateReelScript` e il re-sync passano da `save_reel_script`;
+  - alternative finte (`demo/alpha|beta|gamma`) nel seed;
+  - typecheck, lint, 111 test e build verdi;
+  - sandbox migrato, con i guard verdi.
+- **Review indipendente:** nessun difetto grave, due importanti, entrambi corretti:
+  - (1) il form dello script si rimonta quando cambia la revisione e non si azzera all'invio, così una bozza non finisce mai su una revisione nuova e un `stale` non la cancella;
+  - (2) il re-sync applica alle revisioni dell'anteprima confermata, controlla l'admin una volta sola prima di scrivere, e mostra i reel non aggiornati (`skipped`) nel dialogo dopo l'applicazione.
+  - Tra le minori è corretta la base delle alternative quando cambiano (S6). Restano: due proposte identiche pendenti sullo stesso campo, dove la versione indica la più recente, e le note di regia della base che sostituiscono le note (volute; le precedenti restano nello storico).
+- **`scripts/test-resync.ts`:** prova solo la logica del diff, che non è cambiata, e legge lo staging. Il percorso di applicazione è coperto da `13_versions.sql` e da `api-check`; la prova dal vivo del re-sync si fa in S3 con F2-E2, quando un batch del Doc viene importato sul sandbox.
+- **Da fare:** prova dell'utente (F2-E6, F2-E7) sul sandbox.
+
 ### S1 — Spike AI su 3 modelli · 1 giorno · **con chiave (entro venerdì 30 ottobre)**
 
 **Script:** `scripts/spike-ai-models.ts`, fuori dall'app, con risultati in una cartella scratch. Bibbia P&P del fixture e 2 idee di prova.
