@@ -6,7 +6,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export type ReelActionResult =
   | { ok: true }
-  | { ok: false; error: 'invalid_input' | 'not_authorized' | 'unknown'; message?: string };
+  | { ok: false; error: 'invalid_input' | 'not_authorized' | 'stale' | 'unknown'; message?: string };
 
 import {
   ALL_REEL_FORMATS as REEL_FORMATS,
@@ -76,19 +76,24 @@ export async function updateReelScript(
     cta: emptyToNull(raw.cta?.toString()),
     notes: emptyToNull(raw.notes?.toString()),
   });
-  if (!parsed.success) return { ok: false, error: 'invalid_input' };
+  const expectedRev = Number(formData.get('script_rev'));
+  if (!parsed.success || !Number.isInteger(expectedRev)) return { ok: false, error: 'invalid_input' };
 
+  // save_reel_script (Fase 2, docs/fase2-plan.md D-E) runs as the user, so
+  // RLS, the column grants and the revisione lock still decide; it saves only
+  // at the revision the form was loaded with and records a `manuale` version.
   const supabase = await getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('reels')
-    .update(parsed.data)
-    .eq('id', id)
-    .select('id');
-  // 42501: the script lock (from revisione on) or a column users may not write.
+  const { data, error } = await supabase.rpc('save_reel_script', {
+    p_reel_id: id,
+    p_fields: parsed.data,
+    p_expected_rev: expectedRev,
+  });
   if (error?.code === '42501') return { ok: false, error: 'not_authorized' };
   if (error) return { ok: false, error: 'unknown', message: error.message };
-  // RLS filters rows silently: no row back means the user may not edit this reel.
-  if (!data?.length) return { ok: false, error: 'not_authorized' };
+  if (data === 'stale' || data === 'not_authorized' || data === 'invalid_input') {
+    return { ok: false, error: data };
+  }
+  if (data !== 'ok') return { ok: false, error: 'unknown', message: String(data) };
 
   revalidatePath(`/reels/${id}`);
   return { ok: true };

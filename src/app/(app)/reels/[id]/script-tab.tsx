@@ -35,12 +35,15 @@ export function ScriptTab({ reel }: Props) {
     startTransition(async () => {
       const result = await updateReelScript(reel.id, formData);
       if (result.ok) toast.success(t('saved'));
+      else if (result.error === 'stale') toast.error(t('stale'));
       else toast.error(tCommon(result.error === 'not_authorized' ? 'notAuthorized' : 'error'));
     });
   };
 
   return (
     <form action={onSubmit} className="space-y-5 max-w-3xl">
+      {/* The revision this form shows: saving over a newer one is refused (stale). */}
+      <input type="hidden" name="script_rev" value={reel.script_rev} />
       {reel.parser_warning ? (
         <div className="rounded-md border border-amber-300/70 bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/30 px-4 py-3 text-sm flex items-start gap-2">
           <AlertTriangle className="size-4 mt-0.5 shrink-0" aria-hidden />

@@ -175,15 +175,21 @@ export type ResyncPreviewResult =
   | { ok: true; diff: ResyncDiff; pageInfo: { name: string; codePrefix: string } }
   | { ok: false; error: CreateBatchResult extends { error: infer E } ? E : never; message?: string };
 
+// The diff, plus the id and script revision of each existing reel as read
+// for it: the apply step saves with that revision (Fase 2 save_reel_script),
+// so a reel edited in the meantime is reported as a conflict, not overwritten.
 async function diffParsedAgainstBatch(
   batchId: string,
   parsedReels: ParsedReel[],
-): Promise<ResyncDiff> {
+): Promise<{ diff: ResyncDiff; revs: Map<number, { id: string; script_rev: number }> }> {
   const supabase = await getSupabaseServerClient();
   const { data: existing } = await supabase
     .from('reels')
-    .select('id, ordinal, state, title, format, hook, corpo, chiusura, cta, notes, parser_warning')
+    .select('id, ordinal, state, script_rev, title, format, hook, corpo, chiusura, cta, notes, parser_warning')
     .eq('batch_id', batchId);
+  const revs = new Map(
+    (existing ?? []).map((r) => [r.ordinal as number, { id: r.id as string, script_rev: r.script_rev as number }]),
+  );
 
   const byOrdinal = new Map(
     (existing ?? []).map((r) => [r.ordinal as number, r]),
@@ -228,7 +234,7 @@ async function diffParsedAgainstBatch(
   changed.sort((a, b) => a.ordinal - b.ordinal);
   locked.sort((a, b) => a.ordinal - b.ordinal);
 
-  return { added, removed, changed, locked, unchanged, warnings: [] };
+  return { diff: { added, removed, changed, locked, unchanged, warnings: [] }, revs };
 }
 
 export async function resyncBatch(
@@ -295,7 +301,7 @@ export async function resyncBatch(
     return { ok: false, error: 'no_reels' };
   }
 
-  const diff = await diffParsedAgainstBatch(batchId, parsedDoc.reels);
+  const { diff, revs } = await diffParsedAgainstBatch(batchId, parsedDoc.reels);
   diff.warnings = parsedDoc.warnings;
 
   if (!options.apply) {
@@ -327,11 +333,16 @@ export async function resyncBatch(
     }
   }
 
+  // Through save_reel_script (Fase 2): a `resync` version per reel, saved
+  // only at the revision the diff read. A reel edited since then (stale) or
+  // locked in the meantime moves to the conflicts instead of being overwritten.
   const updates = parsedDoc.reels.filter((r) => changedOrdinals.has(r.ordinal));
   for (const r of updates) {
-    const { error: updErr } = await supabase
-      .from('reels')
-      .update({
+    const rev = revs.get(r.ordinal);
+    if (!rev) continue;
+    const { data: code, error: updErr } = await supabase.rpc('save_reel_script', {
+      p_reel_id: rev.id,
+      p_fields: {
         title: r.title,
         format: r.format,
         hook: r.hook,
@@ -341,11 +352,22 @@ export async function resyncBatch(
         notes: r.notes,
         raw_content: r.rawContent,
         parser_warning: r.parserWarning,
-      })
-      .eq('batch_id', batchId)
-      .eq('ordinal', r.ordinal);
+      },
+      p_expected_rev: rev.script_rev,
+      p_source: 'resync',
+    });
     if (updErr) {
       return { ok: false, error: 'unknown', message: updErr.message };
+    }
+    if (code === 'stale' || code === 'not_authorized') {
+      const entry = diff.changed.find((c) => c.ordinal === r.ordinal);
+      diff.changed = diff.changed.filter((c) => c.ordinal !== r.ordinal);
+      if (entry) diff.locked.push(entry);
+    } else if (code === 'invalid_input') {
+      // `resync` is for admins only.
+      return { ok: false, error: 'not_admin' };
+    } else if (code !== 'ok') {
+      return { ok: false, error: 'unknown', message: String(code) };
     }
   }
 

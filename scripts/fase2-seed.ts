@@ -89,7 +89,59 @@ async function main() {
     }
   }
 
+  // 4. From S4: three fake AI alternatives per reel of Pagina Test, for the
+  // alternatives panel before the generation exists (F2-E6, F2-E7). Only on
+  // reels that have none yet.
+  if (!args.includes('--no-alternatives')) {
+    const page = await admin.from('pages').select('id').eq('slug', 'pagina-test').single();
+    if (page.error) throw new Error(`page: ${page.error.message}`);
+    const reels = await admin.from('reels').select('id, title').eq('page_id', page.data.id);
+    if (reels.error) throw new Error(`reels: ${reels.error.message}`);
+    let added = 0;
+    for (const reel of reels.data ?? []) {
+      const has = await admin.from('script_versions').select('id').eq('reel_id', reel.id).eq('source', 'ai').limit(1);
+      if (has.error) throw new Error(`alternatives: ${has.error.message}`);
+      if (has.data?.length) continue;
+      const ins = await admin.from('script_versions').insert(fakeAlternatives(reel.id, reel.title as string));
+      if (ins.error) throw new Error(`alternatives: ${ins.error.message}`);
+      added += 1;
+    }
+    console.log(`alternatives: ${added} reel(s) got 3 fake AI alternatives`);
+  }
+
   console.log('OK: sandbox seeded');
+}
+
+// Three recognisably different scripts in the Porcino & Papaya style, labelled
+// with fake model ids (no model was called).
+function fakeAlternatives(reelId: string, title: string) {
+  const t = title.toLowerCase();
+  return [
+    {
+      reel_id: reelId, source: 'ai', model: 'demo/alpha',
+      hook: `Lo sapevi? ${title}.`,
+      corpo: `Partiamo dai dati.\nSu ${t} quasi tutti sbagliano.\nE il motivo è semplice…\nnessuno te l'ha mai spiegato.`,
+      chiusura: `Porcino: "Io lo sapevo."\nPapaya: "Certo. Come sempre."`,
+      cta: 'Seguici. Che qui i dati fanno più rumore delle opinioni.',
+      notes: 'Regia: Porcino in primo piano, Papaya entra secca sulla chiusura.',
+    },
+    {
+      reel_id: reelId, source: 'ai', model: 'demo/beta',
+      hook: `Ferma tutto: ${t}.`,
+      corpo: `Ti hanno raccontato una storia.\nLa realtà è un'altra.\nE fa anche un po' ridere.`,
+      chiusura: `Papaya: "Ora lo sai."\nPorcino: "Ora lo sanno tutti."`,
+      cta: 'Seguici. Perché queste cose non te le ha spiegate nessuno… e si vede.',
+      notes: 'Regia: botta e risposta, ritmo veloce.',
+    },
+    {
+      reel_id: reelId, source: 'ai', model: 'demo/gamma',
+      hook: `${title}? Te lo spiego in trenta secondi.`,
+      corpo: `Uno: non è come pensi.\nDue: c'è un motivo scientifico.\nTre: Porcino lo usa per fare il simpatico.`,
+      chiusura: `Porcino: "Funziona."\nPapaya: "Su di te no."`,
+      cta: 'Seguici. Che la mente umana è più strana del tuo algoritmo.',
+      notes: 'Regia: elenco con i numeri a schermo.',
+    },
+  ];
 }
 
 main().catch((err) => {

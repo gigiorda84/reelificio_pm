@@ -261,6 +261,49 @@
       "anomaly_procedure": "Procedura anomalie"
     }
   },
+  "scriptLab": {
+    "alternatives": {
+      "title": "Alternative",
+      "hint": "Scegli una base, prendi i blocchi che preferisci dalle altre alternative, controlla l'anteprima e applica: diventa il testo dello script.",
+      "readOnly": "Le alternative le applicano gli admin, il Responsible della scrittura e chi ha il compito di stesura.",
+      "onlyInBozza": "Le alternative si applicano solo in Bozza.",
+      "unknownModel": "Modello sconosciuto",
+      "useAsBase": "Usa come base",
+      "base": "Base",
+      "take": "prendi questo",
+      "taken": "preso",
+      "directionNotes": "Note di regia",
+      "preview": "Anteprima",
+      "apply": "Applica allo script",
+      "applying": "Applicazione…",
+      "applied": "Script aggiornato.",
+      "sameAsCurrent": "Uguale al testo attuale."
+    },
+    "history": {
+      "title": "Storico",
+      "current": "attuale",
+      "show": "Mostra",
+      "hide": "Nascondi",
+      "restore": "Ripristina",
+      "restored": "Versione ripristinata."
+    },
+    "sources": {
+      "ai": "AI",
+      "mix": "Mix",
+      "manuale": "Modifica",
+      "resync": "Doc aggiornato",
+      "ripristino": "Ripristino",
+      "proposta": "Proposta accettata",
+      "import": "Import"
+    },
+    "errors": {
+      "stale": "Lo script è cambiato nel frattempo: ricarica la pagina.",
+      "invalid_state": "Si può fare solo in Bozza.",
+      "not_authorized": "Non hai i permessi per modificare questo script.",
+      "invalid_input": "Richiesta non valida.",
+      "unknown": "Operazione non riuscita, riprova."
+    }
+  },
   "batches": {
     "list": {
       "title": "Batch",
@@ -402,7 +445,8 @@
       "propose": "Proponi modifica",
       "sendProposal": "Invia proposta",
       "cancel": "Annulla",
-      "proposalSent": "Proposta inviata: decide l'approvatore."
+      "proposalSent": "Proposta inviata: decide l'approvatore.",
+      "stale": "Lo script è cambiato mentre lo modificavi: ricarica la pagina e riapplica le modifiche."
     },
     "voice": {
       "title": "Voice brief",

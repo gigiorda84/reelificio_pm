@@ -14,7 +14,10 @@ import { getOpenTask, getTaskPeople, listAssignableProfiles, listProposals } fro
 import { listReelFiles, newestOf } from '@/lib/drive/queries';
 import { folderUrl } from '@/lib/drive/naming';
 import { REEL_STATES } from '@/lib/reels/constants';
+import { listAlternatives, listScriptHistory } from '@/lib/script-lab/versions';
 import { ScriptTab } from './script-tab';
+import { Alternatives } from './alternatives';
+import { VersionHistory } from './version-history';
 import { ScriptReadOnly } from './script-read-only';
 import { Proposals } from './proposals';
 import { VoiceTab } from './voice-tab';
@@ -127,6 +130,19 @@ export default async function ReelDetailPage({
     (admin.isAdmin || inPageRaci || (!!openTask && openTask.assignee_id === uid));
   const canDecideProposals = admin.isAdmin || isGroupApprover;
 
+  // Script Lab (Fase 2 S4): alternatives and history for internals; mix and
+  // restore for admins, the Responsible of the writing and the holder of the
+  // open task, in bozza (the SQL checks it again).
+  const writingRaci = raci.find((r) => r.phase === 'script_writing');
+  const canCompose =
+    !isExternal &&
+    (admin.isAdmin ||
+      (!!uid && !!writingRaci && getRaciUsers(writingRaci, 'responsible').includes(uid)) ||
+      (!!openTask && openTask.assignee_id === uid));
+  const [alternatives, history] = isExternal
+    ? [[], []]
+    : await Promise.all([listAlternatives(id), listScriptHistory(id)]);
+
   const currentRaci = raci.find((r) => r.phase === reel.phase);
   const isResponsible =
     !!admin.userId &&
@@ -231,6 +247,24 @@ export default async function ReelDetailPage({
             scriptRev={reel.script_rev}
             canDecide={canDecideProposals}
           />
+          {isExternal ? null : (
+            <>
+              <Alternatives
+                reelId={reel.id}
+                alternatives={alternatives}
+                current={{ id: 'current', hook: reel.hook, corpo: reel.corpo, chiusura: reel.chiusura, cta: reel.cta, notes: reel.notes }}
+                scriptRev={reel.script_rev}
+                canCompose={canCompose}
+                inBozza={reel.state === 'bozza'}
+              />
+              <VersionHistory
+                reelId={reel.id}
+                versions={history}
+                scriptRev={reel.script_rev}
+                canRestore={canCompose && reel.state === 'bozza'}
+              />
+            </>
+          )}
         </TabsContent>
         <TabsContent value="voice" className="pt-4">
           <VoiceTab pageId={reel.page_id} />
