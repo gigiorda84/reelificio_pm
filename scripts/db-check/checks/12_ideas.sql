@@ -39,6 +39,9 @@ end $$;
 -- A second page, for the cross-page refusal.
 insert into pages (id, slug, name, code_prefix) values ('10000000-0000-0000-0000-0000000000c2', 'altra', 'Altra', 'AL');
 insert into ideas (id, page_id, title) values ('90000000-0000-0000-0000-0000000000c2', '10000000-0000-0000-0000-0000000000c2', 'Idea altrui');
+-- The import batch gets a month, like a backfilled one: adding ideas to it
+-- must be refused because of its origin, not for a missing period.
+update batches set period = '2026-10-01' where id = '20000000-0000-0000-0000-000000000001';
 
 set role authenticated;
 

@@ -49,4 +49,24 @@ begin
   if (select count(*) from script_versions) = 0 then
     raise exception 'FAIL: the fixture has no reel with text to backfill';
   end if;
+
+  -- S3 backfill: every existing batch is `import`, with the month of its
+  -- first reel's code; every reel has exactly one chosen `doc` idea.
+  if exists (select 1 from batches where origin <> 'import')
+     or exists (
+       select 1 from batches b
+        where exists (select 1 from reels r where r.batch_id = b.id)
+          and b.period is distinct from (
+            select make_date(2000 + substr(m[1], 1, 2)::int, substr(m[1], 3, 2)::int, 1)
+              from (select regexp_match(r.code, '-(\d{4})-') m from reels r
+                     where r.batch_id = b.id order by r.ordinal, r.created_at limit 1) f)) then
+    raise exception 'FAIL: the period backfill of import batches';
+  end if;
+  if exists (
+       select 1 from reels r
+        where (select count(*) from ideas i
+                where i.reel_id = r.id and i.source = 'doc' and i.status = 'scelta'
+                  and i.page_id = r.page_id and i.title = left(btrim(r.title), 200)) <> 1) then
+    raise exception 'FAIL: the doc ideas backfill';
+  end if;
 end $$;

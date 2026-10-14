@@ -380,6 +380,32 @@ const OPEN = ['unassigned', 'assigned', 'in_progress'];
   check('no direct insert into script_versions', direct.error?.code === '42501', direct.error ?? direct.data);
 }
 
+// Fase 2 S3 — ideas (docs/fase2-plan.md AC5–AC6): the backlog query of the
+// ideas page, a batch from ideas through the RPC, and the external sees none.
+{
+  const EXTERNAL = '00000000-0000-0000-0000-00000000000e';
+  const PAGE = '10000000-0000-0000-0000-000000000001';
+  const created = await user(MEMBER).rpc('upsert_idea', { p_id: null, p_page_id: PAGE, p_title: 'Idea via API', p_spunto: 'Spunto' });
+  check('Responsible creates an idea', created.data?.code === 'ok', created.error ?? created.data);
+  const backlog = await user(MEMBER)
+    .from('ideas')
+    .select('id, title, spunto, source, status, reel_id, created_at, reels(code)')
+    .eq('page_id', PAGE)
+    .eq('status', 'backlog')
+    .order('created_at', { ascending: false });
+  check('backlog query of the ideas page', !backlog.error && backlog.data?.some((i) => i.title === 'Idea via API'), backlog.error ?? backlog.data);
+  const batch = await user(MEMBER).rpc('create_batch_from_ideas', {
+    p_page_id: PAGE, p_year: 2027, p_month: 3, p_idea_ids: [created.data?.id],
+  });
+  check('create_batch_from_ideas through the API', batch.data?.code === 'ok' && !!batch.data?.batch_id, batch.error ?? batch.data);
+  const chosen = await user(MEMBER).from('ideas').select('status, reels(code)').eq('id', created.data?.id).single();
+  check('the chosen idea links its reel', chosen.data?.status === 'scelta' && chosen.data?.reels?.code === 'PP-2703-01', chosen.error ?? chosen.data);
+  const ext = await user(EXTERNAL).from('ideas').select('id');
+  check('external reads no idea', !ext.error && ext.data?.length === 0, ext.error ?? ext.data);
+  const outsider = await user(OUTSIDER).rpc('upsert_idea', { p_id: null, p_page_id: PAGE, p_title: 'Intrusa', p_spunto: null });
+  check('internal without a role cannot create ideas', outsider.data?.code === 'not_authorized', outsider.error ?? outsider.data);
+}
+
 proxy.close();
 if (failures) {
   console.log(`${failures} API check(s) failed`);
