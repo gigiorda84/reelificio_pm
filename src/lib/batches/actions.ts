@@ -30,6 +30,7 @@ export type CreateBatchResult =
         | 'no_reels'
         | 'page_not_found'
         | 'not_admin'
+        | 'duplicate_codes'
         | 'unknown';
       message?: string;
     };
@@ -152,6 +153,11 @@ export async function createBatch(
   if (reelError) {
     // Roll back the batch so the user can retry without orphaned state.
     await supabase.from('batches').delete().eq('id', inserted.id);
+    // Codes are unique: the page already has reels of that month (e.g. a
+    // batch from ideas, Fase 2 S3).
+    if (reelError.code === '23505' && reelError.message.includes('code')) {
+      return { ok: false, error: 'duplicate_codes' };
+    }
     return { ok: false, error: 'unknown', message: reelError.message };
   }
 

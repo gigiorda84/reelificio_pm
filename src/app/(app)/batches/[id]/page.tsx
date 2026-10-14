@@ -61,6 +61,9 @@ export default async function BatchDetailPage({
           <div className="text-sm text-muted-foreground mt-1 flex items-center gap-3 flex-wrap">
             <span>{tStatus(batch.status)}</span>
             <span>·</span>
+            {batch.origin === 'ideas' ? (
+              <span className="rounded-full border px-2 py-0.5 text-xs">{tDetail('fromIdeas')}</span>
+            ) : (
             <span>
               {batch.source_doc_synced_at
                 ? `${tDetail('lastSynced')} ${formatRome(batch.source_doc_synced_at, {
@@ -73,6 +76,7 @@ export default async function BatchDetailPage({
                   })}`
                 : tDetail('neverSynced')}
             </span>
+            )}
             {batch.source_doc_url ? (
               <>
                 <span>·</span>
@@ -91,7 +95,8 @@ export default async function BatchDetailPage({
         </div>
         <div className="flex items-center gap-2">
           {canStartWriting ? <StartWriting batchId={batch.id} ideaCount={ideaCount} /> : null}
-          <ResyncButton batchId={batch.id} />
+          {/* A batch born from ideas has no Doc to re-sync from. */}
+          {batch.origin === 'import' ? <ResyncButton batchId={batch.id} /> : null}
         </div>
       </div>
 

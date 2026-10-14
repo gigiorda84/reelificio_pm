@@ -130,7 +130,8 @@
         "bible": "Bibbia",
         "raci": "RACI",
         "comingSoon": "Disponibile in uno sprint successivo.",
-        "production": "Produzione"
+        "production": "Produzione",
+        "ideas": "Idee"
       }
     },
     "production": {
@@ -313,6 +314,78 @@
       "repeatedSimilar": "{block} molto simile a quella di {code} ({percent}%)."
     }
   },
+  "ideas": {
+    "title": "Idee",
+    "intro": "Il backlog della pagina: aggiungi idee, scarta quelle che non convincono e trasforma le migliori in un batch.",
+    "readOnly": "Solo gli admin e il Responsible della scrittura della pagina possono modificare il backlog.",
+    "open": "Apri le idee",
+    "summary": "{backlog, plural, one {# idea} other {# idee}} nel backlog · {chosen} scelte",
+    "fromIdea": "Idea",
+    "tabs": {
+      "backlog": "Backlog ({count})",
+      "chosen": "Scelte ({count})",
+      "discarded": "Scartate ({count})"
+    },
+    "fields": {
+      "title": "Titolo dell'idea",
+      "spunto": "Spunto (facoltativo): di cosa parla, l'angolo, il dato"
+    },
+    "source": {
+      "manuale": "Scritta a mano",
+      "doc": "Dal Doc"
+    },
+    "add": "Aggiungi idea",
+    "added": "Idea aggiunta.",
+    "edit": "Modifica",
+    "save": "Salva",
+    "saved": "Idea salvata.",
+    "cancel": "Annulla",
+    "discard": "Scarta",
+    "discarded": "Idea scartata.",
+    "restore": "Ripesca",
+    "restored": "Idea tornata nel backlog.",
+    "select": "Scegli «{title}»",
+    "selected": "{count, plural, one {# idea scelta} other {# idee scelte}}: l'ordine di scelta diventa l'ordine dei reel.",
+    "clear": "Deseleziona",
+    "createBatch": "Crea batch",
+    "emptyBacklog": "Nessuna idea nel backlog.",
+    "emptyChosen": "Nessuna idea scelta.",
+    "emptyDiscarded": "Nessuna idea scartata.",
+    "dialog": {
+      "title": "{count, plural, one {# idea → 1 reel} other {# idee → # reel}}",
+      "description": "I reel nascono in Idea, con il titolo dell'idea; la stesura parte poi con «Avvia stesura».",
+      "newBatch": "Nuovo batch",
+      "month": "Mese",
+      "year": "Anno",
+      "existingBatch": "Aggiungi a un batch nato dalle idee",
+      "noIdeasBatch": "Nessun batch nato dalle idee per questa pagina",
+      "numbering": "I codici continuano dopo l'ultimo reel della pagina in quel mese.",
+      "cancel": "Annulla",
+      "confirm": "Crea i reel",
+      "creating": "Creazione…",
+      "done": "{count, plural, one {Creato # reel.} other {Creati # reel.}}"
+    },
+    "months": {
+      "1": "Gennaio",
+      "2": "Febbraio",
+      "3": "Marzo",
+      "4": "Aprile",
+      "5": "Maggio",
+      "6": "Giugno",
+      "7": "Luglio",
+      "8": "Agosto",
+      "9": "Settembre",
+      "10": "Ottobre",
+      "11": "Novembre",
+      "12": "Dicembre"
+    },
+    "errors": {
+      "invalid_input": "Richiesta non valida: le idee devono essere nel backlog di questa pagina.",
+      "not_authorized": "Solo gli admin e il Responsible della scrittura della pagina possono farlo.",
+      "invalid_state": "Un'idea già scelta non si modifica più.",
+      "unknown": "Operazione non riuscita, riprova."
+    }
+  },
   "batches": {
     "list": {
       "title": "Batch",
@@ -350,7 +423,8 @@
         "driveUnknown": "Errore durante il recupero del documento.",
         "noReels": "Il documento non contiene script riconoscibili.",
         "notAdmin": "Solo gli amministratori possono creare i batch.",
-        "unknown": "Operazione non riuscita."
+        "unknown": "Operazione non riuscita.",
+        "duplicateCodes": "La pagina ha già reel con i codici di quel mese (per esempio un batch nato dalle idee): controlla il mese del documento."
       }
     },
     "detail": {
@@ -374,7 +448,8 @@
         "skipped": "Non aggiornati (modificati dopo l'anteprima o non più modificabili)",
         "skippedToast": "{count, plural, one {# reel non aggiornato: è cambiato dopo l'anteprima.} other {# reel non aggiornati: sono cambiati dopo l'anteprima.}}"
       },
-      "state": "Stato"
+      "state": "Stato",
+      "fromIdeas": "Da idee"
     },
     "reel": {
       "phase": {

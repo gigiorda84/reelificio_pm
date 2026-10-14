@@ -22,6 +22,8 @@ import { ScriptTab } from './script-tab';
 import { Alternatives } from './alternatives';
 import { VersionHistory } from './version-history';
 import { ChecksPanel } from './checks-panel';
+import { IdeaBox } from './idea-box';
+import { getIdeaForReel } from '@/lib/ideas/queries';
 import { ScriptReadOnly } from './script-read-only';
 import { Proposals } from './proposals';
 import { VoiceTab } from './voice-tab';
@@ -143,12 +145,13 @@ export default async function ReelDetailPage({
     (admin.isAdmin ||
       (!!uid && !!writingRaci && getRaciUsers(writingRaci, 'responsible').includes(uid)) ||
       (!!openTask && openTask.assignee_id === uid));
-  const [alternatives, history, checks] = isExternal
-    ? [[], [], new Map<string, CheckWarning[]>()]
+  const [alternatives, history, checks, idea] = isExternal
+    ? [[], [], new Map<string, CheckWarning[]>(), null]
     : await Promise.all([
         listAlternatives(id),
         listScriptHistory(id),
         checkReels([{ id, page_id: reel.page_id, hook: reel.hook, corpo: reel.corpo, chiusura: reel.chiusura, cta: reel.cta }]),
+        getIdeaForReel(id),
       ]);
   const warnings = checks.get(id) ?? [];
 
@@ -246,6 +249,8 @@ export default async function ReelDetailPage({
         </TabsList>
 
         <TabsContent value="script" className="space-y-8 pt-4">
+          {/* Only ideas with a brief: a doc idea repeats the reel title. */}
+          {idea?.spunto ? <IdeaBox idea={idea} /> : null}
           {isExternal || (scriptLocked && !admin.isAdmin) ? (
             <ScriptReadOnly reel={reel} canPropose={canPropose} />
           ) : (

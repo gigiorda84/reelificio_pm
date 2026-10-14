@@ -9,6 +9,7 @@ import { getRaciConfigForPage } from '@/lib/raci/queries';
 import { listProfiles } from '@/lib/profiles/queries';
 import { getBible } from '@/lib/bible/queries';
 import { bibleCompleteness } from '@/lib/bible/schema';
+import { countIdeas } from '@/lib/ideas/queries';
 import { getPageProduction, getPageSla, listApprovalGroups } from '@/lib/pages/production';
 import { listAssignableProfiles } from '@/lib/tasks/queries';
 import { PageForm } from '../new/page-form';
@@ -23,9 +24,11 @@ export default async function PageDetailPage({
 }) {
   const viewer = await requireInternal();
   const { id } = await params;
-  const [t, tBible, page, raci, profiles, { bible }, production, sla, groups, candidates] = await Promise.all([
+  const [t, tBible, tIdeas, ideaCounts, page, raci, profiles, { bible }, production, sla, groups, candidates] = await Promise.all([
     getTranslations('pages'),
     getTranslations('bible'),
+    getTranslations('ideas'),
+    countIdeas(id),
     getPage(id),
     getRaciConfigForPage(id),
     listProfiles(),
@@ -119,6 +122,23 @@ export default async function PageDetailPage({
             className="text-sm font-medium underline underline-offset-4 hover:text-foreground"
           >
             {tBible('open')}
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-medium">{t('detail.section.ideas')}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {tIdeas('summary', { backlog: ideaCounts.backlog, chosen: ideaCounts.scelta })}
+          </p>
+          <Link
+            href={`/pages/${id}/idee`}
+            className="text-sm font-medium underline underline-offset-4 hover:text-foreground"
+          >
+            {tIdeas('open')}
           </Link>
         </CardContent>
       </Card>

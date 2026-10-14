@@ -83,6 +83,8 @@ export type BatchDetail = {
   source_doc_revision_id: string | null;
   status: 'draft' | 'active' | 'closed';
   created_at: string;
+  // Fase 2 S3: `import` (Google Doc) or `ideas` (backlog of the page).
+  origin: 'import' | 'ideas';
   reels: BatchReel[];
 };
 
@@ -91,7 +93,7 @@ export async function getBatchDetail(id: string): Promise<BatchDetail | null> {
   const { data: batch, error } = await supabase
     .from('batches')
     .select(
-      'id, page_id, label, source_doc_url, source_doc_id, source_doc_synced_at, source_doc_revision_id, status, created_at',
+      'id, page_id, label, source_doc_url, source_doc_id, source_doc_synced_at, source_doc_revision_id, status, created_at, origin',
     )
     .eq('id', id)
     .maybeSingle();
@@ -121,6 +123,7 @@ export async function getBatchDetail(id: string): Promise<BatchDetail | null> {
     source_doc_url: batch.source_doc_url,
     source_doc_id: batch.source_doc_id,
     source_doc_synced_at: batch.source_doc_synced_at,
+    origin: batch.origin as BatchDetail['origin'],
     source_doc_revision_id: batch.source_doc_revision_id,
     status: batch.status,
     created_at: batch.created_at,

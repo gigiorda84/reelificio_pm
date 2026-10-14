@@ -33,6 +33,7 @@ export function BatchForm({ pages }: Props) {
           no_reels: t('errors.noReels'),
           page_not_found: t('errors.unknown'),
           not_admin: t('errors.notAdmin'),
+          duplicate_codes: t('errors.duplicateCodes'),
           unknown: t('errors.unknown'),
         };
         const base = map[result.error] ?? t('errors.unknown');
