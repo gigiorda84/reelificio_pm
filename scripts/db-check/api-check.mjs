@@ -295,6 +295,48 @@ const OPEN = ['unassigned', 'assigned', 'in_progress'];
   check('standup_snapshot for the cron', !snap.error && Array.isArray(snap.data?.late), snap.error ?? snap.data);
 }
 
+// Fase 2 S2 — page bible (docs/fase2-plan.md AC3, AC4): the Responsible saves
+// through /rpc/save_bible; the external (task on reel 2, block above) reads
+// the Voce with its banned words, never page_bibles, and cannot save.
+{
+  const EXTERNAL = '00000000-0000-0000-0000-00000000000e';
+  const PAGE = '10000000-0000-0000-0000-000000000001';
+  const bible = {
+    tone: 'Ironico', characters: 'Porcino e Papaya', themes: ['cucina'], keywords: [],
+    allowed_ctas: ['Salva il reel'], duration_min_s: 30, duration_max_s: 45, words_per_second: 2.5,
+    example_scripts: [], default_models: [],
+  };
+  const voice = {
+    adjectives: ['caldo'], banned_words: ['schifo'], reference_audio_urls: [],
+    allowed_liberties: null, anomaly_procedure: null,
+  };
+  const { data: row } = await user(MEMBER).from('page_bibles').select('version').eq('page_id', PAGE).single();
+  const args = { p_page_id: PAGE, p_bible: bible, p_voice: voice, p_expected_version: row?.version };
+  const saved = await user(MEMBER).rpc('save_bible', args);
+  check('Responsible saves the bible', saved.data === 'ok', saved.error ?? saved.data);
+  const stale = await user(MEMBER).rpc('save_bible', args);
+  check('save_bible with an old version is stale', stale.data === 'stale', stale.error ?? stale.data);
+  const outsider = await user(OUTSIDER).rpc('save_bible', { ...args, p_expected_version: row?.version + 1 });
+  check('internal without a role cannot save the bible', outsider.data === 'not_authorized', outsider.error ?? outsider.data);
+
+  const ext = user(EXTERNAL);
+  const extBible = await ext.from('page_bibles').select('id');
+  check('external reads no bible', !extBible.error && extBible.data?.length === 0, extBible.error ?? extBible.data);
+  const extVoice = await ext.from('voice_briefs').select('banned_words').eq('page_id', PAGE);
+  check(
+    'external reads the voice section with its banned words',
+    extVoice.data?.length === 1 && extVoice.data[0].banned_words?.[0] === 'schifo',
+    extVoice.error ?? extVoice.data,
+  );
+  const extSave = await ext.rpc('save_bible', { ...args, p_expected_version: row?.version + 1 });
+  check('external save_bible is not_authorized', extSave.data === 'not_authorized', extSave.error ?? extSave.data);
+
+  const direct = await user(ADMIN).from('page_bibles').update({ tone: 'diretto' }).eq('page_id', PAGE).select('id');
+  check('no direct update on page_bibles', direct.error?.code === '42501', direct.error ?? direct.data);
+  const anon = await as({ role: 'anon' }).from('page_bibles').select('id');
+  check('anon reads no bible', !!anon.error || anon.data?.length === 0, anon.error ?? anon.data);
+}
+
 proxy.close();
 if (failures) {
   console.log(`${failures} API check(s) failed`);

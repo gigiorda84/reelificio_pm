@@ -20,8 +20,9 @@ declare
     'task_action', 'start_writing', 'assign_task', 'confirm_migrated_tasks', 'set_reel_track',
     'set_absence', 'schedule_reel', 'publish_reel', 'propose_text_change', 'decide_text_proposal',
     -- Fase 1 (S3): configuration
-    'set_sla_policy', 'set_approval_group', 'approval_queue', 'task_previous_note'
+    'set_sla_policy', 'set_approval_group', 'approval_queue', 'task_previous_note',
     -- Fase 2 (docs/fase2-plan.md §7.2): each slice adds its RPCs here
+    'save_bible'
   ];
   v_bad text;
 begin

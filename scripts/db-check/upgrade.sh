@@ -85,6 +85,9 @@ guards contract
 
 # Fase 2 (docs/fase2-plan.md §7.2), over R2 with reels in flight: from
 # supabase/fase2/ before the promotion, as *_fase2_* migrations after it.
+# First a voice brief and the checksum of voice_briefs (AC2, 06_fase2.sql).
+echo "seed:    seed-fase2-before.sql"
+"${PSQL[@]}" --single-transaction -f "$HERE/seed-fase2-before.sql"
 if fase2_promoted; then
   for f in "$ROOT"/supabase/migrations/*_fase2_*.sql; do
     apply_migration "$f"

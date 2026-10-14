@@ -1,0 +1,34 @@
+-- Fase 2 applied over R2 with reels in flight (docs/fase2-plan.md §6, §7.2).
+-- AC2: voice_briefs is untouched (same rows, same checksum as
+-- seed-fase2-before.sql recorded), every page has exactly one empty bible,
+-- and the Script Lab is off on every page.
+do $$
+declare
+  v_before db_check.voice_briefs_before%rowtype;
+  v_n bigint;
+  v_h text;
+begin
+  select * into v_before from db_check.voice_briefs_before;
+  select count(*), md5(coalesce(string_agg(row_to_json(v)::text, '|' order by v.id), ''))
+    into v_n, v_h from voice_briefs v;
+  if v_n <> v_before.n or v_h <> v_before.h then
+    raise exception 'FAIL: voice_briefs changed by Fase 2 (% rows before, % after)', v_before.n, v_n;
+  end if;
+  if v_n < 1 then
+    raise exception 'FAIL: the fixture has no voice brief to compare';
+  end if;
+
+  if exists (select 1 from pages p
+              where (select count(*) from page_bibles b where b.page_id = p.id) <> 1) then
+    raise exception 'FAIL: a page without exactly one bible';
+  end if;
+  if exists (select 1 from page_bibles
+              where version <> 1 or tone is not null or characters is not null
+                 or themes <> '{}' or allowed_ctas <> '{}' or default_models <> '{}'
+                 or example_scripts <> '[]'::jsonb or duration_min_s is not null) then
+    raise exception 'FAIL: a backfilled bible is not empty';
+  end if;
+  if exists (select 1 from pages where script_lab_enabled) then
+    raise exception 'FAIL: the Script Lab is on for a page after the migration';
+  end if;
+end $$;
