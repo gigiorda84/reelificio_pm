@@ -310,7 +310,7 @@ Verifiche: **db** = check SQL, **api** = `api-check.mjs`, **up** = `upgrade.sh`,
 | AC17 | Una versione per percorso, con fonte giusta: `manuale` (form, `save_reel_script`), `resync`, `mix`, `ripristino`, `proposta` (accettata), `import`, `ai`. Nessuna versione senza cambio. Ripristino solo in `bozza` | db `13`, e2e F2-E7 |
 | AC18 | `reel_script_provenance(reel)`: modello della base, modello o `manuale` di ogni blocco, salvataggi manuali dopo il mix, per l'ultima consegna `writing` | db `13`, S7 |
 | AC19 | In `revisione`: update diretto da Responsible → 42501 (`fase1_task_engine.sql:949-968`); `save_reel_script` da non admin → 42501 dallo stesso trigger, mappato a `not_authorized` (la RPC è `SECURITY INVOKER`); `apply` e `restore` → `invalid_state`; le proposte funzionano | db `13` |
-| AC20 | Parola vietata della Voce trovata in "l'idiota" e "IDIOTA", con la posizione; 120 parole a 2,5/s = 48 s fuori da 30–45; CTA uguale dopo la normalizzazione → "uguale", somiglianza ≥ 0,8 → "molto simile" | unit `checks.test.ts` |
+| AC20 | Parola vietata della Voce trovata in "l'idiota" e "IDIOTA", con la posizione; 120 parole a 2,5/s = 48 s fuori da 30–45; CTA uguale dopo la normalizzazione → "uguale", somiglianza ≥ 0,6 (tarata in S5 sul fixture di maggio; era 0,8) → "molto simile" | unit `checks.test.ts` |
 | AC21 | Avvisi nel reel e in `/approvazioni`; `deliver` con avvisi → `ok` | e2e F2-E8 |
 | AC22–25 | `script_lab_metrics(p_from, p_to)` (solo admin, altrimenti 42501): rimandi, costi per mese × pagina × modello, batch per origine e mese (`coalesce(period, mese del primo codice)`), bibbie complete, reel per autore, provenienza; numeri uguali alle query di controllo | db `15_metrics.sql`, e2e F2-E9 |
 | AC26 | `run.sh` (PG16 e PG17) con i check 00–15 e l'allowlist; `upgrade.sh` con la tappa Fase 2 e il ripristino; typecheck, lint, build e test verdi | S8 |
@@ -687,6 +687,23 @@ Un modello che non passa viene sostituito dalla sua riserva, con mezza giornata 
 - `recent.ts`: ultime 20 CTA e chiusure per pagina.
 - UI: `reels/[id]/checks-panel.tsx`, riga in `approvazioni/approval-card.tsx`, conteggio in `task-panel.tsx` senza mai disabilitare "Consegna".
 - Unit `checks.test.ts`. Nessuna migrazione.
+
+**Stato (2026-10-15): S5 chiusa.**
+- **Fatto e verde:**
+  - `checks.ts` (pure), con 14 test compresa la taratura sul batch di maggio. La stima della durata si sposta qui da `mix.ts`;
+  - `recent.ts`: contesto per pagina e ultimi 20 reel, con una query per tabella e pagina;
+  - la sezione "Controlli" nella scheda Script, il conteggio in `task-panel.tsx` (accanto a "Script pronto" e alla decisione sullo script) e gli avvisi sulle card di script in `/approvazioni`;
+  - typecheck, lint e 124 test verdi. Commit `3610cc8`.
+- **Soglia di somiglianza 0,6 invece di 0,8**, tarata come previsto sul fixture di maggio:
+  - nel batch le 20 CTA diverse arrivano al massimo a 0,36 tra loro e le chiusure a 0,23;
+  - la stessa formula riformulata dà 0,67–0,73, con una parola tolta 0,96;
+  - con 0,8 le riformulazioni sfuggirebbero.
+- **F2-E8 provato dall'assistente in Chrome** sul sandbox (sessione admin), su TT-2611-03:
+  - aggiunta "idiota" alle parole vietate della Voce;
+  - hook con "l'idiota" e un testo di 120 parole → 4 avvisi nel reel: parola vietata in Hook, durata 48 s su 30–45, CTA e chiusura uguali a TT-2611-02;
+  - "Script pronto" → `ok`, reel in `revisione`, "4 avvisi sul testo" accanto alla decisione;
+  - revisione riassegnata ad Admin Sandbox per vederla nella sua coda: la card in `/approvazioni` mostra i 4 avvisi e "Approva" resta disponibile;
+  - nessun errore in console.
 
 ### S7 — Metriche e costi · 1,5 giorni · senza chiave
 
