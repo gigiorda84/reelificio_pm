@@ -169,6 +169,13 @@ export type ResyncDiff = {
   locked: { ordinal: number; fields: string[] }[];
   unchanged: number[];
   warnings: string[];
+  // Script revision of each existing reel as the preview read it (ordinal →
+  // script_rev). The apply sends it back: a reel edited after the preview the
+  // user confirmed is not overwritten (Fase 2 save_reel_script).
+  revs: Record<number, number>;
+  // After an apply: changed in the doc but not updated, because the reel was
+  // edited after the preview or can no longer be written.
+  skipped: { ordinal: number; fields: string[] }[];
 };
 
 export type ResyncPreviewResult =
@@ -234,12 +241,21 @@ async function diffParsedAgainstBatch(
   changed.sort((a, b) => a.ordinal - b.ordinal);
   locked.sort((a, b) => a.ordinal - b.ordinal);
 
-  return { diff: { added, removed, changed, locked, unchanged, warnings: [] }, revs };
+  return {
+    diff: {
+      added, removed, changed, locked, unchanged, warnings: [],
+      revs: Object.fromEntries([...revs].map(([ordinal, r]) => [ordinal, r.script_rev])),
+      skipped: [],
+    },
+    revs,
+  };
 }
 
+// options.expectedRevs: the `revs` of the preview the user confirmed; without
+// it the apply uses the revisions it reads itself.
 export async function resyncBatch(
   batchId: string,
-  options: { apply: boolean },
+  options: { apply: boolean; expectedRevs?: Record<number, number> },
 ): Promise<
   | { ok: true; diff: ResyncDiff; applied: boolean }
   | {
@@ -308,6 +324,11 @@ export async function resyncBatch(
     return { ok: true, diff, applied: false };
   }
 
+  // Re-sync writes as `resync`, which save_reel_script allows to admins only:
+  // check once, before writing anything.
+  const { data: isAdmin } = await supabase.rpc('is_admin');
+  if (isAdmin !== true) return { ok: false, error: 'not_admin' };
+
   // Apply: insert new reels, update changed reels. Removed reels are kept
   // (production work may be in flight); they are simply flagged in the diff.
   const { year, month } = detectBatchYearMonth(parsedDoc.batchLabel);
@@ -334,12 +355,14 @@ export async function resyncBatch(
   }
 
   // Through save_reel_script (Fase 2): a `resync` version per reel, saved
-  // only at the revision the diff read. A reel edited since then (stale) or
-  // locked in the meantime moves to the conflicts instead of being overwritten.
+  // only at the revision of the preview the user confirmed. A reel edited
+  // since then (stale), no longer writable or invalid goes to `skipped`
+  // instead of being overwritten.
   const updates = parsedDoc.reels.filter((r) => changedOrdinals.has(r.ordinal));
   for (const r of updates) {
     const rev = revs.get(r.ordinal);
     if (!rev) continue;
+    const expected = options.expectedRevs?.[r.ordinal];
     const { data: code, error: updErr } = await supabase.rpc('save_reel_script', {
       p_reel_id: rev.id,
       p_fields: {
@@ -353,21 +376,16 @@ export async function resyncBatch(
         raw_content: r.rawContent,
         parser_warning: r.parserWarning,
       },
-      p_expected_rev: rev.script_rev,
+      p_expected_rev: Number.isInteger(expected) ? expected : rev.script_rev,
       p_source: 'resync',
     });
     if (updErr) {
       return { ok: false, error: 'unknown', message: updErr.message };
     }
-    if (code === 'stale' || code === 'not_authorized') {
+    if (code !== 'ok') {
       const entry = diff.changed.find((c) => c.ordinal === r.ordinal);
       diff.changed = diff.changed.filter((c) => c.ordinal !== r.ordinal);
-      if (entry) diff.locked.push(entry);
-    } else if (code === 'invalid_input') {
-      // `resync` is for admins only.
-      return { ok: false, error: 'not_admin' };
-    } else if (code !== 'ok') {
-      return { ok: false, error: 'unknown', message: String(code) };
+      if (entry) diff.skipped.push(entry);
     }
   }
 

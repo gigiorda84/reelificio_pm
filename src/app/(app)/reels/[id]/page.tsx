@@ -239,7 +239,9 @@ export default async function ReelDetailPage({
           {isExternal || (scriptLocked && !admin.isAdmin) ? (
             <ScriptReadOnly reel={reel} canPropose={canPropose} />
           ) : (
-            <ScriptTab reel={reel} />
+            // Remounts when the text revision moves (mix, restore, proposal),
+            // so the form never pairs a new revision with an old draft.
+            <ScriptTab key={reel.script_rev} reel={reel} />
           )}
           <Proposals
             reelId={reel.id}

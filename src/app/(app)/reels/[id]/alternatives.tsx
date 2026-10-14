@@ -28,8 +28,11 @@ export function Alternatives({ reelId, alternatives, current, scriptRev, canComp
   const tBlock = useTranslations('reels.script');
   const tErr = useTranslations('scriptLab.errors');
   const [pending, startTransition] = useTransition();
-  const [baseId, setBaseId] = useState(alternatives[0]?.id ?? '');
+  const [chosenBase, setBaseId] = useState(alternatives[0]?.id ?? '');
   const [picks, setPicks] = useState<Partial<Record<Block, string>>>({});
+  // New alternatives (S6 "Rigenera") replace the old ones: fall back to the
+  // first instead of losing the preview.
+  const baseId = alternatives.some((a) => a.id === chosenBase) ? chosenBase : (alternatives[0]?.id ?? '');
 
   const mix = useMemo(() => composeMix(baseId, picks, alternatives), [baseId, picks, alternatives]);
   if (alternatives.length === 0) return null;

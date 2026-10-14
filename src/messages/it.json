@@ -361,7 +361,9 @@
         "unchanged": "Invariati",
         "removed": "Non più presenti (saranno mantenuti)",
         "noChanges": "Nessuna modifica rispetto all'ultima sincronizzazione.",
-        "locked": "Già in produzione (da revisione in poi): non aggiornati, cambiano solo con una proposta"
+        "locked": "Già in produzione (da revisione in poi): non aggiornati, cambiano solo con una proposta",
+        "skipped": "Non aggiornati (modificati dopo l'anteprima o non più modificabili)",
+        "skippedToast": "{count, plural, one {# reel non aggiornato: è cambiato dopo l'anteprima.} other {# reel non aggiornati: sono cambiati dopo l'anteprima.}}"
       },
       "state": "Stato"
     },

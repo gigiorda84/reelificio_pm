@@ -31,7 +31,11 @@ export function ScriptTab({ reel }: Props) {
   const tDetail = useTranslations('reels.detail');
   const [pending, startTransition] = useTransition();
 
-  const onSubmit = (formData: FormData) => {
+  // A plain submit handler rather than a form action: React resets a form
+  // after its action, which would wipe the draft on a refused (stale) save.
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       const result = await updateReelScript(reel.id, formData);
       if (result.ok) toast.success(t('saved'));
@@ -41,7 +45,7 @@ export function ScriptTab({ reel }: Props) {
   };
 
   return (
-    <form action={onSubmit} className="space-y-5 max-w-3xl">
+    <form onSubmit={onSubmit} className="space-y-5 max-w-3xl">
       {/* The revision this form shows: saving over a newer one is refused (stale). */}
       <input type="hidden" name="script_rev" value={reel.script_rev} />
       {reel.parser_warning ? (

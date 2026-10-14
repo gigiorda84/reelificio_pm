@@ -22,6 +22,8 @@ export function ResyncButton({ batchId }: Props) {
   const tCommon = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [diff, setDiff] = useState<ResyncDiff | null>(null);
+  // After an apply that skipped reels the dialog stays open on the outcome.
+  const [applied, setApplied] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const onPreview = () => {
@@ -29,6 +31,7 @@ export function ResyncButton({ batchId }: Props) {
       const result = await resyncBatch(batchId, { apply: false });
       if (result.ok) {
         setDiff(result.diff);
+        setApplied(false);
         setOpen(true);
       } else {
         toast.error(t(`form.errors.${mapDriveError(result.error)}` as Parameters<typeof t>[0]));
@@ -38,8 +41,14 @@ export function ResyncButton({ batchId }: Props) {
 
   const onApply = () => {
     startTransition(async () => {
-      const result = await resyncBatch(batchId, { apply: true });
-      if (result.ok) {
+      // The revisions of the preview the user is confirming: a reel edited
+      // since then is skipped instead of overwritten.
+      const result = await resyncBatch(batchId, { apply: true, expectedRevs: diff?.revs });
+      if (result.ok && result.diff.skipped.length > 0) {
+        setDiff(result.diff);
+        setApplied(true);
+        toast.warning(t('detail.diff.skippedToast', { count: result.diff.skipped.length }));
+      } else if (result.ok) {
         setOpen(false);
         toast.success(tCommon('saved'));
       } else {
@@ -53,6 +62,7 @@ export function ResyncButton({ batchId }: Props) {
     diff.added.length === 0 &&
     diff.changed.length === 0 &&
     diff.locked.length === 0 &&
+    diff.skipped.length === 0 &&
     diff.removed.length === 0;
 
   return (
@@ -96,6 +106,13 @@ export function ResyncButton({ batchId }: Props) {
                   tone="remove"
                 />
               ) : null}
+              {diff && diff.skipped.length > 0 ? (
+                <DiffSection
+                  label={t('detail.diff.skipped')}
+                  items={diff.skipped.map((c) => `#${c.ordinal} (${c.fields.join(', ')})`)}
+                  tone="remove"
+                />
+              ) : null}
               {diff && diff.removed.length > 0 ? (
                 <DiffSection
                   label={t('detail.diff.removed')}
@@ -119,7 +136,7 @@ export function ResyncButton({ batchId }: Props) {
             >
               {tCommon('cancel')}
             </Button>
-            {!isEmptyDiff ? (
+            {!isEmptyDiff && !applied ? (
               <Button onClick={onApply} disabled={pending}>
                 {pending ? t('detail.resyncing') : tCommon('save')}
               </Button>
