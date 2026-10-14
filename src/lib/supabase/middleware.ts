@@ -8,6 +8,8 @@ const PUBLIC_PATHS = [
   '/invite',
   '/api/telegram/webhook',
   '/api/cron',
+  // Fase 2 S0 probe, removed with it (docs/fase2-plan.md S0); CRON_SECRET-gated.
+  '/api/spike',
 ];
 
 // Where everyone lands: the open tasks of the signed-in user.
