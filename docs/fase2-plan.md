@@ -445,7 +445,7 @@ Avvio di S0 in ritardo: la finestra del 14–16 ottobre è in parte spesa per le
   - (2) una scrittura della Voce fuori dall'editor viene sovrascritta dal salvataggio successivo: oggi l'unica via è `save_bible`, perché la policy diretta è solo per gli admin e l'editor vecchio è eliminato;
   - (4) dopo `stale` le modifiche si riapplicano a mano, come dice il messaggio;
   - (5) il codice di S2 richiede `010` applicato: è sempre vero, perché le migrazioni precedono il codice (§8) e le anteprime del branch usano il sandbox.
-- **Da fare:** prova dell'utente sul sandbox (admin, Responsible `hello+autore`, interno senza ruolo in sola lettura).
+- **S2 chiusa il 2026-10-14:** l'utente ha provato in Chrome sul sandbox la bibbia come admin e come Responsible non admin (`hello+autore`), che la salva. Prima della prova si è corretta la password SMTP del sandbox, copiata con le virgolette.
 
 ### S4 — Versioni ed editor · 4 giorni · senza chiave
 
