@@ -29,6 +29,10 @@ Run `scripts/db-check/run.sh` after every migration change, and add a check when
 **Next direction — Reellificio Brain (decided 2026-10-01):** this app evolves into the "Brain", a 7-module app (Intelligence, Attualità, Character Lab, Script Lab, Produzione, Pubblicazione, Analytics) scaled to ~50 pages and ~10 internal users. Work proceeds in phases, starting with **Fase 0 (hardening)** on branch `fase-0-hardening`.
 - `docs/brain-concept.md` — summary of the team's concept doc. The original Claude Doc lives in another org and is not readable by tools.
 - `docs/brain-plan.md` — the decisions, architecture, phases, Fase 0 checklist and cost model. Read it before starting Brain work, and update its checklists as phases close.
+- `docs/fase2-plan.md` — the approved execution plan for Fase 2 release A, "Script Lab" (approved 2026-10-14). Its requirements spec is `.omc/specs/deep-interview-fase2-script-lab.md`.
+  - Work happens on branch `fase-2-script-lab` in the worktree `../Reelificio_PM-fase2`.
+  - Fase 2 SQL lives in `supabase/fase2/`, never in `supabase/migrations/`, until the plan's promotion step after R2. Nothing of Fase 2 touches staging or production before then.
+  - R1/R2 work always takes precedence; the plan's frozen windows mean no Fase 2 work at all.
 - `docs/fase1-plan.md` — the approved execution plan for Fase 1 "Produzione 2.0" (approved 2026-10-02). Its decision log is `docs/fase1-decisioni.md`.
   - Follow the plan slice by slice.
   - Apply the inline fixes I1–I15 listed at the end of the plan.

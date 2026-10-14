@@ -49,6 +49,35 @@ Il piano esecutivo è [`docs/fase1-plan.md`](fase1-plan.md). L'hanno approvato A
   - Vercel Pro e Supabase Pro;
   - un deploy `fase1-pre-r1` entro il 16 ottobre, che serve come bersaglio del rollback.
 
+### Avvio della Fase 2 (2026-10-14)
+
+Si parte in anticipo sul calendario: il codice della Fase 1 è quasi completo, e quello che manca per R1 dipende da input del team e dalle date delle prove.
+
+- **Prima lo Script Lab**, poi Intelligence. I pattern di Intelligence entrano nello Script Lab come ingrediente quando esistono.
+- **Scraping:** il motore esistente è Apify usato direttamente (actor e task sull'account del team). Intelligence lo integra con l'API di Apify.
+- **Metodo:** come la Fase 1. Intervista approfondita, spec, piano rivisto da Architect e Critic, approvazione dell'utente, fette verticali. Il piano andrà in `docs/fase2-plan.md`.
+- **Convivenza con R1:** fino al rilascio di R1 la Fase 2 resta in locale (`scripts/db-check/run.sh`), senza migrazioni sullo staging, e i lavori di R1 hanno la precedenza. Le migrazioni della Fase 2 si ordinano dopo il taglio di R1 e R2.
+
+Esito dell'intervista sullo Script Lab (stesso giorno). La spec, in attesa di approvazione, è `.omc/specs/deep-interview-fase2-script-lab.md`.
+
+- **Rilascio A, scrittura.**
+  - Il Google Doc mensile viene sostituito; l'import resta come ripiego.
+  - La bibbia è una scheda strutturata e assorbe il Voice Brief. La modificano gli admin e il Responsible della scrittura.
+  - Il backlog delle idee è per pagina. Le idee le sceglie chi scrive, e ogni idea scelta diventa un reel del batch.
+  - Con "Avvia stesura" arrivano **3 script interi da 3 modelli diversi**, scelti con un menù a spunta, con "Rigenera" nel reel. Chi scrive sceglie una base e può prendere singoli blocchi dalle altre.
+  - I controlli avvisano soltanto.
+  - Sui costi niente tetto, solo visibilità.
+- **Rilascio B, idee.** Intelligence con Apify sugli account selezionati, più "Genera idee" che parte da quei reel. Trend e news per keyword vengono dopo, con la licenza delle news.
+- **Motori:** multi-modello via OpenRouter da subito, Claude compreso. Per questo l'account OpenRouter (azione del team) diventa un prerequisito della fetta di generazione.
+
+**Piano del rilascio A approvato il 2026-10-14**, con tutti i default: [`docs/fase2-plan.md`](fase2-plan.md). Consenso di Architect e Critic all'iterazione 2. In sintesi:
+- **Date:** pagina pilota (Porcino & Papaya) in produzione lunedì 11 gennaio 2027 come impegno, lunedì 14 dicembre come obiettivo ambizioso.
+- **Ordine delle fette:** S0 → S2 → S4 → S1 → S6 → S3 → S5 → S7 → S8.
+- **Branch e migrazioni:** `fase-2-script-lab` nel worktree `../Reelificio_PM-fase2`. Le SQL stanno in `supabase/fase2/` e si promuovono in `supabase/migrations/` solo al rilascio.
+- **Database di sviluppo:** un progetto sandbox, separato dallo staging.
+- **Deviazioni da questo documento:** client `fetch` verso OpenRouter al posto dell'AI SDK, e `job_outbox` al posto di Inngest.
+- **Chiave OpenRouter:** entro venerdì 30 ottobre.
+
 ## Vincoli esterni
 
 - **Vercel Hobby** consente un cron al giorno ed è solo per uso non commerciale → Vercel Pro (Fase 0).
