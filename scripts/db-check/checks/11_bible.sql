@@ -224,4 +224,27 @@ do $$ begin
 end $$;
 reset role;
 
+-- A page without a voice brief: an all-empty Voce creates no row (the reel's
+-- Voce tab keeps saying none is set); an example as long as a reel's corpo
+-- (8000) is accepted, so any approved reel can be copied.
+insert into pages (id, slug, name, code_prefix)
+values ('10000000-0000-0000-0000-0000000000b2', 'senza-voce', 'Senza voce', 'SV');
+set role authenticated;
+do $$ begin
+  perform pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+  if public.save_bible('10000000-0000-0000-0000-0000000000b2',
+       pg_temp.bible() || jsonb_build_object('example_scripts',
+         jsonb_build_array(jsonb_build_object('title', 'Lungo', 'corpo', repeat('x', 8000), 'cta', repeat('y', 2000)))),
+       '{"adjectives": [" "], "banned_words": [], "reference_audio_urls": [], "allowed_liberties": " ", "anomaly_procedure": null}',
+       1) <> 'ok' then
+    raise exception 'FAIL: a bible with reel-sized examples and an empty Voce was refused';
+  end if;
+end $$;
+reset role;
+do $$ begin
+  if exists (select 1 from voice_briefs where page_id = '10000000-0000-0000-0000-0000000000b2') then
+    raise exception 'FAIL: an all-empty Voce created a voice brief';
+  end if;
+end $$;
+
 rollback;

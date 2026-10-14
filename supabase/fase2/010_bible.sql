@@ -239,11 +239,13 @@ begin
       if jsonb_typeof(v_ex) <> 'object'
          or exists (select 1 from jsonb_object_keys(v_ex) k
                      where k not in ('title', 'hook', 'corpo', 'chiusura', 'cta'))
+         -- The reel limits (src/lib/reels/actions.ts), so any approved reel
+         -- can be copied into the examples.
          or not private._text_ok(v_ex->'title', 200)
          or not private._text_ok(v_ex->'hook', 2000)
-         or not private._text_ok(v_ex->'corpo', 4000)
+         or not private._text_ok(v_ex->'corpo', 8000)
          or not private._text_ok(v_ex->'chiusura', 2000)
-         or not private._text_ok(v_ex->'cta', 1000) then
+         or not private._text_ok(v_ex->'cta', 2000) then
         return 'invalid_input';
       end if;
       v_examples := v_examples || jsonb_build_array(jsonb_strip_nulls(jsonb_build_object(
@@ -295,11 +297,17 @@ begin
   if p_voice is not null then
     select * into v from voice_briefs where page_id = p_page_id for update;
     if not found then
-      insert into voice_briefs (page_id, adjectives, banned_words, reference_audio_urls,
-                                allowed_liberties, anomaly_procedure, updated_by)
-      values (p_page_id, v_adjectives, v_banned, v_audio,
-              private._text_val(p_voice->'allowed_liberties'),
-              private._text_val(p_voice->'anomaly_procedure'), p_actor);
+      -- An all-empty Voce creates no row: the reel's Voce tab keeps saying
+      -- that no voice brief is set.
+      if cardinality(v_adjectives) + cardinality(v_banned) + cardinality(v_audio) > 0
+         or private._text_val(p_voice->'allowed_liberties') is not null
+         or private._text_val(p_voice->'anomaly_procedure') is not null then
+        insert into voice_briefs (page_id, adjectives, banned_words, reference_audio_urls,
+                                  allowed_liberties, anomaly_procedure, updated_by)
+        values (p_page_id, v_adjectives, v_banned, v_audio,
+                private._text_val(p_voice->'allowed_liberties'),
+                private._text_val(p_voice->'anomaly_procedure'), p_actor);
+      end if;
     elsif (v.adjectives, v.banned_words, v.reference_audio_urls, v.allowed_liberties, v.anomaly_procedure)
           is distinct from (v_adjectives, v_banned, v_audio,
                             private._text_val(p_voice->'allowed_liberties'),

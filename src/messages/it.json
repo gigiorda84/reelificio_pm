@@ -240,7 +240,25 @@
       "stale": "Qualcun altro ha salvato la bibbia nel frattempo: ricarica la pagina e riapplica le modifiche.",
       "not_authorized": "Solo gli admin e il Responsible della scrittura della pagina possono modificare la bibbia.",
       "invalid_input": "Controlla i campi: durata tra 5 e 180 secondi (minimo ≤ massimo), al massimo 3 modelli diversi, link audio che iniziano con http.",
-      "unknown": "Salvataggio non riuscito, riprova."
+      "unknown": "Salvataggio non riuscito, riprova.",
+      "field": "Controlla il campo «{field}»: valore non valido o troppo lungo."
+    },
+    "fieldNames": {
+      "tone": "Tono",
+      "characters": "Personaggi",
+      "themes": "Temi",
+      "keywords": "Keyword",
+      "allowed_ctas": "CTA ammesse",
+      "duration_min_s": "Durata",
+      "duration_max_s": "Durata",
+      "words_per_second": "Parole al secondo",
+      "example_scripts": "Script di esempio",
+      "default_models": "Modelli predefiniti",
+      "adjectives": "Aggettivi",
+      "banned_words": "Parole vietate",
+      "reference_audio_urls": "Riferimenti audio",
+      "allowed_liberties": "Libertà consentite",
+      "anomaly_procedure": "Procedura anomalie"
     }
   },
   "batches": {

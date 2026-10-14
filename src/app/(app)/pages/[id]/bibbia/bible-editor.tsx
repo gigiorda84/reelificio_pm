@@ -15,8 +15,10 @@ import type { ApprovedScript, BibleRow } from '@/lib/bible/queries';
 import {
   BIBLE_LIMITS,
   bibleCompleteness,
+  bibleSchema,
   firstNameMentions,
   splitList,
+  voiceSchema,
   type ExampleScript,
   type VoiceFields,
 } from '@/lib/bible/schema';
@@ -95,18 +97,27 @@ export function BibleEditor({ pageId, initialBible, initialVoice, editable, appr
   };
 
   const save = () => {
+    const voice = {
+      adjectives: splitList(adjectives),
+      banned_words: splitList(banned),
+      reference_audio_urls: splitList(audio, 'line'),
+      allowed_liberties: liberties.trim() || null,
+      anomaly_procedure: anomaly.trim() || null,
+    };
+    // Same rules as the server: name the field to fix instead of a generic error.
+    const bibleCheck = bibleSchema.safeParse(bible);
+    const voiceCheck = voiceSchema.safeParse(voice);
+    const issue = !bibleCheck.success
+      ? bibleCheck.error.issues[0]
+      : !voiceCheck.success
+        ? voiceCheck.error.issues[0]
+        : null;
+    if (issue) {
+      toast.error(t('errors.field', { field: t(`fieldNames.${String(issue.path[0])}`) }));
+      return;
+    }
     startTransition(async () => {
-      const result = await saveBible(pageId, {
-        bible,
-        voice: {
-          adjectives: splitList(adjectives),
-          banned_words: splitList(banned),
-          reference_audio_urls: splitList(audio, 'line'),
-          allowed_liberties: liberties.trim() || null,
-          anomaly_procedure: anomaly.trim() || null,
-        },
-        expectedVersion: version,
-      });
+      const result = await saveBible(pageId, { bible, voice, expectedVersion: version });
       if (result.ok) {
         setVersion(result.version);
         toast.success(t('saved'));
@@ -189,6 +200,7 @@ export function BibleEditor({ pageId, initialBible, initialVoice, editable, appr
                   <Input
                     aria-label={t('fields.exampleTitle')}
                     placeholder={t('fields.exampleTitle')}
+                    maxLength={BIBLE_LIMITS.example.title}
                     value={ex.title ?? ''}
                     onChange={(e) => setExample(i, 'title', e.target.value)}
                   />
@@ -208,6 +220,7 @@ export function BibleEditor({ pageId, initialBible, initialVoice, editable, appr
                     rows={k === 'corpo' ? 4 : 2}
                     aria-label={k.toUpperCase()}
                     placeholder={k.toUpperCase()}
+                    maxLength={BIBLE_LIMITS.example[k]}
                     value={ex[k] ?? ''}
                     onChange={(e) => setExample(i, k, e.target.value)}
                   />

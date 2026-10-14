@@ -12,7 +12,8 @@ export const BIBLE_LIMITS = {
   ctas: { items: 20, length: 300 },
   models: { items: 3, length: 120 },
   examples: 5,
-  example: { title: 200, hook: 2000, corpo: 4000, chiusura: 2000, cta: 1000 },
+  // The reel limits (src/lib/reels/actions.ts): any approved reel can be copied.
+  example: { title: 200, hook: 2000, corpo: 8000, chiusura: 2000, cta: 2000 },
   duration: { min: 5, max: 180 },
   wordsPerSecond: { min: 1.5, max: 4, default: 2.5 },
   voice: {

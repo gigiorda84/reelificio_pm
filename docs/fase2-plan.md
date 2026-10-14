@@ -429,6 +429,24 @@ Avvio di S0 in ritardo: la finestra del 14–16 ottobre è in parte spesa per le
 
 **Fatto quando:** sul sandbox il Responsible non admin compila la bibbia e l'esterno di prova vede solo la Voce.
 
+**Stato (2026-10-14):**
+- **Fatto e verde:**
+  - `supabase/fase2/010_bible.sql` come da D-D. In più:
+    - un trigger su `pages` crea la bibbia vuota delle pagine nuove;
+    - gli script di esempio hanno i limiti dei reel (corpo 8000, CTA 2000), così ogni reel approvato si può copiare;
+    - una Voce tutta vuota non crea una riga `voice_briefs`;
+  - `11_bible.sql` (AC3, AC4, `stale`, limiti, catalogo dei modelli, nessuna scrittura diretta, interruttore, Voce vuota). Una prova di mutazione (permesso indebolito) lo fa fallire;
+  - `api-check` (8 controlli come Responsible, interno senza ruolo, esterno, admin e anon);
+  - `upgrade.sh` con `seed-fase2-before.sql` e `06_fase2.sql`: AC2, cioè checksum di `voice_briefs` invariato e una bibbia vuota per pagina;
+  - `src/lib/bible/{schema,queries,actions}.ts` con 12 test; `/pages/[id]/bibbia`; scheda Bibbia nella pagina; `VoiceBriefEditor` e `saveVoiceBrief` eliminati; interruttore nelle impostazioni di produzione; i18n `bible`;
+  - typecheck, lint, 105 test e build verdi;
+  - sandbox migrato; `fase2-seed.ts` scrive la bibbia P&P (`tests/fixtures/bible-porcino-papaya.json`) sulla Pagina Test.
+- **Review indipendente:** nessun difetto grave, 5 osservazioni basse. Sono corrette la Voce vuota (1) e i limiti degli esempi, con il messaggio che nomina il campo (3). Restano:
+  - (2) una scrittura della Voce fuori dall'editor viene sovrascritta dal salvataggio successivo: oggi l'unica via è `save_bible`, perché la policy diretta è solo per gli admin e l'editor vecchio è eliminato;
+  - (4) dopo `stale` le modifiche si riapplicano a mano, come dice il messaggio;
+  - (5) il codice di S2 richiede `010` applicato: è sempre vero, perché le migrazioni precedono il codice (§8) e le anteprime del branch usano il sandbox.
+- **Da fare:** prova dell'utente sul sandbox (admin, Responsible `hello+autore`, interno senza ruolo in sola lettura).
+
 ### S4 — Versioni ed editor · 4 giorni · senza chiave
 
 **SQL** `020_versions.sql`:
