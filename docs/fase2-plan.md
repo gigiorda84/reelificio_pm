@@ -394,9 +394,14 @@ Avvio di S0 in ritardo: la finestra del 14–16 ottobre è in parte spesa per le
   - il dev server sul sandbox risponde, e `task-sweep` aggiorna il battito del sandbox mentre quello dello staging resta fermo;
   - `scripts/fase2-promote.sh` (`--dry-run`, `--check`, `--rebase`) provato su un clone usa e getta. Rifiuta la promozione senza il contract di R1 come migrazione e con timestamp futuri, e `--check` vede un hotfix successivo;
   - target `sandbox` in `scripts/lib/target.ts`; `.env.example` con `OPENROUTER_API_KEY` e `AI_PROVIDER`.
-- **Da fare:**
-  - login dal browser sul sandbox (magic link nella casella `hello@`);
-  - variabili Preview del branch verso il sandbox, push del branch e prova `after()` / `maxDuration` su Hobby, da ripetere su Pro. Servono gli OK dell'utente.
+- **Anteprima del branch sul sandbox** (OK dell'utente):
+  - variabili Preview **specifiche del branch** `fase-2-script-lab`: Supabase del sandbox, `CRON_SECRET` proprio, `NEXT_PUBLIC_APP_URL` del branch, `AI_PROVIDER=fake`, `GOOGLE_SHARED_DRIVE_ID` e `NEXT_PUBLIC_SENTRY_DSN` vuoti. Vercel le accetta solo dopo il push del branch: la prima anteprima (`7c09981`), partita prima delle variabili, è stata annullata durante la build;
+  - verifica: `task-sweep` chiamato sull'anteprima aggiorna il battito del sandbox, e quello dello staging resta fermo.
+- **Prova Vercel su Hobby** (2026-10-14, `fra1`, route usa e getta `/api/spike/long`, solo sandbox, con segreto cron):
+  - `after()` di 150 s: arrivato in fondo, risposta in < 1 s;
+  - attesa dentro la richiesta: 180 s completati, HTTP 200 (la prova chiedeva 200 s, ma il ciclo a passi da 30 s si ferma a 180).
+  - Esito: su Hobby `after()` e `maxDuration = 300` reggono almeno 150 e 180 s. **Si ripete dopo Vercel Pro**, poi si toglie la route e `/api/spike` da `PUBLIC_PATHS`.
+- **Da fare:** login dal browser sul sandbox (magic link nella casella `hello@`).
 
 ### S2 — Bibbia · 2,5 giorni · senza chiave
 
