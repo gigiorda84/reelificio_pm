@@ -10,3 +10,9 @@ create table db_check.voice_briefs_before as
   select count(*) as n,
          md5(coalesce(string_agg(row_to_json(v)::text, '|' order by v.id), '')) as h
   from voice_briefs v;
+
+-- A reel imported from a Doc header without a title (`SCRIPT 13 — `): the
+-- doc ideas backfill gives its idea the reel code.
+insert into reels (id, batch_id, page_id, code, ordinal, title)
+values ('d0000000-0000-0000-0000-000000000013', 'c0000000-0000-0000-0000-000000000001',
+        'b0000000-0000-0000-0000-000000000001', 'LG-2609-13', 13, '');

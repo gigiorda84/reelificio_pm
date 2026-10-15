@@ -389,7 +389,7 @@ const OPEN = ['unassigned', 'assigned', 'in_progress'];
   check('Responsible creates an idea', created.data?.code === 'ok', created.error ?? created.data);
   const backlog = await user(MEMBER)
     .from('ideas')
-    .select('id, title, spunto, source, status, reel_id, created_at, reels(code)')
+    .select('id, title, spunto, source, status, reel_id, created_at, decided_at, reels(code, title)')
     .eq('page_id', PAGE)
     .eq('status', 'backlog')
     .order('created_at', { ascending: false });
@@ -398,8 +398,27 @@ const OPEN = ['unassigned', 'assigned', 'in_progress'];
     p_page_id: PAGE, p_year: 2027, p_month: 3, p_idea_ids: [created.data?.id],
   });
   check('create_batch_from_ideas through the API', batch.data?.code === 'ok' && !!batch.data?.batch_id, batch.error ?? batch.data);
-  const chosen = await user(MEMBER).from('ideas').select('status, reels(code)').eq('id', created.data?.id).single();
-  check('the chosen idea links its reel', chosen.data?.status === 'scelta' && chosen.data?.reels?.code === 'PP-2703-01', chosen.error ?? chosen.data);
+  const chosen = await user(MEMBER).from('ideas').select('status, reels(code, title)').eq('id', created.data?.id).single();
+  check('the chosen idea links its reel', chosen.data?.status === 'scelta' && chosen.data?.reels?.code === 'PP-2703-01'
+    && chosen.data?.reels?.title === 'Idea via API', chosen.error ?? chosen.data);
+  // listIdeasBatches and countIdeas (src/lib/ideas/queries.ts).
+  const batches = await user(MEMBER)
+    .from('batches')
+    .select('id, label, period')
+    .eq('page_id', PAGE)
+    .eq('origin', 'ideas')
+    .neq('status', 'closed')
+    .order('period', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(24);
+  check('ideas batches of the page', !batches.error && batches.data?.some((b) => b.id === batch.data?.batch_id && b.period === '2027-03-01'),
+    batches.error ?? batches.data);
+  const count = await user(MEMBER)
+    .from('ideas')
+    .select('id', { count: 'exact', head: true })
+    .eq('page_id', PAGE)
+    .eq('status', 'scelta');
+  check('count of chosen ideas', !count.error && typeof count.count === 'number' && count.count >= 3, count.error ?? count.count);
   const ext = await user(EXTERNAL).from('ideas').select('id');
   check('external reads no idea', !ext.error && ext.data?.length === 0, ext.error ?? ext.data);
   const outsider = await user(OUTSIDER).rpc('upsert_idea', { p_id: null, p_page_id: PAGE, p_title: 'Intrusa', p_spunto: null });

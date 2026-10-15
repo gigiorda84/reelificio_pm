@@ -360,6 +360,8 @@
       "existingBatch": "Aggiungi a un batch nato dalle idee",
       "noIdeasBatch": "Nessun batch nato dalle idee per questa pagina",
       "numbering": "I codici continuano dopo l'ultimo reel della pagina in quel mese.",
+      "invalidYear": "Scegli un anno tra 2020 e 2099.",
+      "tooMany": "Al massimo {max} idee per volta.",
       "cancel": "Annulla",
       "confirm": "Crea i reel",
       "creating": "Creazione…",
@@ -380,9 +382,10 @@
       "12": "Dicembre"
     },
     "errors": {
-      "invalid_input": "Richiesta non valida: le idee devono essere nel backlog di questa pagina.",
+      "invalid_input": "Richiesta non valida: le idee devono essere nel backlog di questa pagina e il batch non chiuso.",
       "not_authorized": "Solo gli admin e il Responsible della scrittura della pagina possono farlo.",
       "invalid_state": "Un'idea già scelta non si modifica più.",
+      "stale": "Nel frattempo sono nati altri reel di quel mese: riprova.",
       "unknown": "Operazione non riuscita, riprova."
     }
   },
@@ -424,7 +427,7 @@
         "noReels": "Il documento non contiene script riconoscibili.",
         "notAdmin": "Solo gli amministratori possono creare i batch.",
         "unknown": "Operazione non riuscita.",
-        "duplicateCodes": "La pagina ha già reel con i codici di quel mese (per esempio un batch nato dalle idee): controlla il mese del documento."
+        "duplicateCodes": "Alcuni codici dei reel esistono già: il documento ripete il numero di uno script, oppure la pagina ha già reel di quel mese (per esempio un batch nato dalle idee). Controlla i numeri e il mese del documento."
       }
     },
     "detail": {

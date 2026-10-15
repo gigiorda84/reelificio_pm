@@ -163,8 +163,9 @@ $$;
 -- Turns backlog ideas into reels in `idea`, in the order given: a new batch
 -- for (year, month), or more reels in an existing `ideas` batch of the page
 -- (never an import batch: its doc ideas and the re-sync by ordinal would
--- break). Returns {code, batch_id}; codes: ok, not_authorized, invalid_input.
--- Nothing is written unless every idea is valid.
+-- break; never a closed batch). Returns {code, batch_id}; codes: ok,
+-- not_authorized, invalid_input, stale (a concurrent import took one of the
+-- codes). Nothing is written unless every idea is valid.
 create function private.create_batch_from_ideas(
   p_actor uuid, p_page_id uuid, p_year integer, p_month integer, p_idea_ids uuid[], p_batch_id uuid
 )
@@ -184,13 +185,16 @@ declare
   v_months text[] := array['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio',
                            'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
 begin
-  -- The page row serialises numbering for the page.
-  select * into pg from pages where id = p_page_id for update;
-  if not found then return jsonb_build_object('code', 'invalid_input'); end if;
-  if not private._can_edit_script_lab(p_actor, pg.id) then
-    perform private._log(null, null, p_actor, 'create_batch_from_ideas', 'app', 'not_authorized', pg.id::text);
+  if not exists (select 1 from pages where id = p_page_id) then
+    return jsonb_build_object('code', 'invalid_input');
+  end if;
+  if not private._can_edit_script_lab(p_actor, p_page_id) then
+    perform private._log(null, null, p_actor, 'create_batch_from_ideas', 'app', 'not_authorized', p_page_id::text);
     return jsonb_build_object('code', 'not_authorized');
   end if;
+  -- The page row serialises numbering for the page; NO KEY UPDATE leaves
+  -- inserts that reference the page (reels, ideas) free.
+  select * into pg from pages where id = p_page_id for no key update;
   if p_idea_ids is null or cardinality(p_idea_ids) not between 1 and 50
      or cardinality(p_idea_ids) <> (select count(distinct x) from unnest(p_idea_ids) x) then
     return jsonb_build_object('code', 'invalid_input');
@@ -198,7 +202,7 @@ begin
 
   if p_batch_id is not null then
     select * into b from batches where id = p_batch_id for update;
-    if not found or b.page_id <> pg.id or b.origin <> 'ideas' then
+    if not found or b.page_id <> pg.id or b.origin <> 'ideas' or b.status = 'closed' then
       return jsonb_build_object('code', 'invalid_input');
     end if;
     v_year := extract(year from b.period)::int;
@@ -214,28 +218,35 @@ begin
     return jsonb_build_object('code', 'invalid_input');
   end if;
 
-  if p_batch_id is null then
-    insert into batches (page_id, label, status, origin, period, created_by)
-    values (pg.id, 'Batch ' || v_months[v_month], 'draft', 'ideas', make_date(v_year, v_month, 1), p_actor)
-    returning * into b;
-  end if;
+  -- createBatch (Fase 1) takes no page lock: an import of the same month
+  -- running now can take a code first. Its unique violation rolls back
+  -- everything written in this block.
+  begin
+    if p_batch_id is null then
+      insert into batches (page_id, label, status, origin, period, created_by)
+      values (pg.id, 'Batch ' || v_months[v_month], 'draft', 'ideas', make_date(v_year, v_month, 1), p_actor)
+      returning * into b;
+    end if;
 
-  v_next := private._next_reel_ordinal(pg.code_prefix, v_year, v_month);
-  for v_idea in
-    select i.id, i.title, u.n
-      from unnest(p_idea_ids) with ordinality as u(id, n)
-      join ideas i on i.id = u.id
-     order by u.n
-  loop
-    insert into reels (batch_id, page_id, code, ordinal, title, format, category)
-    values (b.id, pg.id, private._reel_code(pg.code_prefix, v_year, v_month, v_next), v_next,
-            v_idea.title, 'other', 'adapted')
-    returning id into v_reel;
-    update ideas
-       set status = 'scelta', reel_id = v_reel, decided_at = now(), updated_at = now()
-     where id = v_idea.id;
-    v_next := v_next + 1;
-  end loop;
+    v_next := private._next_reel_ordinal(pg.code_prefix, v_year, v_month);
+    for v_idea in
+      select i.id, i.title, u.n
+        from unnest(p_idea_ids) with ordinality as u(id, n)
+        join ideas i on i.id = u.id
+       order by u.n
+    loop
+      insert into reels (batch_id, page_id, code, ordinal, title, format, category)
+      values (b.id, pg.id, private._reel_code(pg.code_prefix, v_year, v_month, v_next), v_next,
+              v_idea.title, 'other', 'adapted')
+      returning id into v_reel;
+      update ideas
+         set status = 'scelta', reel_id = v_reel, decided_at = now(), updated_at = now()
+       where id = v_idea.id;
+      v_next := v_next + 1;
+    end loop;
+  exception when unique_violation then
+    return jsonb_build_object('code', 'stale');
+  end;
 
   perform private._log(null, null, p_actor, 'create_batch_from_ideas', 'app', 'ok', b.id::text);
   return jsonb_build_object('code', 'ok', 'batch_id', b.id);
@@ -267,7 +278,8 @@ grant execute on function public.create_batch_from_ideas(uuid, integer, integer,
 -------------------------------------------------------------------------------
 -- `doc` ideas (Q5): every reel imported from the Doc has its idea, already
 -- chosen. The trigger covers new imports and re-sync inserts; the backfill
--- covers the reels of today.
+-- covers the reels of today. A blank title (a `SCRIPT 5 — ` header) takes
+-- the reel code, so the import never fails on the idea.
 -------------------------------------------------------------------------------
 
 create function private.reels_doc_idea()
@@ -279,7 +291,8 @@ as $$
 begin
   if exists (select 1 from batches where id = new.batch_id and origin = 'import') then
     insert into ideas (page_id, title, source, status, reel_id, created_by, decided_at)
-    values (new.page_id, left(btrim(new.title), 200), 'doc', 'scelta', new.id, auth.uid(), now())
+    values (new.page_id, coalesce(nullif(left(btrim(new.title), 200), ''), new.code),
+            'doc', 'scelta', new.id, auth.uid(), now())
     on conflict (reel_id) do nothing;
   end if;
   return null;
@@ -291,10 +304,10 @@ create trigger trg_reels_doc_idea
   for each row execute function private.reels_doc_idea();
 
 insert into ideas (page_id, title, source, status, reel_id, decided_at, created_at)
-select r.page_id, left(btrim(r.title), 200), 'doc', 'scelta', r.id, r.created_at, r.created_at
+select r.page_id, coalesce(nullif(left(btrim(r.title), 200), ''), r.code), 'doc', 'scelta', r.id,
+       r.created_at, r.created_at
   from reels r
   join batches b on b.id = r.batch_id and b.origin = 'import'
- where length(btrim(r.title)) > 0
 on conflict (reel_id) do nothing;
 
 revoke execute on all functions in schema private from public, anon, authenticated;

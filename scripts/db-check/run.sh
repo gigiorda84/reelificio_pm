@@ -59,4 +59,22 @@ wait "$LOCKER"
 got=$("${PSQL_OUT[@]}" -c "select public.sweep_tasks(now()) ->> 'skipped_locked'" -c "$STAMPED" | tr '\n' ' ')
 [ "$got" = "0 t " ] || { echo "FAIL: the sweep did not take the reel once unlocked ($got)"; exit 1; }
 
+# Two batches from ideas for one page and month at once (Fase 2 S3): the page
+# lock makes the second wait and continue the numbering instead of colliding.
+echo "check:   concurrent batches from ideas"
+"${PSQL[@]}" -f "$HERE/concurrency/ideas-batch-setup.sql"
+AS_ADMIN=(-c "set role authenticated" -c "set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a'")
+P1=10000000-0000-0000-0000-000000000001
+"${PSQL[@]}" -c "begin" "${AS_ADMIN[@]}" \
+  -c "select public.create_batch_from_ideas('$P1', 2026, 9, array['90000000-0000-0000-0000-0000000000f1'::uuid])" \
+  -c "select pg_sleep(3)" -c "commit" &
+FIRST=$!
+sleep 1
+got=$("${PSQL_OUT[@]}" "${AS_ADMIN[@]}" \
+  -c "select public.create_batch_from_ideas('$P1', 2026, 9, array['90000000-0000-0000-0000-0000000000f2'::uuid]) ->> 'code'")
+wait "$FIRST"
+codes=$("${PSQL_OUT[@]}" -c "select string_agg(code || ':' || title, ' ' order by code) from reels where code like 'PP-2609-%'")
+[ "$got $codes" = "ok PP-2609-01:Prima in gara PP-2609-02:Seconda in gara" ] \
+  || { echo "FAIL: concurrent batches from ideas ($got $codes)"; exit 1; }
+
 echo "OK: all migrations applied and all checks passed"

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { MAX_IDEAS_PER_BATCH } from './constants';
 
 // Writes of the ideas backlog through the SQL functions of
 // supabase/fase2/040_ideas.sql, which check the caller (admin or RACI
@@ -10,9 +11,9 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export type IdeaActionResult =
   | { ok: true; id?: string; batchId?: string }
-  | { ok: false; error: 'invalid_input' | 'not_authorized' | 'invalid_state' | 'unknown' };
+  | { ok: false; error: 'invalid_input' | 'not_authorized' | 'invalid_state' | 'stale' | 'unknown' };
 
-const CODES = ['invalid_input', 'not_authorized', 'invalid_state'] as const;
+const CODES = ['invalid_input', 'not_authorized', 'invalid_state', 'stale'] as const;
 const uuid = z.string().uuid();
 
 function fail(code: unknown): IdeaActionResult {
@@ -70,7 +71,7 @@ export async function createBatchFromIdeas(
   target: { year: number; month: number } | { batchId: string },
   ideaIds: string[],
 ): Promise<IdeaActionResult> {
-  const ids = z.array(uuid).min(1).max(50).safeParse(ideaIds);
+  const ids = z.array(uuid).min(1).max(MAX_IDEAS_PER_BATCH).safeParse(ideaIds);
   const batchId = 'batchId' in target ? target.batchId : null;
   if (!uuid.safeParse(pageId).success || !ids.success || (batchId !== null && !uuid.safeParse(batchId).success)) {
     return { ok: false, error: 'invalid_input' };

@@ -13,14 +13,21 @@ export type Idea = {
   status: IdeaStatus;
   reel_id: string | null;
   reel_code: string | null;
+  // The reel's title today: a re-sync renames reels, and a doc idea is only
+  // the reel's title from the Doc.
+  reel_title: string | null;
   created_at: string;
   decided_at: string | null;
 };
 
-type IdeaRow = Omit<Idea, 'reel_code'> & { reels: { code: string } | null };
+type IdeaRow = Omit<Idea, 'reel_code' | 'reel_title'> & { reels: { code: string; title: string } | null };
 
-const COLUMNS = 'id, title, spunto, source, status, reel_id, created_at, decided_at, reels(code)';
-const toIdea = ({ reels, ...rest }: IdeaRow): Idea => ({ ...rest, reel_code: reels?.code ?? null });
+const COLUMNS = 'id, title, spunto, source, status, reel_id, created_at, decided_at, reels(code, title)';
+const toIdea = ({ reels, ...rest }: IdeaRow): Idea => ({
+  ...rest,
+  reel_code: reels?.code ?? null,
+  reel_title: reels?.title ?? null,
+});
 
 // The whole backlog of a page, newest first. Chosen ideas are capped: they
 // pile up month after month (every imported reel has one).
@@ -59,8 +66,8 @@ export async function getIdeaForReel(reelId: string): Promise<Idea | null> {
   return data ? toIdea(data as unknown as IdeaRow) : null;
 }
 
-// Batches of the page born from ideas, newest month first: ideas can be
-// added to them (never to an import batch).
+// Open batches of the page born from ideas, newest month first: ideas can
+// be added to them (never to an import or a closed batch).
 export type IdeasBatch = { id: string; label: string; period: string };
 
 export async function listIdeasBatches(pageId: string): Promise<IdeasBatch[]> {
@@ -70,6 +77,7 @@ export async function listIdeasBatches(pageId: string): Promise<IdeasBatch[]> {
     .select('id, label, period')
     .eq('page_id', pageId)
     .eq('origin', 'ideas')
+    .neq('status', 'closed')
     .order('period', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(24);

@@ -277,6 +277,7 @@ export async function resyncBatch(
         | 'drive_unknown'
         | 'no_reels'
         | 'not_admin'
+        | 'duplicate_codes'
         | 'unknown';
       message?: string;
     }
@@ -355,6 +356,10 @@ export async function resyncBatch(
         insertErr.message.toLowerCase().includes('row-level security')
       ) {
         return { ok: false, error: 'not_admin' };
+      }
+      // A new script number whose code a batch from ideas already took.
+      if (insertErr.code === '23505' && insertErr.message.includes('code')) {
+        return { ok: false, error: 'duplicate_codes' };
       }
       return { ok: false, error: 'unknown', message: insertErr.message };
     }

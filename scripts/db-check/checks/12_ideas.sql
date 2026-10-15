@@ -1,7 +1,8 @@
 -- Fase 2 S3 — ideas and batches from ideas (docs/fase2-plan.md AC5–AC7).
 -- Users from seed.sql: a admin · b Responsible script_writing · c internal
 -- without a role · d RACI approver · e external dubber. Page P (prefix PP)
--- has the import batch "Batch Ottobre" with reels PP-2610-01/02.
+-- has the import batch "Batch Ottobre" with reels PP-2610-01/02 (03 added
+-- below, without a title).
 
 create function pg_temp.as_user(p_id text) returns void language sql as $$
   select set_config('request.jwt.claim.sub', p_id, false);
@@ -36,12 +37,38 @@ do $$ begin
   end;
 end $$;
 
+-- A Doc header without a title (`SCRIPT 3 — `) still imports: the doc idea
+-- takes the reel code.
+insert into reels (id, batch_id, page_id, code, ordinal, title) values
+  ('30000000-0000-0000-0000-0000000000b3', '20000000-0000-0000-0000-000000000001',
+   '10000000-0000-0000-0000-000000000001', 'PP-2610-03', 3, '  ');
+do $$ begin
+  if (select title from ideas where reel_id = '30000000-0000-0000-0000-0000000000b3') is distinct from 'PP-2610-03' then
+    raise exception 'FAIL: doc idea of a reel without a title';
+  end if;
+end $$;
+
 -- A second page, for the cross-page refusal.
 insert into pages (id, slug, name, code_prefix) values ('10000000-0000-0000-0000-0000000000c2', 'altra', 'Altra', 'AL');
 insert into ideas (id, page_id, title) values ('90000000-0000-0000-0000-0000000000c2', '10000000-0000-0000-0000-0000000000c2', 'Idea altrui');
 -- The import batch gets a month, like a backfilled one: adding ideas to it
 -- must be refused because of its origin, not for a missing period.
 update batches set period = '2026-10-01' where id = '20000000-0000-0000-0000-000000000001';
+-- Batches ideas can't be added to: an ideas batch of the other page, and a
+-- closed one of page P.
+insert into batches (id, page_id, label, origin, period, status) values
+  ('20000000-0000-0000-0000-0000000000c2', '10000000-0000-0000-0000-0000000000c2', 'Batch Dicembre', 'ideas', '2026-12-01', 'draft'),
+  ('20000000-0000-0000-0000-0000000000c3', '10000000-0000-0000-0000-000000000001', 'Batch Agosto', 'ideas', '2026-08-01', 'closed');
+-- A code taken by someone else between numbering and insert (the race with
+-- a concurrent import): simulated for the reel titled 'Collisione'.
+create function public.db_check_collide() returns trigger language plpgsql as $$
+begin
+  if new.title = 'Collisione' then
+    raise exception using errcode = 'unique_violation', message = 'simulated code collision';
+  end if;
+  return new;
+end $$;
+create trigger db_check_collide before insert on reels for each row execute function public.db_check_collide();
 
 set role authenticated;
 
@@ -141,6 +168,23 @@ begin
   end if;
 end $$;
 
+-- AC5/AC6 for the admin, and numbering after the codes of an import batch
+-- of the same month (PP-2610-01…03).
+do $$ declare v jsonb; i8 uuid; begin
+  perform pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+  v := public.upsert_idea(null, pg_temp.page(), 'Ottava', null);
+  if v->>'code' <> 'ok' then raise exception 'FAIL: admin upsert_idea: %', v; end if;
+  i8 := (v->>'id')::uuid;
+  if public.set_idea_status(i8, 'scartata') <> 'ok' or public.set_idea_status(i8, 'backlog') <> 'ok' then
+    raise exception 'FAIL: admin set_idea_status';
+  end if;
+  v := public.create_batch_from_ideas(pg_temp.page(), 2026, 10, array[i8]);
+  if v->>'code' <> 'ok' then raise exception 'FAIL: admin create_batch_from_ideas: %', v; end if;
+  if (select code from reels where title = 'Ottava') is distinct from 'PP-2610-04' then
+    raise exception 'FAIL: numbering after an import batch: %', (select code from reels where title = 'Ottava');
+  end if;
+end $$;
+
 -- Refusals: nothing is written.
 do $$
 declare
@@ -159,8 +203,16 @@ begin
      or public.create_batch_from_ideas(pg_temp.page(), 2026, 12, '{}') ->> 'code' <> 'invalid_input'
      or public.create_batch_from_ideas(pg_temp.page(), 2026, 13, array[i7]) ->> 'code' <> 'invalid_input'
      or public.create_batch_from_ideas(pg_temp.page(), null, null, array[i7],
-          '20000000-0000-0000-0000-000000000001') ->> 'code' <> 'invalid_input' then
+          '20000000-0000-0000-0000-000000000001') ->> 'code' <> 'invalid_input'
+     or public.create_batch_from_ideas(pg_temp.page(), null, null, array[i7],
+          '20000000-0000-0000-0000-0000000000c2') ->> 'code' <> 'invalid_input'
+     or public.create_batch_from_ideas(pg_temp.page(), null, null, array[i7],
+          '20000000-0000-0000-0000-0000000000c3') ->> 'code' <> 'invalid_input' then
     raise exception 'FAIL: create_batch_from_ideas accepted an invalid request';
+  end if;
+  -- A code collision while writing: stale, and the new batch is rolled back.
+  if public.create_batch_from_ideas(pg_temp.page(), 2026, 11, array[i7, pg_temp.new_idea('Collisione')]) ->> 'code' <> 'stale' then
+    raise exception 'FAIL: a code collision is not reported as stale';
   end if;
   perform pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
   if public.create_batch_from_ideas(pg_temp.page(), 2026, 12, array[i7]) ->> 'code' <> 'not_authorized' then
@@ -180,7 +232,7 @@ insert into tasks (reel_id, kind, status, assignee_id, started_at, accepted_at) 
 set role authenticated;
 do $$ begin
   perform pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
-  if (select count(*) from ideas where source = 'doc') <> 2 then
+  if (select count(*) from ideas where source = 'doc') <> 3 then
     raise exception 'FAIL: doc ideas for reels of ideas batches';
   end if;
   begin

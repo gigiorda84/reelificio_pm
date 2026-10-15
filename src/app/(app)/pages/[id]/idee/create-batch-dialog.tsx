@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createBatchFromIdeas } from '@/lib/ideas/actions';
+import { MAX_IDEAS_PER_BATCH } from '@/lib/ideas/constants';
 import type { IdeasBatch } from '@/lib/ideas/queries';
 import { romeParts } from '@/lib/dates';
 
@@ -45,8 +46,16 @@ export function CreateBatchDialog({ open, onOpenChange, pageId, ideaIds, batches
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<'new' | 'existing'>('new');
-  const [{ year, month }, setPeriod] = useState(nextMonth);
+  const [month, setMonth] = useState(() => nextMonth().month);
+  // Kept as typed, so clearing the field doesn't turn it into 0.
+  const [yearText, setYearText] = useState(() => String(nextMonth().year));
   const [batchId, setBatchId] = useState(batches[0]?.id ?? '');
+  // The same limits as create_batch_from_ideas, said here rather than as a
+  // generic refusal.
+  const year = Number(yearText);
+  const yearValid = yearText !== '' && Number.isInteger(year) && year >= 2020 && year <= 2099;
+  const tooMany = ideaIds.length > MAX_IDEAS_PER_BATCH;
+  const ready = ideaIds.length > 0 && !tooMany && (mode === 'existing' ? batchId !== '' : yearValid);
 
   const submit = () => {
     startTransition(async () => {
@@ -86,7 +95,7 @@ export function CreateBatchDialog({ open, onOpenChange, pageId, ideaIds, batches
                   id="batch-month"
                   className={SELECT_CLASS}
                   value={month}
-                  onChange={(e) => setPeriod({ year, month: Number(e.target.value) })}
+                  onChange={(e) => setMonth(Number(e.target.value))}
                 >
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                     <option key={m} value={m}>
@@ -102,10 +111,12 @@ export function CreateBatchDialog({ open, onOpenChange, pageId, ideaIds, batches
                   type="number"
                   min={2020}
                   max={2099}
-                  value={year}
-                  onChange={(e) => setPeriod({ year: Number(e.target.value), month })}
+                  value={yearText}
+                  onChange={(e) => setYearText(e.target.value)}
+                  aria-invalid={!yearValid}
                 />
               </div>
+              {!yearValid ? <p className="col-span-2 text-xs text-destructive">{t('invalidYear')}</p> : null}
             </div>
           ) : null}
 
@@ -135,13 +146,14 @@ export function CreateBatchDialog({ open, onOpenChange, pageId, ideaIds, batches
             </div>
           ) : null}
           <p className="text-xs text-muted-foreground">{t('numbering')}</p>
+          {tooMany ? <p className="text-xs text-destructive">{t('tooMany', { max: MAX_IDEAS_PER_BATCH })}</p> : null}
         </div>
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
             {t('cancel')}
           </Button>
-          <Button onClick={submit} disabled={pending || ideaIds.length === 0 || (mode === 'existing' && !batchId)}>
+          <Button onClick={submit} disabled={pending || !ready}>
             {pending ? t('creating') : t('confirm')}
           </Button>
         </DialogFooter>

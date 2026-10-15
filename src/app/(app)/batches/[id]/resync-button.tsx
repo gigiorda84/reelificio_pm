@@ -184,6 +184,7 @@ function mapDriveError(
     | 'drive_unknown'
     | 'no_reels'
     | 'not_admin'
+    | 'duplicate_codes'
     | 'unknown',
 ):
   | 'invalidUrl'
@@ -193,6 +194,7 @@ function mapDriveError(
   | 'driveUnknown'
   | 'noReels'
   | 'notAdmin'
+  | 'duplicateCodes'
   | 'unknown' {
   switch (err) {
     case 'drive_invalid_url':
@@ -209,6 +211,8 @@ function mapDriveError(
       return 'noReels';
     case 'not_admin':
       return 'notAdmin';
+    case 'duplicate_codes':
+      return 'duplicateCodes';
     default:
       return 'unknown';
   }

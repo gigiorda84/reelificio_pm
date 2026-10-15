@@ -66,7 +66,8 @@ begin
        select 1 from reels r
         where (select count(*) from ideas i
                 where i.reel_id = r.id and i.source = 'doc' and i.status = 'scelta'
-                  and i.page_id = r.page_id and i.title = left(btrim(r.title), 200)) <> 1) then
+                  and i.page_id = r.page_id
+                  and i.title = coalesce(nullif(left(btrim(r.title), 200), ''), r.code)) <> 1) then
     raise exception 'FAIL: the doc ideas backfill';
   end if;
 end $$;
