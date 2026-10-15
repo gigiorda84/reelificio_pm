@@ -118,7 +118,7 @@ Environments (since 2026-10-01):
 - **`.env.production.local` → PRODUCTION** (`rbcgtwohcsqjmyjzhlbx`). Next only loads it for `pnpm build` / `pnpm start`.
 - **Supabase CLI link:** the CLI is linked to **staging**.
   1. To migrate prod, re-run `scripts/db-check/run.sh`.
-  2. Dump prod (see the memory note on backups; the org is on the Free plan, so there are no automatic backups).
+  2. Dump prod (see the memory note on backups). Since 2026-10-14 prod sits in the Pro org `thesweetlifesociety`, which keeps daily backups for 7 days; the manual dump stays as the pre-migration snapshot. Staging is still on the Free org `AlphaTechnology.ai` and pauses after 7 idle days.
   3. Run `supabase link --project-ref rbcgtwohcsqjmyjzhlbx`, then `supabase db push --linked --dry-run`, then push.
   4. Re-link staging with `supabase link --project-ref zrzgxudzetuztleujfri`.
 - Local `supabase start` is not used: the Mac lacks the disk space.
