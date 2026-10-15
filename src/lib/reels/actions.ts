@@ -37,9 +37,12 @@ const publishSchema = z.object({
   scheduled_at: z.string().nullable().or(z.literal('')).optional(),
 });
 
+// Browsers send textarea line breaks as CRLF in the multipart body of a form
+// submission; the parser and the doc store LF, so CRLF would make every saved
+// block differ from its import and from the doc on re-sync.
 function emptyToNull<T extends string | null | undefined>(v: T): string | null {
   if (v === undefined || v === null) return null;
-  const t = v.trim();
+  const t = v.replace(/\r\n?/g, '\n').trim();
   return t.length === 0 ? null : t;
 }
 
