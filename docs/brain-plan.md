@@ -113,10 +113,10 @@ Codice sul branch `fase-0-hardening`, migrazioni `20261001120000_fase0_security.
 - [x] Sicurezza: reel inseribili/eliminabili solo da admin; modificabili da admin e membri R/A/C della pagina, solo nelle colonne di contenuto; le azioni segnalano `not_authorized`; `setReelPhase` rimosso
 - [x] Bug: approvazione tramite `decide_phase_advance()` (atomica, approvatore RACI anche non admin, DoD ricontrollata, richieste superate rifiutate)
 - [x] Ambiente: progetto Supabase di staging `reelificio-pm-staging` (Free, RAG-chatbot messo in pausa per liberare il posto); `.env.local` → staging, `.env.production.local` → produzione; CLI collegata allo staging
-- [ ] Backup: l'organizzazione Supabase è sul piano Free, quindi la produzione non ha backup automatici. Fare un dump manuale prima di ogni migrazione (primo dump: 2026-10-01). Passare a Pro prima del rilascio della Fase 1
+- [x] Backup: dal 2026-10-14 la produzione sta nell'organizzazione Pro `thesweetlifesociety`, con backup giornalieri conservati 7 giorni (verificati via API: 8 backup completati). Prima di ogni migrazione resta il dump manuale (2026-10-01, 2026-10-02, 2026-10-14). Lo staging resta nell'organizzazione Free `AlphaTechnology.ai`
 - [x] Scala: `published_at` (i reel pubblicati escono da kanban, dashboard, buffer e alert), indici, conteggi in SQL (`active_reel_counts`, `batch_reel_counts`, `stuck_reels`), kanban a 100 card per colonna con totale, lista batch limitata a 200, niente `.in()` con id illimitati
 - [x] Job: `maxDuration = 60` su tutti i cron
-- [ ] Infra: Vercel Pro, Supabase Pro (Inngest per i cron frequenti → Fase 2: in Fase 1 bastano i cron di Vercel Pro, `docs/fase1-plan.md` D5)
+- [ ] Infra: Vercel Pro (da attivare), Supabase Pro (fatto 2026-10-14) (Inngest per i cron frequenti → Fase 2: in Fase 1 bastano i cron di Vercel Pro, `docs/fase1-plan.md` D5)
 - [x] Osservabilità: Sentry, regione EU, solo errori (niente replay né tracing); email e testo degli script tolti da `beforeSend`. Integrato in S0 sul branch `fase-1-produzione`, in produzione con R1. Provato il 2026-10-02 sul Preview Vercel: arrivano gli errori server (`onRequestError`), client e Node, tutti con le email oscurate. DSN in `.env.local` e su Vercel (Production e Preview).
 
 ### Esiti degli spike S0 (Fase 1)
