@@ -108,10 +108,14 @@ function percent(value: number | null): string {
 
 async function Sendback({ metrics, months }: SectionProps) {
   const t = await getTranslations('scriptLabMetrics');
-  const rows = months.map((month) => metrics.sendback.find((r) => r.month === month) ?? { month, reviewed: 0, sent_back: 0 });
-  const reviewed = rows.reduce((n, r) => n + r.reviewed, 0);
-  const sentBack = rows.reduce((n, r) => n + r.sent_back, 0);
-  const over = (r: { reviewed: number; sent_back: number }) => (share(r.sent_back, r.reviewed) ?? 0) > SENDBACK_TARGET;
+  const empty = { arrived: 0, decided: 0, sent_back: 0 };
+  const rows = months.map((month) => ({ month, ...(metrics.sendback.find((r) => r.month === month) ?? empty) }));
+  const total = rows.reduce(
+    (sum, r) => ({ arrived: sum.arrived + r.arrived, decided: sum.decided + r.decided, sent_back: sum.sent_back + r.sent_back }),
+    empty,
+  );
+  // Over target as shown: 20.2% reads "20%" and is not flagged.
+  const over = (r: typeof empty) => Math.round((share(r.sent_back, r.decided) ?? 0) * 100) > SENDBACK_TARGET * 100;
   return (
     <Card>
       <CardHeader>
@@ -120,23 +124,25 @@ async function Sendback({ metrics, months }: SectionProps) {
       <CardContent className="space-y-3 text-sm">
         <p className="text-muted-foreground">{t('sendback.intro')}</p>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[420px]">
+          <table className="w-full min-w-[520px]">
             <thead>
               <tr className="border-b">
                 <th className={TH}>{t('month')}</th>
-                <th className={TH}>{t('sendback.reviewed')}</th>
+                <th className={TH}>{t('sendback.arrived')}</th>
+                <th className={TH}>{t('sendback.pending')}</th>
                 <th className={TH}>{t('sendback.sentBack')}</th>
                 <th className={TH}>{t('sendback.share')}</th>
               </tr>
             </thead>
             <tbody>
-              {[...rows, { month: 'total', reviewed, sent_back: sentBack }].map((r) => (
+              {[...rows, { month: 'total', ...total }].map((r) => (
                 <tr key={r.month} className={cn('border-b last:border-0', r.month === 'total' && 'font-medium')}>
                   <td className="px-3 py-2">{r.month === 'total' ? t('total') : monthLabel(r.month)}</td>
-                  <td className={TD}>{r.reviewed}</td>
+                  <td className={TD}>{r.arrived}</td>
+                  <td className={TD}>{r.arrived - r.decided}</td>
                   <td className={TD}>{r.sent_back}</td>
                   <td className={cn(TD, over(r) && 'text-destructive font-medium')}>
-                    {percent(share(r.sent_back, r.reviewed))}
+                    {percent(share(r.sent_back, r.decided))}
                   </td>
                 </tr>
               ))}

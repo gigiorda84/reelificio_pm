@@ -16,3 +16,12 @@ create table db_check.voice_briefs_before as
 insert into reels (id, batch_id, page_id, code, ordinal, title)
 values ('d0000000-0000-0000-0000-000000000013', 'c0000000-0000-0000-0000-000000000001',
         'b0000000-0000-0000-0000-000000000001', 'LG-2609-13', 13, '');
+
+-- "Batch Gennaio" imported on 10 December 2026: createBatch codes it with
+-- that year (LG-2601-01), and the backfill must still say January 2027.
+insert into batches (id, page_id, label, created_at)
+values ('c0000000-0000-0000-0000-000000000013', 'b0000000-0000-0000-0000-000000000001', 'Batch Gennaio',
+        '2026-12-10 10:00+00');
+insert into reels (id, batch_id, page_id, code, ordinal, title)
+values ('d0000000-0000-0000-0000-000000000014', 'c0000000-0000-0000-0000-000000000013',
+        'b0000000-0000-0000-0000-000000000001', 'LG-2601-01', 1, 'Capodanno');

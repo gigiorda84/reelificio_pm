@@ -18,6 +18,9 @@ insert into pages (id, slug, name, code_prefix, active) values
 update page_bibles set tone = 'Ironico', characters = 'Quercia', duration_min_s = 30, duration_max_s = 45,
                        allowed_ctas = '{Seguici}'
  where page_id = '10000000-0000-0000-0000-0000000000a2';
+-- P's tone is only a line break and a tab: still missing, as for trim() in
+-- bibleCompleteness.
+update page_bibles set tone = E'\n\t ' where page_id = '10000000-0000-0000-0000-000000000001';
 
 -- Batches: an ideas batch in November with one reel; an import batch of Q
 -- with no period and a September code; an import batch without reels or
@@ -27,11 +30,20 @@ insert into batches (id, page_id, label, origin, period) values
   ('20000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-0000000000a2', 'Batch Settembre', 'import', null),
   ('20000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-0000000000a2', 'Vuoto', 'import', null),
   ('20000000-0000-0000-0000-0000000000a4', '10000000-0000-0000-0000-000000000001', 'Batch Dicembre', 'ideas', '2026-12-01');
+-- "Batch Gennaio" imported on 10 December: createBatch codes it QQ-2601
+-- (the year of today); it belongs to January 2027.
+insert into batches (id, page_id, label, origin, period, created_at) values
+  ('20000000-0000-0000-0000-0000000000a5', '10000000-0000-0000-0000-0000000000a2', 'Batch Gennaio', 'import', null,
+   '2026-12-10 10:00+00');
 insert into reels (id, batch_id, page_id, code, ordinal, title) values
   ('30000000-0000-0000-0000-0000000000a3', '20000000-0000-0000-0000-0000000000a1',
    '10000000-0000-0000-0000-000000000001', 'PP-2611-01', 1, 'Reel tre'),
   ('30000000-0000-0000-0000-0000000000a4', '20000000-0000-0000-0000-0000000000a2',
-   '10000000-0000-0000-0000-0000000000a2', 'QQ-2609-01', 1, 'Reel quattro');
+   '10000000-0000-0000-0000-0000000000a2', 'QQ-2609-01', 1, 'Reel quattro'),
+  ('30000000-0000-0000-0000-0000000000a5', '20000000-0000-0000-0000-0000000000a1',
+   '10000000-0000-0000-0000-000000000001', 'PP-2611-02', 2, 'Reel cinque'),
+  ('30000000-0000-0000-0000-0000000000a6', '20000000-0000-0000-0000-0000000000a5',
+   '10000000-0000-0000-0000-0000000000a2', 'QQ-2601-01', 1, 'Reel sei');
 
 -- Tasks. R1 = PP-2610-01, R2 = PP-2610-02, R3 = PP-2611-01, R4 = QQ-2609-01.
 -- R1: written by b (4 Oct), sent back (5 Oct), rewritten (7 Oct), approved.
@@ -42,6 +54,10 @@ insert into reels (id, batch_id, page_id, code, ordinal, title) values
 -- R3: written by b (9 Nov), reviewed and approved; a validation sent back
 --     and a cancelled writing don't count.
 -- R4: written and reviewed in August: outside the period.
+-- R5: written by b (20 Nov), its first review still open: arrived, not
+--     decided.
+-- R1 also has a review made by the R1 reconcile in September (origin
+-- migration): it is not R1's first review.
 insert into tasks (reel_id, kind, status, assignee_id, created_at, closed_at) values
   ('30000000-0000-0000-0000-000000000001', 'writing', 'delivered', '00000000-0000-0000-0000-00000000000b',
    '2026-10-01 08:00+00', '2026-10-04 10:00+00'),
@@ -68,7 +84,14 @@ insert into tasks (reel_id, kind, status, assignee_id, created_at, closed_at) va
   ('30000000-0000-0000-0000-0000000000a4', 'writing', 'delivered', '00000000-0000-0000-0000-00000000000b',
    '2026-08-18 08:00+00', '2026-08-19 10:00+00'),
   ('30000000-0000-0000-0000-0000000000a4', 'review', 'sent_back', '00000000-0000-0000-0000-00000000000d',
-   '2026-08-20 10:00+00', '2026-08-21 10:00+00');
+   '2026-08-20 10:00+00', '2026-08-21 10:00+00'),
+  ('30000000-0000-0000-0000-0000000000a5', 'writing', 'delivered', '00000000-0000-0000-0000-00000000000b',
+   '2026-11-15 08:00+00', '2026-11-20 10:00+00');
+insert into tasks (reel_id, kind, status, assignee_id, created_at, closed_at, origin) values
+  ('30000000-0000-0000-0000-0000000000a5', 'review', 'in_progress', '00000000-0000-0000-0000-00000000000d',
+   '2026-11-20 10:00+00', null, 'app'),
+  ('30000000-0000-0000-0000-000000000001', 'review', 'approved', '00000000-0000-0000-0000-00000000000d',
+   '2026-09-20 10:00+00', '2026-09-21 10:00+00', 'migration');
 
 -- Versions. R1: two AI alternatives, a mix (base alfa, chiusura from beta),
 -- then a manual edit of the corpo before the last delivery. R3: a mix that
@@ -117,6 +140,11 @@ do $$ begin
     raise exception 'FAIL: a period longer than 25 months';
   exception when invalid_parameter_value then null;
   end;
+  begin
+    perform public.script_lab_metrics('2026-10-15', '2026-12-01');
+    raise exception 'FAIL: a period that does not start on the first of a month';
+  exception when invalid_parameter_value then null;
+  end;
 end $$;
 
 -- AC22–AC25 on the fixture, September to November 2026.
@@ -127,13 +155,13 @@ begin
   perform pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
   m := public.script_lab_metrics('2026-09-01', '2026-12-01');
 
-  if m -> 'sendback' <> '[{"month": "2026-10", "reviewed": 1, "sent_back": 1},
-                          {"month": "2026-11", "reviewed": 2, "sent_back": 0}]'::jsonb then
+  if m -> 'sendback' <> '[{"month": "2026-10", "arrived": 1, "decided": 1, "sent_back": 1},
+                          {"month": "2026-11", "arrived": 3, "decided": 2, "sent_back": 0}]'::jsonb then
     raise exception 'FAIL: sendback %', m -> 'sendback';
   end if;
   if m -> 'batches' <> '[{"month": "2026-09", "origin": "import", "batches": 1, "reels": 1},
                          {"month": "2026-10", "origin": "import", "batches": 1, "reels": 2},
-                         {"month": "2026-11", "origin": "ideas", "batches": 1, "reels": 1}]'::jsonb then
+                         {"month": "2026-11", "origin": "ideas", "batches": 1, "reels": 2}]'::jsonb then
     raise exception 'FAIL: batches %', m -> 'batches';
   end if;
   if m -> 'bibles' <> '{"active_pages": 2, "complete": 1, "pages": [
@@ -143,13 +171,13 @@ begin
     raise exception 'FAIL: bibles %', m -> 'bibles';
   end if;
   if m -> 'authors' <> '[{"month": "2026-10", "author_id": "00000000-0000-0000-0000-00000000000b", "name": "Membro", "reels": 1},
-                         {"month": "2026-11", "author_id": "00000000-0000-0000-0000-00000000000b", "name": "Membro", "reels": 1},
+                         {"month": "2026-11", "author_id": "00000000-0000-0000-0000-00000000000b", "name": "Membro", "reels": 2},
                          {"month": "2026-11", "author_id": "00000000-0000-0000-0000-00000000000d", "name": null, "reels": 1}]'::jsonb then
     raise exception 'FAIL: authors %', m -> 'authors';
   end if;
   if m -> 'provenance' <> '[{"month": "2026-10", "delivered": 1, "mixed": 1, "edited_after_mix": 1,
                              "bases": {"m/alfa": 1}, "blocks": {"m/alfa": 2, "m/beta": 1, "manuale": 1}},
-                            {"month": "2026-11", "delivered": 1, "mixed": 1, "edited_after_mix": 0,
+                            {"month": "2026-11", "delivered": 2, "mixed": 1, "edited_after_mix": 0,
                              "bases": {"m/beta": 1}, "blocks": {"m/beta": 4}}]'::jsonb then
     raise exception 'FAIL: provenance %', m -> 'provenance';
   end if;
@@ -157,13 +185,23 @@ begin
     raise exception 'FAIL: the period in the result';
   end if;
 
+  -- The January batch imported in December is January 2027.
+  m := public.script_lab_metrics('2026-12-01', '2027-02-01');
+  if m -> 'batches' <> '[{"month": "2026-12", "origin": "ideas", "batches": 1, "reels": 0},
+                         {"month": "2027-01", "origin": "import", "batches": 1, "reels": 1}]'::jsonb then
+    raise exception 'FAIL: year of an import batch made in December %', m -> 'batches';
+  end if;
+
   -- Control queries, written another way, on the whole history: the same
   -- numbers as a period that covers everything.
-  m := public.script_lab_metrics('2026-01-01', '2027-01-01');
+  m := public.script_lab_metrics('2026-01-01', '2027-02-01');
   if (select sum((e ->> 'sent_back')::int) from jsonb_array_elements(m -> 'sendback') e)
-     <> (select count(distinct reel_id) from tasks where kind = 'review' and status = 'sent_back')
-     or (select sum((e ->> 'reviewed')::int) from jsonb_array_elements(m -> 'sendback') e)
-     <> (select count(distinct reel_id) from tasks where kind = 'review') then
+     <> (select count(distinct reel_id) from tasks where kind = 'review' and status = 'sent_back' and origin <> 'migration')
+     or (select sum((e ->> 'decided')::int) from jsonb_array_elements(m -> 'sendback') e)
+     <> (select count(distinct reel_id) from tasks
+          where kind = 'review' and status in ('approved', 'sent_back') and origin <> 'migration')
+     or (select sum((e ->> 'arrived')::int) from jsonb_array_elements(m -> 'sendback') e)
+     <> (select count(distinct reel_id) from tasks where kind = 'review' and origin <> 'migration') then
     raise exception 'FAIL: sendback differs from the control query';
   end if;
   if (select sum((e ->> 'reels')::int) from jsonb_array_elements(m -> 'authors') e)

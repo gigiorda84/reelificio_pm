@@ -325,10 +325,11 @@
     "empty": "Nessun dato nel periodo.",
     "sendback": {
       "title": "Rimandi",
-      "intro": "Reel per mese della prima revisione; rimandato = almeno una revisione rimandata a chi scrive. Obiettivo: al massimo 1 su 5. Quando la generazione AI sarà attiva, la quota si vedrà anche per i soli reel scritti con lo Script Lab.",
-      "reviewed": "In revisione",
+      "intro": "Reel per mese in cui arrivano per la prima volta in revisione; rimandato = almeno una revisione rimandata a chi scrive. La quota si calcola sui reel già decisi: quelli ancora in attesa non contano. Obiettivo: al massimo 1 su 5. Quando la generazione AI sarà attiva, la quota si vedrà anche per i soli reel scritti con lo Script Lab.",
+      "arrived": "Arrivati in revisione",
+      "pending": "In attesa",
       "sentBack": "Rimandati",
-      "share": "Quota"
+      "share": "Quota sui decisi"
     },
     "batches": {
       "title": "Batch: idee o Doc",

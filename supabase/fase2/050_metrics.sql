@@ -3,11 +3,14 @@
 -- (functions and grants only): S6 extends it with `costs` and the Script
 -- Lab split of `sendback` once ai_runs and ai_generations exist (030).
 --
--- Sections, for the months of [p_from, p_to):
---   sendback   — reels by month of their first review: reviewed, sent back
---                (at least one review `sent_back`, ever). Target ≤ 1 in 5.
+-- Sections, for the months of [p_from, p_to) (both the first of a month):
+--   sendback   — reels by month of their first review (reviews made by the
+--                R1 reconcile, origin `migration`, left out): arrived,
+--                decided (a review approved or sent back) and sent back (at
+--                least one review `sent_back`). Target ≤ 1 in 5 decided.
 --   batches    — batches by month (coalesce(period, month of the first
---                reel's code)) and origin, with their reels.
+--                reel's code, private._code_month)) and origin, with their
+--                reels.
 --   bibles     — active pages and how many bibles are complete (tone,
 --                characters, duration, at least one CTA: bibleCompleteness
 --                in src/lib/bible/schema.ts). Today's state, not by month.
@@ -22,7 +25,7 @@ returns jsonb
 language plpgsql
 stable
 security definer
-set search_path = public, private
+set search_path = public, private, pg_temp
 as $$
 declare
   v_lo timestamptz;
@@ -36,38 +39,40 @@ begin
   if not coalesce(private.is_admin_uid(p_actor), false) then
     raise exception 'script_lab_metrics: admins only' using errcode = '42501';
   end if;
-  if p_from is null or p_to is null or p_from >= p_to or p_to > p_from + interval '25 months' then
+  if p_from is null or p_to is null or p_from >= p_to or p_to > p_from + interval '25 months'
+     or extract(day from p_from) <> 1 or extract(day from p_to) <> 1 then
     raise exception 'script_lab_metrics: invalid period' using errcode = '22023';
   end if;
   v_lo := p_from::timestamp at time zone 'Europe/Rome';
   v_hi := p_to::timestamp at time zone 'Europe/Rome';
 
-  with first_review as (
-    select distinct on (t.reel_id) t.reel_id, t.created_at
+  with review as (
+    select t.reel_id, t.created_at, t.status, t.id
       from tasks t
-     where t.kind = 'review'
-     order by t.reel_id, t.created_at, t.id
+     where t.kind = 'review' and t.origin <> 'migration'
   ), cohort as (
-    select to_char(f.created_at at time zone 'Europe/Rome', 'YYYY-MM') as month,
-           exists (select 1 from tasks s
-                    where s.reel_id = f.reel_id and s.kind = 'review' and s.status = 'sent_back') as sent_back
-      from first_review f
+    select f.month,
+           exists (select 1 from review s where s.reel_id = f.reel_id and s.status in ('approved', 'sent_back')) as decided,
+           exists (select 1 from review s where s.reel_id = f.reel_id and s.status = 'sent_back') as sent_back
+      from (select distinct on (reel_id) reel_id, created_at,
+                   to_char(created_at at time zone 'Europe/Rome', 'YYYY-MM') as month
+              from review order by reel_id, created_at, id) f
      where f.created_at >= v_lo and f.created_at < v_hi
   )
-  select coalesce(jsonb_agg(jsonb_build_object('month', month, 'reviewed', reviewed, 'sent_back', sent_back)
+  select coalesce(jsonb_agg(jsonb_build_object('month', month, 'arrived', arrived, 'decided', decided,
+                                               'sent_back', sent_back)
                             order by month), '[]')
     into v_sendback
-    from (select month, count(*) as reviewed, count(*) filter (where sent_back) as sent_back
+    from (select month, count(*) as arrived, count(*) filter (where decided) as decided,
+                 count(*) filter (where sent_back) as sent_back
             from cohort group by month) x;
 
   with batch_month as (
     select b.origin,
            coalesce(b.period, (
-             select make_date(2000 + substr(m[1], 1, 2)::int, substr(m[1], 3, 2)::int, 1)
-               from (select regexp_match(r.code, '^[A-Z0-9]{2}-(\d{4})-') as m
-                       from reels r where r.batch_id = b.id
-                      order by r.ordinal, r.created_at limit 1) f
-              where substr(m[1], 3, 2)::int between 1 and 12)) as month,
+             select private._code_month(r.code, b.created_at)
+               from reels r where r.batch_id = b.id
+              order by r.ordinal, r.created_at limit 1)) as month,
            (select count(*) from reels r where r.batch_id = b.id) as reels
       from batches b
   )
@@ -83,8 +88,9 @@ begin
   with page_gaps as (
     select p.id, p.name,
            array_remove(array[
-             case when btrim(coalesce(b.tone, '')) = '' then 'tone' end,
-             case when btrim(coalesce(b.characters, '')) = '' then 'characters' end,
+             -- Any whitespace, like trim() in bibleCompleteness.
+             case when coalesce(b.tone, '') ~ '^[[:space:]]*$' then 'tone' end,
+             case when coalesce(b.characters, '') ~ '^[[:space:]]*$' then 'characters' end,
              case when b.duration_min_s is null or b.duration_max_s is null then 'duration' end,
              case when coalesce(cardinality(b.allowed_ctas), 0) = 0 then 'cta' end
            ], null) as missing
@@ -160,7 +166,7 @@ end;
 $$;
 
 create or replace function public.script_lab_metrics(p_from date, p_to date)
-returns jsonb language sql stable security definer set search_path = public, private as $$
+returns jsonb language sql stable security definer set search_path = public, private, pg_temp as $$
   select private.script_lab_metrics(auth.uid(), p_from, p_to);
 $$;
 

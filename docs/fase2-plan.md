@@ -272,7 +272,7 @@ Dettagli:
 | Ripetizioni | **Ultimi 20 reel della pagina** con CTA o chiusura, escluso il reel, per `created_at` decrescente | Spec |
 | Notifica | **A generazioni chiuse, o comunque dopo 15 minuti.** Il `notify` nasce con `run_after = now() + 15 min` e viene anticipato a `now()` quando l'ultimo elemento si chiude. Misurato: ≤ 15 min più un giro di sweep | La notifica è nella stessa transazione dell'avvio |
 | Orologio dello SLA di stesura | **Invariato** (`_create_task` → `_restart_clock`, `fase1_task_engine.sql:131-194`) | Lo SLA è di 7200 minuti (`fase1_core.sql:515`) |
-| Batch da idee | **Admin e Responsible `script_writing`.** Mese e anno espliciti salvati in `batches.period` (primo giorno del mese); l'etichetta è `Batch <Mese>`. Per i batch `import` nati dopo la migrazione, `period` resta nullo perché `createBatch` non cambia: le metriche usano **`coalesce(period, mese del codice del primo reel)`** | `detectBatchYearMonth` usa l'anno corrente (`codes.ts:20-33`); impostare `period` in `createBatch` ne erediterebbe il difetto e toccherebbe un altro file di Fase 1 |
+| Batch da idee | **Admin e Responsible `script_writing`.** Mese e anno espliciti salvati in `batches.period` (primo giorno del mese); l'etichetta è `Batch <Mese>`. Per i batch `import` nati dopo la migrazione, `period` resta nullo perché `createBatch` non cambia: le metriche usano **`coalesce(period, mese del codice del primo reel)`**, con il mese del codice **spostato di un anno se dista più di 6 mesi dalla creazione del batch** (`private._code_month`, S7: il batch di gennaio importato a dicembre) | `detectBatchYearMonth` usa l'anno corrente (`codes.ts:20-33`); impostare `period` in `createBatch` ne erediterebbe il difetto e toccherebbe un altro file di Fase 1 |
 | Aggiunta a un batch | Solo a batch con `origin = 'ideas'`; il numero continua dopo il massimo `NN` di `batches.period` | Il trigger delle idee `doc` (unicità di `reel_id`) e il re-sync per ordinale (`batches/actions.ts:189-223`) romperebbero i batch `import` |
 | Fonte `doc` | Un'idea `doc` `scelta` per ogni reel importato (trigger) | Ogni reel ha un'idea (Q5) |
 | Rimandi | **≤ 1 su 5.** "Script Lab" = almeno una generazione prima del primo `review`; "rimandato" = almeno un `review` `sent_back` | Ricavabile da `tasks` e `ai_generations` |
@@ -646,6 +646,13 @@ Un modello che non passa viene sostituito dalla sua riserva, con mezza giornata 
 - api-check: le RPC service role negate, `ai_runs` → `[]` per un non admin, `start_writing` a 2 argomenti.
 - unit: `prompt` (AC15, parole vietate presenti, altri campi Voce assenti, sentinella con un nome di battesimo), `redact`, `parse`, `errors`, `openrouter`, `drain`.
 
+**Da S7** (fatta prima di S6, senza le tabelle AI):
+- **`050_metrics.sql`**, rieseguibile (`--reapply-changed` sul sandbox, dopo `030`):
+  - sezione **`costs`** (AC23), per mese × pagina × modello da `ai_runs`: costo `final`, conteggio `pending`, `unavailable` e `lost`, chiamate, errori, token, p95;
+  - in **`sendback`** la quota dei soli reel Script Lab (AC22): almeno una `ai_generations` prima del primo `review`.
+- **Verifiche:** `15_metrics.sql` con righe `ai_runs` e `ai_generations` di prova.
+- **UI:** la scheda "Costi" di `/script-lab` al posto del testo d'attesa, e la colonna Script Lab nei rimandi.
+
 **Fatto quando:**
 - con il provider finto sull'anteprima del branch (latenza 20–90 s, un modello in errore, un 429): 1, 2 e 3 lanci contemporanei come in AC10, una notifica per autore, badge, "Rigenera";
 - con la chiave: F2-E3 una volta.
@@ -655,7 +662,7 @@ Un modello che non passa viene sostituito dalla sua riserva, con mezza giornata 
 **SQL** `040_ideas.sql`:
 - `ideas`: `page_id`, `title`, `spunto`, `source` (`manuale`/`doc`; il rilascio B aggiunge `intelligence`), `status`, `reel_id` unique `on delete set null`, `created_by`, `decided_at`; solo interni, nessun grant di scrittura.
 - `batches.origin` (`import` di default) e **`batches.period date`**:
-  - backfill dal codice del primo reel (`yymm`);
+  - backfill dal codice del primo reel (`yymm`), con la correzione dell'anno di `private._code_month` (aggiunta in S7);
   - check `origin = 'ideas'` ⇒ `period` non nullo;
   - per i batch `import` nati dopo, `period` resta nullo (`createBatch` invariato) e le metriche usano `coalesce(period, mese del codice del primo reel)` (§3).
 - `private._reel_code(prefix, year, month, ordinal)`.
@@ -758,12 +765,43 @@ Un modello che non passa viene sostituito dalla sua riserva, con mezza giornata 
 - **SQL** `050_metrics.sql`: `script_lab_metrics(p_from, p_to)`, solo admin (42501), mesi in Europe/Rome. Sezioni:
   - `sendback`;
   - `costs`, per mese × pagina × modello: costo `final`, conteggio `pending`, `unavailable` e `lost`, chiamate, errori, token, p95;
-  - `batches`, per mese con `coalesce(period, mese del codice del primo reel)` e per origine;
+  - `batches`, per mese con `coalesce(period, mese del codice del primo reel)` (anno corretto da `private._code_month`) e per origine;
   - `bibles`, complete se hanno tono, personaggi, durata e almeno una CTA;
   - `authors`;
   - **`provenance`**: quota di basi dall'AI per modello, blocchi per modello, quota di modifiche manuali dopo il mix.
 - **UI:** `src/app/(app)/script-lab/page.tsx` (solo admin), voce di navigazione.
 - **Verifiche:** db `15_metrics.sql`, allowlist `script_lab_metrics`, api-check 42501.
+
+**Stato (2026-10-15): S7 chiusa, senza `costs` e senza la quota dei soli reel Script Lab.**
+- **Anticipata rispetto all'ordine del piano** (S7 prima di S6, su richiesta dell'utente):
+  - le tabelle AI nascono in `030_ai.sql`, che si scrive solo dopo F2-1;
+  - `costs` (AC23) e la quota Script Lab dei rimandi (AC22) passano quindi a S6, nella voce "Da S7";
+  - `050_metrics.sql` è rieseguibile proprio per questo.
+- **Fatto e verde:**
+  - `script_lab_metrics(p_from, p_to)`: solo admin (42501); periodo a inizio mese e al massimo 25 mesi (22023); mesi in Europe/Rome.
+  - **`sendback`:** reel per mese della prima revisione (escluse quelle della migrazione R1), con arrivati, decisi e rimandati. La quota è sui decisi, perché le revisioni ancora aperte la abbasserebbero a metà mese.
+  - **`batches`:** per mese e origine. Il mese del codice è corretto di un anno con `private._code_month`, in `040` e usato anche dal backfill di `period`.
+  - **`bibles`:** stessa regola di `bibleCompleteness`, spazi bianchi compresi.
+  - **`authors`:** per prima consegna della stesura.
+  - **`provenance`:** per ultima consegna, con `reel_script_provenance`.
+  - **UI `/script-lab`:**
+    - ultimi 3, 6 o 12 mesi;
+    - la tabella dei batch mostra anche il mese prossimo;
+    - voce di menu per gli admin;
+    - il menu desktop ora scorre invece di traboccare.
+  - **Verifiche:**
+    - db `15_metrics.sql` con un caso calcolato a mano e query di controllo;
+    - `06_fase2.sql` con un batch "Gennaio" importato a dicembre;
+    - allowlist, api-check (admin, 42501, 22023);
+    - 133 test unitari, typecheck, lint, build;
+    - `run.sh` e `upgrade.sh` verdi.
+  - **Prova per mutazione:** 13 mutanti di `050`, tutti uccisi (fuso orario, tipo di compito, controllo admin, prima e ultima consegna, mese dal codice, CTA e pagine attive, revisioni della migrazione, revisioni aperte, correzione dell'anno, inizio mese, spazi bianchi).
+- **F2-E9 provato dall'assistente in Chrome** sul sandbox, come admin:
+  - i numeri di ogni sezione coincidono con le query di controllo sul sandbox;
+  - la riga del mese prossimo mostra "Batch Novembre";
+  - nessun errore in console.
+  - Il redirect di un non admin è nel codice ed è coperto dall'api-check (42501), ma non è provato nel browser: richiede una sessione non admin.
+- **Correzioni dalla revisione indipendente:** tutte quelle elencate sopra. Restano informativi solo i commenti positivi sulle prestazioni: 12 mesi su 15.000 reel in circa 850 ms in locale.
 
 ### S8 — Collaudo, promozione e rilascio · 3 giorni + 1 · dopo R2
 

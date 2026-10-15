@@ -7,7 +7,9 @@ import type { BibleGap } from '@/lib/bible/schema';
 // "YYYY-MM" in Rome. Costs and the Script Lab split of the send-backs come
 // with the AI generation (S6).
 
-export type SendbackRow = { month: string; reviewed: number; sent_back: number };
+// arrived = first review in the month; decided = a review approved or sent
+// back; sent_back = at least one sent back.
+export type SendbackRow = { month: string; arrived: number; decided: number; sent_back: number };
 export type BatchRow = { month: string; origin: 'import' | 'ideas'; batches: number; reels: number };
 export type BiblePage = { page_id: string; name: string; missing: BibleGap[] };
 export type AuthorRow = { month: string; author_id: string | null; name: string | null; reels: number };

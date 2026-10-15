@@ -51,16 +51,29 @@ begin
   end if;
 
   -- S3 backfill: every existing batch is `import`, with the month of its
-  -- first reel's code; every reel has exactly one chosen `doc` idea.
+  -- first reel's code, moved by a year when it is more than 6 months from
+  -- the batch's creation (the January batch imported in December); every
+  -- reel has exactly one chosen `doc` idea.
   if exists (select 1 from batches where origin <> 'import')
      or exists (
        select 1 from batches b
         where exists (select 1 from reels r where r.batch_id = b.id)
-          and b.period is distinct from (
-            select make_date(2000 + substr(m[1], 1, 2)::int, substr(m[1], 3, 2)::int, 1)
-              from (select regexp_match(r.code, '-(\d{4})-') m from reels r
-                     where r.batch_id = b.id order by r.ordinal, r.created_at limit 1) f)) then
+          and (
+            select case
+                     when c < created - 6 then c + 12
+                     when c > created + 6 then c - 12
+                     else c
+                   end
+              from (select (2000 + substr(m[1], 1, 2)::int) * 12 + substr(m[1], 3, 2)::int - 1 as c,
+                           extract(year from b.created_at at time zone 'Europe/Rome')::int * 12
+                             + extract(month from b.created_at at time zone 'Europe/Rome')::int - 1 as created
+                      from (select regexp_match(r.code, '-(\d{4})-') m from reels r
+                             where r.batch_id = b.id order by r.ordinal, r.created_at limit 1) f) x
+          ) is distinct from (extract(year from b.period)::int * 12 + extract(month from b.period)::int - 1)) then
     raise exception 'FAIL: the period backfill of import batches';
+  end if;
+  if (select period from batches where id = 'c0000000-0000-0000-0000-000000000013') is distinct from '2027-01-01'::date then
+    raise exception 'FAIL: a January batch imported in December is not January of the next year';
   end if;
   if exists (
        select 1 from reels r

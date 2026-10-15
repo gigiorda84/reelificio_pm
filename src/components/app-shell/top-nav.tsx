@@ -72,7 +72,7 @@ export function TopNav({ email, isExternal, isAdmin, approvalsCount }: Props) {
         </Link>
 
         {/* Nav pill */}
-        <nav className="hidden md:flex items-center gap-1 rounded-full bg-white/70 backdrop-blur-sm ring-1 ring-black/5 p-1 mx-auto">
+        <nav className="hidden md:flex min-w-0 items-center gap-1 overflow-x-auto rounded-full bg-white/70 backdrop-blur-sm ring-1 ring-black/5 p-1 mx-auto">
           {items.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);

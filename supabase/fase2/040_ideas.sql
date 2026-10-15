@@ -48,16 +48,42 @@ alter table batches
   add column period date check (period is null or extract(day from period) = 1),
   add constraint batches_ideas_period_chk check (origin <> 'ideas' or period is not null);
 
+-- The month of a reel code (PP-yymm-NN) for a batch created at p_created_at.
+-- createBatch takes the year from today (detectBatchYearMonth, codes.ts),
+-- so a January batch imported in December carries the old year: a code
+-- month more than 6 months away from the creation month moves by a year.
+-- Used by this backfill and by the metrics (050).
+create function private._code_month(p_code text, p_created_at timestamptz)
+returns date
+language plpgsql
+stable
+set search_path = pg_catalog
+as $$
+declare
+  m text[] := regexp_match(p_code, '^[A-Z0-9]{2}-(\d{2})(\d{2})-');
+  v_created date := date_trunc('month', p_created_at at time zone 'Europe/Rome')::date;
+  v date;
+begin
+  if m is null or m[2]::int not between 1 and 12 then return null; end if;
+  v := make_date(2000 + m[1]::int, m[2]::int, 1);
+  if v < v_created - interval '6 months' then
+    v := v + interval '1 year';
+  elsif v > v_created + interval '6 months' then
+    v := v - interval '1 year';
+  end if;
+  return v;
+end;
+$$;
+
 update batches b
-   set period = make_date(2000 + substr(m[1], 1, 2)::int, substr(m[1], 3, 2)::int, 1)
+   set period = private._code_month(first_reel.code, b.created_at)
   from (
-    select distinct on (r.batch_id) r.batch_id, regexp_match(r.code, '^[A-Z0-9]{2}-(\d{4})-\d+$') as m
+    select distinct on (r.batch_id) r.batch_id, r.code
       from reels r
      order by r.batch_id, r.ordinal, r.created_at
   ) first_reel
  where first_reel.batch_id = b.id
-   and first_reel.m is not null
-   and substr(first_reel.m[1], 3, 2)::int between 1 and 12;
+   and private._code_month(first_reel.code, b.created_at) is not null;
 
 -------------------------------------------------------------------------------
 -- Reel codes, the SQL twin of buildReelCode: PP-yymm-NN, NN at least two
