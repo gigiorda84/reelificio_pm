@@ -599,6 +599,7 @@ Un modello che non passa viene sostituito dalla sua riserva, con mezza giornata 
 - **Livello AI**, `src/lib/ai/`:
   - `provider.ts`, `openrouter.ts` (`AbortController` al timeout; `provider: {data_collection: 'deny', require_parameters, order?}`, `usage: {include: true}`; nessun `user`), `fake.ts` (`AI_FAKE_LATENCY_MS`, `AI_FAKE_FAIL_MODELS`, `AI_FAKE_429_ONCE`);
   - `prompt.ts`: **input tipizzato con i campi creativi di `page_bibles`, `voice_briefs.banned_words` (le altre colonne Voce non sono nel tipo) e idea o titolo**, più le ultime 5 chiusure e la nota facoltativa; `PROMPT_VERSION`;
+    - **l'idea arriva da `getIdeaForReel` (S3): titolo e spunto**; per un'idea `doc`, o senza idea, il titolo del reel. Voce spostata qui da S3, perché `src/lib/ai/` nasce in S6;
   - `redact.ts`:
     - nomi completi di **tutti** i profili (disattivati compresi), email, telefoni e uuid → `[persona]` ovunque;
     - **nomi di battesimo dei profili → `[persona]` solo nella nota di rimando e nello spunto**; nei campi della bibbia restano, perché possono essere personaggi (avviso nell'editor, S2);
@@ -666,7 +667,7 @@ Un modello che non passa viene sostituito dalla sua riserva, con mezza giornata 
 **Codice:**
 - `src/lib/ideas/*`; `pages/[id]/idee/{page,ideas-backlog,create-batch-dialog}.tsx`; `reels/[id]/idea-box.tsx`; badge dell'origine;
 - `createBatch` mappa l'errore 23505 su `reels.code` (`actions.ts:136-143`);
-- **il prompt di S6 riceve titolo e spunto dell'idea** (`ai-generate.ts`, `prompt.ts`).
+- ~~il prompt di S6 riceve titolo e spunto dell'idea~~: spostato in S6 (`prompt.ts`), perché `src/lib/ai/` nasce lì.
 
 **Verifiche:**
 - db `12_ideas.sql`: permessi, transizioni, numerazione, parità dei codici, rifiuto dei batch `import`, `period`, trigger;
@@ -675,6 +676,53 @@ Un modello che non passa viene sostituito dalla sua riserva, con mezza giornata 
 - unit `codes.test.ts`.
 
 **Fatto quando:** F2-E2 passa sul sandbox; `test-create-batch.ts` e `test-parser.ts` sono invariati.
+
+**Stato (2026-10-15): S3 chiusa.**
+- **Fatto e verde:**
+  - `040_ideas.sql` (commit `bae82c2`, test `3cc3459`) e UI delle idee (`e148c4e`);
+  - `run.sh` (con `api-check` e il nuovo controllo di concorrenza), `upgrade.sh`, typecheck, lint, 127 test, build;
+  - `test-parser.ts` e `test-create-batch.ts` invariati; `test-parser.ts` passa.
+- **F2-E2 provato dall'assistente in Chrome** sul sandbox (sessione admin):
+  - **Pagina Test:**
+    - tre idee aggiunte; una scartata e ripescata;
+    - "Batch Dicembre" (Da idee) con TT-2612-01 e 02, poi una terza idea aggiunta allo stesso batch come TT-2612-03;
+    - il reel mostra l'idea con lo spunto.
+  - **Nuova pagina "Porcino & Papaya" (PP):** l'import del Doc di maggio dà 20 reel PP-2605-01…20, 20 versioni `import` e 20 idee "Dal Doc" tra le scelte.
+  - **Re-sync con conflitto:**
+    - anteprima su PP-2605-01 ritoccato a mano; nel frattempo un salvataggio da un'altra scheda;
+    - "Salva" lascia il reel com'è e lo elenca tra i non aggiornati;
+    - un re-sync rifatto da capo scrive la versione `resync` e riporta il testo del Doc; lo storico conserva le tre versioni manuali.
+  - `period` resta nullo sul nuovo batch `import`, come previsto.
+- **Correzioni dalla prova** (`36fce82`): il form dello script mandava gli a capo come CRLF (codifica multipart del browser).
+  - Ogni salvataggio manuale risultava diverso dall'import su tutti i blocchi multiriga, e il re-sync li segnalava tutti.
+  - Ora `updateReelScript` salva LF, come il parser.
+  - Il difetto c'era già in Fase 1; sul sandbox restano due versioni di prova con CR.
+- **Correzioni dalla revisione indipendente:**
+  - **Titolo vuoto:** un'intestazione `SCRIPT 5 — ` senza titolo faceva fallire l'import intero sul vincolo di `ideas.title`. Trigger e backfill ora usano il codice del reel.
+  - **Collisioni di codice:**
+    - nel re-sync, un nuovo numero di script con un codice già preso da un batch da idee dà `duplicate_codes` invece di `unknown`;
+    - il messaggio copre anche un Doc che ripete un numero di script.
+  - **`create_batch_from_ideas`:**
+    - permessi controllati prima del lock;
+    - lock `for no key update` sulla pagina;
+    - una collisione con un import concorrente dà `stale` e annulla tutto;
+    - niente aggiunte a un batch chiuso.
+  - **UI:**
+    - conteggi reali nelle schede (le scelte in lista sono al massimo 200);
+    - la selezione tiene solo le idee ancora nel backlog;
+    - anno e numero massimo di idee (50) controllati nel dialogo, con messaggi propri;
+    - le idee `doc` mostrano il titolo attuale del reel;
+    - i batch chiusi non compaiono più tra quelli a cui aggiungere idee.
+  - **Test aggiunti:**
+    - titolo vuoto, in `12_ideas` e in `06_fase2` sul backfill;
+    - numerazione dopo i codici di un batch `import`;
+    - percorso admin delle tre RPC;
+    - batch da idee di un'altra pagina e batch chiuso;
+    - collisione → `stale` senza righe scritte;
+    - due `create_batch_from_ideas` concorrenti in `run.sh`;
+    - query di `listIdeasBatches` e `countIdeas` in `api-check`.
+  - **Prova per mutazione:** quattro mutanti, tutti uccisi (trigger senza ripiego, batch chiuso accettato, niente gestore `stale`, niente lock sulla pagina).
+  - **Sandbox:** le due funzioni cambiate sono state riapplicate con `create or replace` e l'md5 di `040_ideas.sql` aggiornato; `fase2-sandbox-migrate.ts --dry-run` non trova nulla in sospeso.
 
 ### S5 — Controlli · 1,5 giorni · senza chiave
 
