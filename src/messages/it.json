@@ -27,6 +27,7 @@
     "pages": "Pagine",
     "batches": "Batch",
     "alerts": "Avvisi",
+    "scriptLab": "Script Lab",
     "settings": "Impostazioni"
   },
   "dashboard": {
@@ -312,6 +313,55 @@
       "duration": "Durata stimata {seconds} s ({words} parole): la bibbia chiede {min}–{max} s.",
       "repeatedSame": "{block} uguale a quella di {code}.",
       "repeatedSimilar": "{block} molto simile a quella di {code} ({percent}%)."
+    }
+  },
+  "scriptLabMetrics": {
+    "title": "Script Lab",
+    "subtitle": "Come va la scrittura: rimandi, batch nati dalle idee, bibbie, autori e provenienza dei testi. Mesi di calendario, ora di Roma.",
+    "period": "Periodo",
+    "months": "{count, plural, one {Ultimo mese} other {Ultimi # mesi}}",
+    "month": "Mese",
+    "total": "Totale",
+    "empty": "Nessun dato nel periodo.",
+    "sendback": {
+      "title": "Rimandi",
+      "intro": "Reel per mese della prima revisione; rimandato = almeno una revisione rimandata a chi scrive. Obiettivo: al massimo 1 su 5. Quando la generazione AI sarà attiva, la quota si vedrà anche per i soli reel scritti con lo Script Lab.",
+      "reviewed": "In revisione",
+      "sentBack": "Rimandati",
+      "share": "Quota"
+    },
+    "batches": {
+      "title": "Batch: idee o Doc",
+      "intro": "Batch per mese (il mese scelto, oppure quello dei codici dei reel) e per origine. L'obiettivo è che i batch del mese nascano dalle idee.",
+      "ideas": "Da idee",
+      "import": "Dal Doc",
+      "next": "prossimo",
+      "cell": "{batches, plural, one {# batch} other {# batch}} · {reels, plural, one {# reel} other {# reel}}"
+    },
+    "bibles": {
+      "title": "Bibbie",
+      "summary": "Bibbie complete: {complete} su {total, plural, one {# pagina attiva} other {# pagine attive}}.",
+      "missing": "Manca: {items}"
+    },
+    "authors": {
+      "title": "Reel per autore",
+      "intro": "Reel per mese della prima consegna della stesura, a chi l'ha consegnata.",
+      "author": "Autore",
+      "noName": "Senza nome"
+    },
+    "provenance": {
+      "title": "Provenienza dei testi",
+      "intro": "Reel per mese dell'ultima consegna della stesura: quanti sono passati da un mix di alternative, da quale modello vengono la base e i blocchi, quanti sono stati ritoccati a mano dopo il mix.",
+      "delivered": "Consegnati",
+      "mixed": "Con mix",
+      "bases": "Base",
+      "blocks": "Blocchi",
+      "edited": "Ritoccati dopo il mix",
+      "manual": "a mano"
+    },
+    "costs": {
+      "title": "Costi",
+      "pending": "Il riepilogo mensile dei costi per pagina e modello compare quando la generazione AI è attiva."
     }
   },
   "ideas": {

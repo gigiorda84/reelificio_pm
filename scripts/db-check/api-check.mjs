@@ -425,6 +425,20 @@ const OPEN = ['unassigned', 'assigned', 'in_progress'];
   check('internal without a role cannot create ideas', outsider.data?.code === 'not_authorized', outsider.error ?? outsider.data);
 }
 
+// Fase 2 S7 — Script Lab metrics (docs/fase2-plan.md AC22–AC25): admins get
+// every section; anyone else gets 42501, and a bad period 22023.
+{
+  const period = { p_from: '2026-01-01', p_to: '2027-01-01' };
+  const admin = await user(ADMIN).rpc('script_lab_metrics', period);
+  const sections = ['sendback', 'batches', 'bibles', 'authors', 'provenance'];
+  check('admin reads the Script Lab metrics', !admin.error && sections.every((k) => k in (admin.data ?? {}))
+    && Array.isArray(admin.data?.batches) && typeof admin.data?.bibles?.active_pages === 'number', admin.error ?? admin.data);
+  const member = await user(MEMBER).rpc('script_lab_metrics', period);
+  check('non-admin gets 42501 on the metrics', member.error?.code === '42501', member.error ?? member.data);
+  const reversed = await user(ADMIN).rpc('script_lab_metrics', { p_from: '2027-01-01', p_to: '2026-01-01' });
+  check('a reversed period gets 22023', reversed.error?.code === '22023', reversed.error ?? reversed.data);
+}
+
 proxy.close();
 if (failures) {
   console.log(`${failures} API check(s) failed`);

@@ -24,7 +24,8 @@ declare
     -- Fase 2 (docs/fase2-plan.md §7.2): each slice adds its RPCs here
     'save_bible',
     'save_reel_script', 'apply_script_version', 'restore_script_version', 'reel_script_provenance',
-    'upsert_idea', 'set_idea_status', 'create_batch_from_ideas'
+    'upsert_idea', 'set_idea_status', 'create_batch_from_ideas',
+    'script_lab_metrics'
   ];
   v_bad text;
 begin

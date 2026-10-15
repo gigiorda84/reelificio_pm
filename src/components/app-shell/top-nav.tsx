@@ -24,14 +24,18 @@ const NAV_ITEMS = [
 // External collaborators only work on their own tasks.
 const EXTERNAL_NAV_ITEMS = [{ href: '/compiti', key: 'tasks' }] as const;
 
+// The Script Lab metrics (Fase 2 S7) are for admins.
+const ADMIN_NAV_ITEMS = [...NAV_ITEMS, { href: '/script-lab', key: 'scriptLab' }] as const;
+
 type Props = {
   email: string | null;
   isExternal: boolean;
+  isAdmin: boolean;
   approvalsCount: number;
 };
 
-export function TopNav({ email, isExternal, approvalsCount }: Props) {
-  const items = isExternal ? EXTERNAL_NAV_ITEMS : NAV_ITEMS;
+export function TopNav({ email, isExternal, isAdmin, approvalsCount }: Props) {
+  const items = isExternal ? EXTERNAL_NAV_ITEMS : isAdmin ? ADMIN_NAV_ITEMS : NAV_ITEMS;
   const t = useTranslations('nav');
   const tApp = useTranslations('app');
   const pathname = usePathname();
