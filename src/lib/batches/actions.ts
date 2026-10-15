@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { fetchDocAsText, DriveFetchError } from '@/lib/drive/fetch';
 import { parseScriptDoc } from '@/lib/parser/parse';
-import { buildReelCode, detectBatchYearMonth } from './codes';
+import { buildReelCode, detectBatchYearMonth, reelCodeYearMonth } from './codes';
 import type { ParsedReel } from '@/lib/parser/types';
 import { REEL_STATES, type ReelState } from '@/lib/reels/constants';
 
@@ -304,7 +304,20 @@ export async function resyncBatch(
 
   // Apply: insert new reels, update changed reels. Removed reels are kept
   // (production work may be in flight); they are simply flagged in the diff.
-  const { year, month } = detectBatchYearMonth(parsedDoc.batchLabel);
+  // New script numbers take the year and month of the batch's first code, not
+  // of today: a batch coded before the year fix keeps its year, and a re-sync
+  // in another month or year does not split the batch across two months.
+  const { data: firstReel } = await supabase
+    .from('reels')
+    .select('code')
+    .eq('batch_id', batchId)
+    .order('ordinal')
+    .order('created_at')
+    .limit(1)
+    .maybeSingle();
+  const { year, month } =
+    (firstReel && reelCodeYearMonth(firstReel.code)) ??
+    detectBatchYearMonth(parsedDoc.batchLabel);
   const newReelOrdinals = new Set(diff.added);
   const changedOrdinals = new Set(diff.changed.map((c) => c.ordinal));
 
